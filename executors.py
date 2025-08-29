@@ -127,7 +127,29 @@ def exec_clarification(
         for a in step.assumptions:
             print(f"   • {a}")
 
-    # Wait for user response
+    # Check if we're in API mode (force mode)
+    force_mode = context.get("api_mode", False)
+
+    if force_mode:
+        # In API mode, auto-complete with assumptions
+        auto_response = "Auto-completed in API mode"
+        if step.assumptions:
+            auto_response = (
+                step.assumptions[0] if step.assumptions else "Auto-completed"
+            )
+
+        print(f"\n[green]🔄 API Mode: Auto-completing with: {auto_response}[/green]")
+
+        return {
+            "tool": "clarification",
+            "status": "auto_completed",
+            "user_input": auto_response,
+            "questions": step.questions,
+            "assumptions_used": step.assumptions,
+            "task_completed": True,
+        }
+
+    # Wait for user response (interactive mode)
     print("\n[bold cyan]Please clarify your request:[/bold cyan]")
     try:
         user_clarification = input(">>> ").strip()
@@ -668,48 +690,56 @@ def exec_create_directory(
             if parent_dir and not os.path.exists(parent_dir):
                 print(f"⚠️  Parent directories will be created: {parent_dir}")
 
-        print("\n[bold cyan]Do you want to create this directory? (y/n):[/bold cyan]")
+        # Check if we're in API mode (force mode)
+        force_mode = context.get("api_mode", False)
 
-        try:
-            user_response = input(">>> ").strip().lower()
-            if user_response not in ["y", "yes", "да", "д"]:
+        if force_mode:
+            # In API mode, auto-create directory
+            print("\n[green]🔄 API Mode: Auto-creating directory[/green]")
+            os.makedirs(step.directory_path, exist_ok=True)
+        else:
+            # Interactive mode - ask user
+            print(
+                "\n[bold cyan]Do you want to create this directory? (y/n):[/bold cyan]"
+            )
+
+            try:
+                user_response = input(">>> ").strip().lower()
+                if user_response not in ["y", "yes", "да", "д"]:
+                    return {
+                        "tool": "create_directory",
+                        "status": "cancelled",
+                        "message": "Directory creation cancelled by user",
+                        "directory_path": step.directory_path,
+                    }
+
+                # Создаем директорию
+                os.makedirs(step.directory_path, exist_ok=False)
+            except (KeyboardInterrupt, EOFError):
                 return {
                     "tool": "create_directory",
                     "status": "cancelled",
-                    "message": "Directory creation cancelled by user",
+                    "message": "Directory creation cancelled by user (interrupted)",
                     "directory_path": step.directory_path,
                 }
 
-            # Создаем директорию
-            os.makedirs(step.directory_path, exist_ok=False)
+        print(f"✅ Directory created successfully: {step.directory_path}")
 
-            print(f"✅ Directory created successfully: {step.directory_path}")
-
-            # Проверяем, что директория действительно создана
-            if os.path.exists(step.directory_path) and os.path.isdir(
-                step.directory_path
-            ):
-                return {
-                    "tool": "create_directory",
-                    "status": "success",
-                    "directory_path": step.directory_path,
-                    "description": step.description,
-                    "created_parents": step.create_parents,
-                    "message": f"Directory '{step.directory_path}' created successfully",
-                }
-            else:
-                return {
-                    "tool": "create_directory",
-                    "status": "error",
-                    "error": "Directory creation appeared to succeed but directory not found",
-                    "directory_path": step.directory_path,
-                }
-
-        except (KeyboardInterrupt, EOFError):
+        # Проверяем, что директория действительно создана
+        if os.path.exists(step.directory_path) and os.path.isdir(step.directory_path):
             return {
                 "tool": "create_directory",
-                "status": "cancelled",
-                "message": "Directory creation cancelled by user (interrupted)",
+                "status": "success",
+                "directory_path": step.directory_path,
+                "description": step.description,
+                "created_parents": step.create_parents,
+                "message": f"Directory '{step.directory_path}' created successfully",
+            }
+        else:
+            return {
+                "tool": "create_directory",
+                "status": "error",
+                "error": "Directory creation appeared to succeed but directory not found",
                 "directory_path": step.directory_path,
             }
 

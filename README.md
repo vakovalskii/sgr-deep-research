@@ -117,7 +117,12 @@ Traditional agents either use pure function calls (losing reasoning transparency
 ├── executors.py          # ⚡ Tool execution logic
 ├── prompts.yaml          # 💬 System prompts configuration
 ├── config.yaml.example   # ⚙️ Configuration template
-└── requirements.txt      # 📦 Python dependencies
+├── requirements.txt      # 📦 Python dependencies
+├── gui_app.py            # 🌐 Chainlit web interface
+├── api_server.py         # 🔌 FastAPI OpenAI-compatible server
+├── test_openai_client.py # 🧪 OpenAI client test script
+├── start_api.sh          # 🚀 API server startup script
+└── API_README.md         # 📖 API server documentation
 ```
 
 ## 🔄 Workflow Deep Dive
@@ -337,6 +342,51 @@ Agent: "You researched Tesla Model S pricing and created a report"
 Session 3:
 User: "Now compare with BMW i7"
 Agent: References previous Tesla research → Creates comparison
+```
+
+## 🔌 API Server
+
+The project includes a **FastAPI-based API server** that provides **full OpenAI API compatibility** with streaming support and SGR integration.
+
+### Features
+
+- **🔌 OpenAI API Compatibility** - Drop-in replacement for OpenAI API
+- **🌊 Streaming Support** - Real-time streaming with `stream: true`
+- **🧠 SGR Integration** - Full Schema-Guided Reasoning capabilities
+- **📚 Auto-documentation** - Swagger/ReDoc documentation
+
+### Quick Start
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Start API server
+python api_server.py
+```
+
+The API server will be available at:
+
+- **API Endpoint**: http://localhost:8000/v1/chat/completions
+- **Documentation**: http://localhost:8000/docs
+- **Health Check**: http://localhost:8000/health
+
+### Basic Usage
+
+```python
+from openai import OpenAI
+
+# Point to local API
+client = OpenAI(
+    api_key="dummy-key", base_url="http://localhost:8000/v1"  # Not used by local API
+)
+
+# Same API calls as OpenAI
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Research Python"}],
+    stream=False,
+)
 ```
 
 ## 🌐 Web Interface

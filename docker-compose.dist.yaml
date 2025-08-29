@@ -1,0 +1,16 @@
+x-shared-logs: &shared-logs
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "100k"
+
+services:
+  api:
+    build:
+      context: .
+    environment:
+      OPENAI_API_KEY: your-openai-api-key-here
+      TAVILY_API_KEY: your-tavily-api-key-here
+    ports:
+      - "8080:8080"
+    <<: *shared-logs

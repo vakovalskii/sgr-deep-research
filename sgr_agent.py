@@ -82,6 +82,16 @@ openai_kwargs = {"api_key": CONFIG["openai_api_key"]}
 if CONFIG["openai_base_url"]:
     openai_kwargs["base_url"] = CONFIG["openai_base_url"]
 
+# Add proxy support if configured
+if "openai_proxy" in CONFIG and CONFIG["openai_proxy"]:
+    import httpx
+
+    openai_kwargs["http_client"] = httpx.Client(
+        follow_redirects=True,
+        limits=httpx.Limits(max_connections=10),
+        proxy=CONFIG["openai_proxy"],
+    )
+
 client = OpenAI(**openai_kwargs)
 tavily = TavilyClient(CONFIG["tavily_api_key"])
 executors = get_executors()
