@@ -5,7 +5,6 @@ from typing import Type
 
 import httpx
 from openai import AsyncOpenAI
-from settings import get_config
 
 from core.models import AgentStatesEnum, ResearchContext
 from core.prompts import PromptLoader
@@ -23,17 +22,17 @@ logging.basicConfig(
     ],
 )
 
-config = get_config().app_config
 logger = logging.getLogger(__name__)
 
 
 class SGRResearchAgent:
-    def __init__(self, task: str, max_clarifications: int = 3, max_searches: int = 4):
+    def __init__(self, task: str, config, max_clarifications: int = 3, max_searches: int = 4):
         self.id = f"sgr_agent_{uuid.uuid4()}"
         self.task = task
+        self.config = config
 
         self._context = ResearchContext()
-        self.conversation = []
+        self.conversation: list[dict] = []
         self.max_clarifications = max_clarifications
         self.max_searches = max_searches
         # Initialize OpenAI client with optional proxy support
@@ -52,17 +51,17 @@ class SGRResearchAgent:
 
     def _prepare_tools(self) -> Type[NextStepToolStub]:
         """Prepare tool classes with current context limits"""
-        to_exclude = []
+        to_exclude: list[Type] = []
         if self._context.clarifications_used >= self.max_clarifications:
             to_exclude.append(ClarificationTool)
         if self._context.searches_used >= self.max_searches:
             to_exclude.append(WebSearchTool)
-        return NextStepToolsBuilder.build_NextStepTools(exclude=to_exclude)
+        return NextStepToolsBuilder.build_NextStepTools(exclude=to_exclude, config=self.config)
 
     def _prepare_context(self) -> list[dict]:
         """Prepare conversation context with system prompt and current state"""
         system_prompt = PromptLoader.get_system_prompt(
-            user_request=self.task, sources=list(self._context.sources.values())
+            user_request=self.task, sources=list(self._context.sources.values()), config=self.config
         )
         conversation = [{"role": "system", "content": system_prompt}]
         conversation.extend(self.conversation)
@@ -72,18 +71,19 @@ class SGRResearchAgent:
         self, messages: list[dict], response_format: Type[NextStepToolStub]
     ) -> NextStepToolStub | None:
         async with self.openai_client.chat.completions.stream(
-            model=config.openai.model,
+            model=self.config.openai.model,
             response_format=response_format,
-            messages=messages,
-            max_tokens=config.openai.max_tokens,
-            temperature=config.openai.temperature,
+            messages=messages,  # type: ignore
+            max_tokens=self.config.openai.max_tokens,
+            temperature=self.config.openai.temperature,
         ) as stream:
             async for event in stream:
                 if event.type == "chunk":
                     content = event.chunk.choices[0].delta.content
-                    self.streaming_generator.add_chunk(content)
+                    if content:
+                        self.streaming_generator.add_chunk(content)
                     if event.chunk.choices[0].finish_reason is not None:
-                        return event.snapshot.choices[0].message.parsed
+                        return event.snapshot.choices[0].message.parsed  # type: ignore
         return None
 
     async def provide_clarification(self, clarifications: str):
@@ -135,7 +135,7 @@ class SGRResearchAgent:
         )
         # Execute reasoning steps
         try:
-            for i in range(config.execution.max_steps):
+            for i in range(self.config.execution.max_steps):
                 step_id = f"step-{i + 1}"
                 logger.info(f"agent {self.id} Step {step_id}")
                 try:
@@ -174,7 +174,7 @@ class SGRResearchAgent:
                     str(step_id), result.function.tool, result.function.model_dump_json()
                 )
 
-                tool_call_result = result.function(self._context)  # noqa
+                tool_call_result = result.function(self._context, self.config)  # noqa
 
                 self.conversation.append({"role": "tool", "content": tool_call_result, "tool_call_id": step_id})
                 self.streaming_generator.add_chunk(f"{tool_call_result}\n")

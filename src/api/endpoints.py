@@ -5,6 +5,7 @@ from core.agent import SGRResearchAgent
 from core.models import AgentStatesEnum
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
+from settings import get_config
 
 from api.models import AgentListItem, AgentListResponse, AgentStateResponse, ChatCompletionRequest, HealthResponse
 
@@ -14,6 +15,7 @@ app = FastAPI(title="SGR Deep Research API", version="1.0.0")
 
 # ToDo: better to move to a separate service
 agents_storage: dict[str, SGRResearchAgent] = {}
+config = get_config().app_config
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -102,7 +104,7 @@ async def create_chat_completion(request: ChatCompletionRequest):
         return await provide_clarification(request.model, request)
     try:
         task = extract_user_content_from_messages(request.messages)
-        agent = SGRResearchAgent(task=task)
+        agent = SGRResearchAgent(task=task, config=config)
 
         agents_storage[agent.id] = agent
         logger.info(f"Agent {agent.id} created and stored for task: {task[:100]}...")

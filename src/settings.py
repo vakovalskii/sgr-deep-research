@@ -78,7 +78,6 @@ class ServerConfig(BaseModel):
     app_config: AppConfig = Field(description="Конфигурация приложения")
 
 
-@cache
 def get_config(argv=None) -> ServerConfig:
     parser = argparse.ArgumentParser(description="SGR Deep Research Server")
     parser.add_argument(

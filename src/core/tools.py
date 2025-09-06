@@ -6,16 +6,10 @@ import os
 from datetime import datetime
 from typing import TYPE_CHECKING, ClassVar, Type
 
-from core.prompts import PromptLoader
-
-if TYPE_CHECKING:
-    from core.models import ResearchContext
-
 from pydantic import Field, create_model
-from services.tavily_search import TavilySearchService
-from settings import get_config
 
 from core.models import SearchResult
+from core.prompts import PromptLoader
 from core.reasoning_schemas import (
     AdaptPlan,
     Clarification,
@@ -25,10 +19,13 @@ from core.reasoning_schemas import (
     ReportCompletion,
     WebSearch,
 )
+from services.tavily_search import TavilySearchService
+
+if TYPE_CHECKING:
+    from core.models import ResearchContext
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-config = get_config().app_config
 
 
 class ToolCallMixin:
@@ -40,11 +37,11 @@ class ToolCallMixin:
 
 
 class ClarificationTool(ToolCallMixin, Clarification):
-    def __call__(self, context: ResearchContext) -> str:
+    def __call__(self, context: ResearchContext, config=None) -> str:
         """Handle clarification requests when facing ambiguous user requests"""
 
         # Mark clarification as used to prevent cycling
-        context.clarification_used = True
+        context.clarifications_used += 1
 
         if self.unclear_terms:
             logger.info(f"❓ Unclear terms: {', '.join(self.unclear_terms)}")
@@ -64,7 +61,7 @@ class ClarificationTool(ToolCallMixin, Clarification):
 
 
 class GeneratePlanTool(ToolCallMixin, GeneratePlan):
-    def __call__(self, context: ResearchContext) -> str:
+    def __call__(self, context: ResearchContext, config=None) -> str:
         """Generate and store research plan based on clear user request"""
         logger.info("📋 Research Plan Created:")
         logger.info(f"🎯 Goal: {self.research_goal}")
@@ -81,7 +78,7 @@ class GeneratePlanTool(ToolCallMixin, GeneratePlan):
 
 
 class AdaptPlanTool(ToolCallMixin, AdaptPlan):
-    def __call__(self, context: ResearchContext) -> str:
+    def __call__(self, context: ResearchContext, config=None) -> str:
         """Adapt research plan based on new findings"""
         logger.info("\n🔄 PLAN ADAPTED")
         logger.info("📝 Changes:")
@@ -98,7 +95,7 @@ class AdaptPlanTool(ToolCallMixin, AdaptPlan):
 
 
 class CreateReportTool(ToolCallMixin, CreateReport):
-    def __call__(self, context: ResearchContext) -> str:
+    def __call__(self, context: ResearchContext, config=None) -> str:
         # Debug: Log CreateReport fields
         logger.info("📝 CREATE REPORT FULL DEBUG:")
         logger.info(f"   🌍 Language Reference: '{self.user_request_language_reference}'")
@@ -142,7 +139,7 @@ class CreateReportTool(ToolCallMixin, CreateReport):
 
 
 class ReportCompletionTool(ToolCallMixin, ReportCompletion):
-    def __call__(self, context: ResearchContext) -> str:
+    def __call__(self, context: ResearchContext, config=None) -> str:
         """Complete research task"""
 
         logger.info("\n✅ RESEARCH COMPLETED")
@@ -163,10 +160,14 @@ class ReportCompletionTool(ToolCallMixin, ReportCompletion):
 class WebSearchTool(ToolCallMixin, WebSearch):
     def __init__(self, **data):
         super().__init__(**data)
-        self._search_service = TavilySearchService()
+        self._search_service = None
+        self._config = None
 
-    def __call__(self, context: ResearchContext) -> str:
+    def __call__(self, context: ResearchContext, config=None) -> str:
         """Execute web search using TavilySearchService"""
+        if self._search_service is None or self._config != config:
+            self._search_service = TavilySearchService(config)
+            self._config = config
 
         logger.info(f"🔍 Search query: '{self.query}'")
 
@@ -241,8 +242,10 @@ class NextStepToolsBuilder:
         return reduce(operator.or_, enabled_tools_types)
 
     @classmethod
-    def build_NextStepTools(cls, exclude: list[Type[ToolCallMixin]] | None = None) -> Type[NextStepToolStub]:
-        tool_prompt = PromptLoader.get_tool_function_prompt()
+    def build_NextStepTools(
+        cls, exclude: list[Type[ToolCallMixin]] | None = None, config=None
+    ) -> Type[NextStepToolStub]:
+        tool_prompt = PromptLoader.get_tool_function_prompt(config)
         return create_model(
             "NextStepTools",
             __base__=NextStepToolStub,

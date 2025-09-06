@@ -2,8 +2,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from core.prompts import PromptLoader
-
 
 class Clarification(BaseModel):
     """Ask clarifying questions when facing ambiguous requests"""
@@ -108,4 +106,4 @@ class NextStep(BaseModel):
         | AdaptPlan  # When findings conflict with plan
         | CreateReport  # When sufficient data collected
         | ReportCompletion  # Task completion
-    ) = Field(description=PromptLoader.get_tool_function_prompt())
+    ) = Field(description="Tool selection guidance")

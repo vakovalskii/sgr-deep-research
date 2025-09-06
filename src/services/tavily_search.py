@@ -1,15 +1,13 @@
 import logging
 
 from core.models import SourceData
-from settings import get_config
 from tavily import TavilyClient
 
 logger = logging.getLogger(__name__)
 
 
 class TavilySearchService:
-    def __init__(self):
-        config = get_config().app_config
+    def __init__(self, config):
         self._client = TavilyClient(config.tavily.api_key)
         self._config = config
 
