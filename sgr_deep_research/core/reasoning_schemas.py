@@ -1,11 +1,27 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from sgr_deep_research.core.prompts import PromptLoader
 
 
-class Clarification(BaseModel):
+class ToolBase(BaseModel):
+    """Base model adding tolerant 'tool' normalization for provider quirks.
+
+    Normalizes values like 'GeneratePlan' (PascalCase) -> 'generate_plan' (snake_case)
+    before Literal validation. This helps with providers that change casing.
+    """
+
+    @field_validator("tool", mode="before", check_fields=False)
+    @classmethod
+    def _normalize_tool(cls, v):
+        if isinstance(v, str):
+            normalized = "".join(["_" + c.lower() if c.isupper() else c for c in v]).lstrip("_")
+            return normalized
+        return v
+
+
+class Clarification(ToolBase):
     """Ask clarifying questions when facing ambiguous requests."""
 
     tool: Literal["clarification"]
@@ -15,7 +31,7 @@ class Clarification(BaseModel):
     questions: list[str] = Field(description="3-5 specific clarifying questions", min_length=3, max_length=5)
 
 
-class GeneratePlan(BaseModel):
+class GeneratePlan(ToolBase):
     """Generate research plan based on clear user request."""
 
     tool: Literal["generate_plan"]
@@ -25,7 +41,7 @@ class GeneratePlan(BaseModel):
     search_strategies: list[str] = Field(description="Information search strategies", min_length=2, max_length=3)
 
 
-class WebSearch(BaseModel):
+class WebSearch(ToolBase):
     """Search for information with credibility focus."""
 
     tool: Literal["web_search"]
@@ -39,7 +55,7 @@ class WebSearch(BaseModel):
     )
 
 
-class AdaptPlan(BaseModel):
+class AdaptPlan(ToolBase):
     """Adapt research plan based on new findings."""
 
     tool: Literal["adapt_plan"]
@@ -50,7 +66,7 @@ class AdaptPlan(BaseModel):
     next_steps: list[str] = Field(description="Updated remaining steps", min_length=2, max_length=4)
 
 
-class CreateReport(BaseModel):
+class CreateReport(ToolBase):
     """Create comprehensive research report with citations."""
 
     tool: Literal["create_report"]
@@ -66,7 +82,7 @@ class CreateReport(BaseModel):
     confidence: Literal["high", "medium", "low"] = Field(description="Confidence in findings")
 
 
-class ReportCompletion(BaseModel):
+class ReportCompletion(ToolBase):
     """Complete research task."""
 
     tool: Literal["report_completion"]
