@@ -107,7 +107,7 @@ async def provide_clarification(agent_id: str, request: ChatCompletionRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error completion: {e}")
-        raise HTTPException(status_code=500, detail="str(e)")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def _is_agent_id(model_str: str) -> bool:
