@@ -111,6 +111,10 @@ class ReasoningTool(BaseTool):
     # Reasoning and state assessment
     current_situation: str = Field(description="Current research situation analysis")
     plan_status: str = Field(description="Status of current plan execution")
+    previous_search_summary: str = Field(
+        default="",
+        description="Summary of key findings from previous searches (to maintain context without full search results)"
+    )
     enough_data: bool = Field(
         default=False,
         description="Sufficient data collected for comprehensive report?",
@@ -178,7 +182,7 @@ class NextStepToolsBuilder:
 
 
 system_agent_tools = [
-    ClarificationTool,
+    # ClarificationTool,  # Disabled - agents should not ask clarifications
     GeneratePlanTool,
     AdaptPlanTool,
     AgentCompletionTool,

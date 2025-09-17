@@ -13,10 +13,10 @@ class SGRAutoToolCallingResearchAgent(SGRToolCallingResearchAgent):
         self,
         task: str,
         toolkit: list[Type[BaseTool]] | None = None,
-        max_clarifications: int = 3,
-        max_searches: int = 4,
-        max_iterations: int = 10,
+        # max_clarifications: int = 3,  # Disabled - agent should not ask clarifications
+        max_searches: int = 3,  # Aligned with config.search.max_results
+        max_iterations: int | None = None,
     ):
-        super().__init__(task, toolkit, max_clarifications, max_searches, max_iterations)
+        super().__init__(task, toolkit, max_searches, max_iterations)
         self.id = f"sgr_auto_tool_calling_agent_{uuid.uuid4()}"
         self.tool_choice: Literal["auto"] = "auto"

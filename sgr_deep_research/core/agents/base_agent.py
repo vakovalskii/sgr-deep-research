@@ -40,7 +40,7 @@ class BaseAgent:
         self,
         task: str,
         toolkit: list[Type[BaseTool]] | None = None,
-        max_iterations: int = 10,
+        max_iterations: int | None = None,
         max_clarifications: int = 3,
     ):
         self.id = f"base_agent_{uuid.uuid4()}"
@@ -50,7 +50,7 @@ class BaseAgent:
         self._context = ResearchContext()
         self.conversation = []
         self.log = []
-        self.max_iterations = max_iterations
+        self.max_iterations = max_iterations or config.execution.max_steps
         self.max_clarifications = max_clarifications
 
         client_kwargs = {"base_url": config.openai.base_url, "api_key": config.openai.api_key}
@@ -114,6 +114,36 @@ class BaseAgent:
             }
         )
 
+    def _log_openai_request(self, request_data: dict, response_info: dict | None = None):
+        """Log OpenAI API request and response information."""
+        logger.info(
+            f"""
+###############################################
+🤖 OPENAI API CALL DEBUG:
+   🔧 Model: {config.openai.model}
+   📋 Request: {json.dumps(request_data, indent=2, ensure_ascii=False)[:1000]}...
+   📊 Base URL: {config.openai.base_url}
+   🌡️ Temperature: {config.openai.temperature}
+   🔢 Max Tokens: {config.openai.max_tokens}
+###############################################"""
+        )
+        self.log.append(
+            {
+                "step_number": self._context.iteration,
+                "timestamp": datetime.now().isoformat(),
+                "step_type": "openai_request",
+                "model_info": {
+                    "model": config.openai.model,
+                    "base_url": config.openai.base_url,
+                    "temperature": config.openai.temperature,
+                    "max_tokens": config.openai.max_tokens,
+                    "proxy": config.openai.proxy if config.openai.proxy.strip() else None,
+                },
+                "raw_request": request_data,
+                "response_info": response_info,
+            }
+        )
+
     def _save_agent_log(self):
         logs_dir = config.execution.logs_dir
         os.makedirs(logs_dir, exist_ok=True)
@@ -121,6 +151,13 @@ class BaseAgent:
         agent_log = {
             "id": self.id,
             "task": self.task,
+            "model_info": {
+                "model": config.openai.model,
+                "base_url": config.openai.base_url,
+                "temperature": config.openai.temperature,
+                "max_tokens": config.openai.max_tokens,
+                "proxy": config.openai.proxy if config.openai.proxy.strip() else None,
+            },
             "context": self._context.agent_state(),
             "log": self.log,
         }
@@ -133,6 +170,7 @@ class BaseAgent:
             user_request=self.task,
             sources=list(self._context.sources.values()),
             available_tools=self.toolkit,
+            previous_searches_summary=self._context.previous_searches_summary,
         )
         return [{"role": "system", "content": system_prompt}, *self.conversation]
 
@@ -174,6 +212,12 @@ class BaseAgent:
             while self._context.state not in AgentStatesEnum.FINISH_STATES.value:
                 self._context.iteration += 1
                 logger.info(f"agent {self.id} Step {self._context.iteration} started")
+
+                # Enforce max_iterations limit
+                if self._context.iteration > self.max_iterations:
+                    logger.warning(f"⚠️ Agent {self.id} reached max iterations ({self.max_iterations}), forcing completion")
+                    self._context.state = AgentStatesEnum.COMPLETED
+                    break
 
                 reasoning = await self._reasoning_phase()
                 self._context.current_state_reasoning = reasoning

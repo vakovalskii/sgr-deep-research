@@ -53,8 +53,11 @@ class ResearchContext(BaseModel):
 
     searches: list[SearchResult] = Field(default_factory=list, description="List of performed searches")
     sources: dict[str, SourceData] = Field(default_factory=dict, description="Dictionary of found sources")
+    previous_searches_summary: str = Field(default="", description="Summary of previous searches to maintain context")
 
     searches_used: int = Field(default=0, description="Number of searches performed")
+    
+    report_created: bool = Field(default=False, description="Whether research report has been created")
 
     clarifications_used: int = Field(default=0, description="Number of clarifications requested")
     clarification_received: asyncio.Event = Field(
@@ -64,6 +67,42 @@ class ResearchContext(BaseModel):
     # ToDO: rename, my creativity finished now
     def agent_state(self) -> dict:
         return self.model_dump(exclude={"searches", "sources", "clarification_received"})
+    
+    def cleanup_old_searches_and_save_summary(self, max_searches_to_keep: int = 1) -> None:
+        """Clean up old search results and save summary to prevent context overflow."""
+        if len(self.searches) > max_searches_to_keep:
+            # Create summary of searches that will be removed
+            old_searches = self.searches[:-max_searches_to_keep]
+            summary_parts = []
+            
+            for search in old_searches:
+                search_summary = f"Query: '{search.query}'"
+                if search.answer:
+                    search_summary += f" - Answer: {search.answer[:200]}..."
+                if search.citations:
+                    key_sources = [f"{cite.title} ({cite.url})" for cite in search.citations[:2]]
+                    search_summary += f" - Sources: {', '.join(key_sources)}"
+                summary_parts.append(search_summary)
+            
+            # Update summary
+            new_summary = "\n".join(summary_parts)
+            if self.previous_searches_summary:
+                self.previous_searches_summary += f"\n\n--- Previous searches ---\n{new_summary}"
+            else:
+                self.previous_searches_summary = new_summary
+            
+            # Keep only recent searches
+            self.searches = self.searches[-max_searches_to_keep:]
+            
+            # Clean up old sources (keep only sources referenced in recent searches)
+            recent_source_urls = set()
+            for search in self.searches:
+                for cite in search.citations:
+                    recent_source_urls.add(cite.url)
+            
+            # Remove old sources
+            self.sources = {url: source for url, source in self.sources.items() 
+                          if url in recent_source_urls}
 
 
 class AgentStatistics(BaseModel):

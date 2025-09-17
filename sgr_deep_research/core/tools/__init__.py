@@ -11,6 +11,7 @@ from sgr_deep_research.core.tools.base import (
 )
 from sgr_deep_research.core.tools.research import (
     CreateReportTool,
+    ExtractContentTool,
     WebSearchTool,
     research_agent_tools,
 )
@@ -21,6 +22,7 @@ __all__ = [
     "ClarificationTool",
     "GeneratePlanTool",
     "WebSearchTool",
+    "ExtractContentTool",
     "AdaptPlanTool",
     "CreateReportTool",
     "AgentCompletionTool",

@@ -41,6 +41,7 @@ class ScrapingConfig(BaseModel):
     enabled: bool = Field(default=False, description="Enable full text scraping")
     max_pages: int = Field(default=5, gt=0, description="Maximum pages to scrape")
     content_limit: int = Field(default=1500, gt=0, description="Content character limit per source")
+    extraction_limit: int = Field(default=25000, gt=0, description="Content character limit for ExtractContentTool")
 
 
 class PromptsConfig(BaseModel):
@@ -53,7 +54,7 @@ class PromptsConfig(BaseModel):
 class ExecutionConfig(BaseModel):
     """Application execution settings."""
 
-    max_steps: int = Field(default=6, gt=0, description="Maximum number of execution steps")
+    max_steps: int = Field(default=10, gt=0, description="Maximum number of execution steps")
     reports_dir: str = Field(default="reports", description="Directory for saving reports")
     logs_dir: str = Field(default="logs", description="Directory for saving bot logs")
 

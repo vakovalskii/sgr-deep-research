@@ -337,3 +337,6 @@ personal_notes.md
 
 # Conversation logs for debugging
 logs/
+/testing
+/templates
+log_viewer_app.py

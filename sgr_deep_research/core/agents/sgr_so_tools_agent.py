@@ -25,14 +25,14 @@ class SGRSOToolCallingResearchAgent(SGRToolCallingResearchAgent):
         self,
         task: str,
         toolkit: list[Type[BaseTool]] | None = None,
-        max_clarifications: int = 3,
-        max_searches: int = 4,
-        max_iterations: int = 10,
+        # max_clarifications: int = 3,  # Disabled - agent should not ask clarifications
+        max_searches: int = 3,  # Aligned with config.search.max_results
+        max_iterations: int | None = None,
     ):
         super().__init__(
             task=task,
             toolkit=toolkit,
-            max_clarifications=max_clarifications,
+            # max_clarifications=max_clarifications,  # Disabled - agent should not ask clarifications
             max_iterations=max_iterations,
             max_searches=max_searches,
         )

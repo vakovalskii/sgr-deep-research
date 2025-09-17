@@ -9,8 +9,9 @@ from sgr_deep_research.core.agents.base_agent import BaseAgent
 from sgr_deep_research.core.tools import (
     AgentCompletionTool,
     BaseTool,
-    ClarificationTool,
+    # ClarificationTool,  # Disabled - agent should not ask clarifications
     CreateReportTool,
+    ExtractContentTool,
     ReasoningTool,
     WebSearchTool,
     research_agent_tools,
@@ -37,14 +38,14 @@ class ToolCallingResearchAgent(BaseAgent):
         self,
         task: str,
         toolkit: list[Type[BaseTool]] | None = None,
-        max_clarifications: int = 3,
-        max_searches: int = 4,
-        max_iterations: int = 10,
+        # max_clarifications: int = 3,  # Disabled - agent should not ask clarifications
+        max_searches: int = 3,  # Aligned with config.search.max_results
+        max_iterations: int | None = None,
     ):
         super().__init__(
             task=task,
             toolkit=toolkit,
-            max_clarifications=max_clarifications,
+            # max_clarifications=max_clarifications,  # Disabled - agent should not ask clarifications
             max_iterations=max_iterations,
         )
         self.id = f"tool_calling_agent_{uuid.uuid4()}"
@@ -58,15 +59,24 @@ class ToolCallingResearchAgent(BaseAgent):
     async def _prepare_tools(self) -> list[ChatCompletionFunctionToolParam]:
         """Prepare tool classes with current context limits."""
         tools = set(self.toolkit)
+        
+        # Force completion if max iterations reached
         if self._context.iteration >= self.max_iterations:
             tools = [
                 CreateReportTool,
                 AgentCompletionTool,
             ]
-        if self._context.clarifications_used >= self.max_clarifications:
+        # Prevent CreateReportTool if no searches performed - FORCE data collection first
+        elif self._context.searches_used == 0:
             tools -= {
-                ClarificationTool,
+                CreateReportTool,
             }
+        
+        # Clarification tool is completely disabled for this agent
+        # if self._context.clarifications_used >= self.max_clarifications:
+        #     tools -= {
+        #         ClarificationTool,
+        #     }
         if self._context.searches_used >= self.max_searches:
             tools -= {
                 WebSearchTool,
@@ -78,6 +88,19 @@ class ToolCallingResearchAgent(BaseAgent):
         return None
 
     async def _select_action_phase(self, reasoning=None) -> BaseTool:
+        # Prepare request data for logging
+        request_data = {
+            "model": config.openai.model,
+            "messages": await self._prepare_context(),
+            "max_tokens": config.openai.max_tokens,
+            "temperature": config.openai.temperature,
+            "tools": [tool.model_dump() for tool in await self._prepare_tools()],
+            "tool_choice": self.tool_choice,
+        }
+        
+        # Log the OpenAI request
+        self._log_openai_request(request_data)
+        
         async with self.openai_client.chat.completions.stream(
             model=config.openai.model,
             messages=await self._prepare_context(),

@@ -27,18 +27,24 @@ class PromptLoader:
         raise FileNotFoundError(f"Prompt file not found: {user_file_path} or {lib_file_path}")
 
     @classmethod
-    def get_system_prompt(cls, user_request: str, sources: list[SourceData], available_tools: list[BaseTool]) -> str:
+    def get_system_prompt(cls, user_request: str, sources: list[SourceData], available_tools: list[BaseTool], previous_searches_summary: str = "") -> str:
         sources_formatted = "\n".join([str(source) for source in sources])
         template = cls._load_prompt_file(config.prompts.system_prompt_file)
         available_tools_str_list = [
             f"{i}. {tool.tool_name}: {tool.description}" for i, tool in enumerate(available_tools, start=1)
         ]
         try:
+            # Prepare previous searches info
+            previous_searches_info = ""
+            if previous_searches_summary:
+                previous_searches_info = f"\n\nPREVIOUS SEARCHES SUMMARY:\n{previous_searches_summary}"
+            
             return template.format(
                 current_date=datetime.now().strftime("%Y-%m-%d-%H:%M:%S"),
                 available_tools="\n".join(available_tools_str_list),
                 user_request=user_request,
                 sources_formatted=sources_formatted,
+                previous_searches_info=previous_searches_info,
             )
         except KeyError as e:
             raise KeyError(f"Missing placeholder in system prompt template: {e}") from e

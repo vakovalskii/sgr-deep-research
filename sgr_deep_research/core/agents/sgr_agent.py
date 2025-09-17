@@ -3,11 +3,13 @@ import uuid
 from typing import Type
 
 from sgr_deep_research.core.agents.base_agent import BaseAgent
+from sgr_deep_research.core.models import AgentStatesEnum
 from sgr_deep_research.core.tools import (
     AgentCompletionTool,
     BaseTool,
-    ClarificationTool,
+    # ClarificationTool,  # Disabled - agent should not ask clarifications
     CreateReportTool,
+    ExtractContentTool,
     NextStepToolsBuilder,
     NextStepToolStub,
     ReasoningTool,
@@ -35,14 +37,14 @@ class SGRResearchAgent(BaseAgent):
         self,
         task: str,
         toolkit: list[Type[BaseTool]] | None = None,
-        max_clarifications: int = 3,
-        max_iterations: int = 10,
-        max_searches: int = 4,
+        # max_clarifications: int = 3,  # Disabled - agent should not ask clarifications
+        max_iterations: int | None = None,
+        max_searches: int = 3,  # Aligned with config.search.max_results
     ):
         super().__init__(
             task=task,
             toolkit=toolkit,
-            max_clarifications=max_clarifications,
+            # max_clarifications=max_clarifications,  # Disabled - agent should not ask clarifications
             max_iterations=max_iterations,
         )
 
@@ -59,34 +61,61 @@ class SGRResearchAgent(BaseAgent):
     async def _prepare_tools(self) -> Type[NextStepToolStub]:
         """Prepare tool classes with current context limits."""
         tools = set(self.toolkit)
+        
+        # After report creation, only allow completion
+        if self._context.report_created:
+            tools = {
+                AgentCompletionTool,
+            }
+            return NextStepToolsBuilder.build_NextStepTools(list(tools))
+        
+        # Force completion when reaching max iterations
         if self._context.iteration >= self.max_iterations:
             tools = {
                 CreateReportTool,
                 AgentCompletionTool,
             }
-        if self._context.clarifications_used >= self.max_clarifications:
-            tools -= {
-                ClarificationTool,
-            }
+        
+        # Prevent report creation without search data
+        if self._context.searches_used == 0 and CreateReportTool in tools:
+            tools -= {CreateReportTool}
+            
+        # Remove search tool when limit reached
         if self._context.searches_used >= self.max_searches:
-            tools -= {
-                WebSearchTool,
-            }
+            tools -= {WebSearchTool}
+            
         return NextStepToolsBuilder.build_NextStepTools(list(tools))
 
     async def _reasoning_phase(self) -> NextStepToolStub:
-        async with self.openai_client.chat.completions.stream(
-            model=config.openai.model,
-            response_format=await self._prepare_tools(),
-            messages=await self._prepare_context(),
-            max_tokens=config.openai.max_tokens,
-            temperature=config.openai.temperature,
-        ) as stream:
-            async for event in stream:
-                if event.type == "chunk":
-                    content = event.chunk.choices[0].delta.content
-                    self.streaming_generator.add_chunk(content)
-        reasoning: NextStepToolStub = (await stream.get_final_completion()).choices[0].message.parsed  # type: ignore
+        # Prepare request data for logging
+        request_data = {
+            "model": config.openai.model,
+            "response_format": (await self._prepare_tools()).model_json_schema(),
+            "messages": await self._prepare_context(),
+            "max_tokens": config.openai.max_tokens,
+            "temperature": config.openai.temperature,
+        }
+        
+        # Log the OpenAI request
+        self._log_openai_request(request_data)
+        
+        try:
+            async with self.openai_client.chat.completions.stream(
+                model=config.openai.model,
+                response_format=await self._prepare_tools(),
+                messages=await self._prepare_context(),
+                max_tokens=config.openai.max_tokens,
+                temperature=config.openai.temperature,
+            ) as stream:
+                async for event in stream:
+                    if event.type == "chunk":
+                        content = event.chunk.choices[0].delta.content
+                        self.streaming_generator.add_chunk(content)
+            reasoning: NextStepToolStub = (await stream.get_final_completion()).choices[0].message.parsed  # type: ignore
+        except Exception as e:
+            logger.error(f"❌ Reasoning phase failed: {str(e)}")
+            self._context.state = AgentStatesEnum.FAILED
+            raise
         # we are not fully sure if it should be in conversation or not. Looks like not necessary data
         # self.conversation.append({"role": "assistant", "content": reasoning.model_dump_json(exclude={"function"})})
         self._log_reasoning(reasoning)
