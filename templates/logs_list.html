@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Execution Analysis - SGR Deep Research Demo{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>🔍 Live Execution Analysis ({{ logs|length }} runs)</h2>
+        <a href="/" class="btn">← Back to Demo Overview</a>
+    </div>
+    
+    {% if logs %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Agent ID</th>
+                    <th>Task</th>
+                    <th>Model</th>
+                    <th>Iterations</th>
+                    <th>Modified</th>
+                    <th>Size</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>
+                        <code style="font-size: 0.8em;">{{ log.agent_id[:30] }}{% if log.agent_id|length > 30 %}...{% endif %}</code>
+                    </td>
+                    <td class="truncate" style="max-width: 300px;">{{ log.task }}</td>
+                    <td>
+                        <span class="badge" style="background: #17a2b8; font-size: 0.7em;">🤖 {{ log.model_name }}</span>
+                    </td>
+                    <td>
+                        <span class="badge {% if log.iterations > 10 %}warning{% elif log.iterations > 5 %}{% else %}success{% endif %}">
+                            {{ log.iterations }}
+                        </span>
+                    </td>
+                    <td>{{ log.modified.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ "%.1f"|format(log.size / 1024) }} KB</td>
+                    <td>
+                        <a href="/log/{{ log.filename }}" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8em;">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2rem; color: #666;">
+        <h3>No logs found</h3>
+        <p>Agent execution logs will appear here once research tasks are started.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

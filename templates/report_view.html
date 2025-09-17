@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}{{ filename }} - SGR Deep Research Viewer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>📝 Report: {{ filename }}</h2>
+        <div>
+            <button onclick="toggleRaw()" class="btn btn-secondary">Toggle Raw</button>
+            <a href="/reports" class="btn">← Back to Reports</a>
+        </div>
+    </div>
+    
+    <div id="rendered-content">
+        {{ content|safe }}
+    </div>
+    
+    <div id="raw-content" style="display: none;">
+        <h3>Raw Markdown</h3>
+        <pre><code>{{ raw_content }}</code></pre>
+    </div>
+</div>
+
+<style>
+    #rendered-content h1 {
+        color: #667eea;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    #rendered-content h2 {
+        color: #764ba2;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    #rendered-content h3 {
+        color: #555;
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    #rendered-content ul, #rendered-content ol {
+        margin-left: 2rem;
+        margin-bottom: 1rem;
+    }
+    
+    #rendered-content blockquote {
+        border-left: 4px solid #667eea;
+        margin: 1rem 0;
+        padding-left: 1rem;
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0 5px 5px 0;
+    }
+    
+    #rendered-content table {
+        margin: 1rem 0;
+    }
+    
+    #rendered-content a {
+        color: #667eea;
+        text-decoration: none;
+    }
+    
+    #rendered-content a:hover {
+        text-decoration: underline;
+    }
+</style>
+
+<script>
+function toggleRaw() {
+    const rendered = document.getElementById('rendered-content');
+    const raw = document.getElementById('raw-content');
+    
+    if (rendered.style.display === 'none') {
+        rendered.style.display = 'block';
+        raw.style.display = 'none';
+    } else {
+        rendered.style.display = 'none';
+        raw.style.display = 'block';
+    }
+}
+</script>
+{% endblock %}
+

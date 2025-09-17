@@ -1,0 +1,745 @@
+{% extends "base.html" %}
+
+{% block title %}Execution Analysis - SGR Demo{% endblock %}
+
+{% block content %}
+<div class="log-layout">
+    <!-- Sidebar with trace -->
+    <div class="trace-sidebar" id="traceSidebar">
+        <div class="trace-header">
+            <h3>🔍 Execution Trace</h3>
+            <button id="toggleSidebar" class="btn btn-secondary btn-small">Hide</button>
+        </div>
+        <div class="trace-content" id="traceContent">
+            <div class="loading">Loading trace...</div>
+        </div>
+    </div>
+    
+    <!-- Main content -->
+    <div class="main-content">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2>🔍 Live Execution Trace: {{ log_data.id[:20] or 'Unknown' }}...</h2>
+                <a href="/logs" class="btn">← Back to Analysis</a>
+            </div>
+    
+    <div class="grid" style="margin-bottom: 2rem;">
+        <div class="card">
+            <h3>🎯 Task</h3>
+            <p><strong>{{ log_data.task or 'Unknown task' }}</strong></p>
+        </div>
+        <div class="card">
+            <h3>📊 Stats</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <strong>Dataset:</strong> 
+                    <span class="badge" style="background: #ffc107; color: #212529;">📊 SealQA</span>
+                </div>
+                <div class="stat-item">
+                    <strong>Model:</strong> 
+                    <span class="badge" style="background: #17a2b8;">🤖 {{ log_data.model_info.model if log_data.model_info and log_data.model_info.model else 'gpt-4o-mini' }}</span>
+                </div>
+                {% if log_data.model_info and log_data.model_info.temperature %}
+                <div class="stat-item">
+                    <strong>Temperature:</strong> 
+                    <span class="badge" style="background: #6c757d;">🌡️ {{ log_data.model_info.temperature }}</span>
+                </div>
+                {% endif %}
+                <div class="stat-item">
+                    <strong>Iterations:</strong> 
+                    <span class="badge" style="background: #6c757d;">{{ log_data.context.iteration or 0 }}</span>
+                </div>
+                <div class="stat-item">
+                    <strong>Searches:</strong> 
+                    <span class="badge" style="background: #28a745;">{{ log_data.context.searches_used or 0 }}</span>
+                </div>
+                <div class="stat-item">
+                    <strong>State:</strong> 
+                    <span class="badge {% if log_data.context.state == 'completed' %}success{% else %}warning{% endif %}">{{ log_data.context.state or 'unknown' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if log_data.log %}
+    <div class="card">
+        <h3>📝 Execution Log</h3>
+        <div id="log-container">
+            {% for step in log_data.log %}
+            <div class="card step-card step-{{ step.step_type }}" style="margin: 1rem 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <h4>
+                        Step {{ step.step_number }}: {{ step.step_type.title() }}
+                        {% if step.step_type == 'openai_request' and step.model_info %}
+                        <span class="badge model-badge" style="background: #17a2b8; color: white; margin-left: 0.5rem; font-size: 0.75em; display: inline-flex; align-items: center; gap: 0.25rem;">
+                            🤖 {{ step.model_info.model }}
+                        </span>
+                        {% endif %}
+                    </h4>
+                    <span class="badge {% if step.step_type == 'reasoning' %}{% elif step.step_type == 'tool_execution' %}success{% elif step.step_type == 'openai_request' %}warning{% else %}{% endif %}">
+                        {{ step.timestamp.split('T')[1].split('.')[0] if step.timestamp else 'Unknown time' }}
+                    </span>
+                </div>
+                
+                {% if step.step_type == 'reasoning' and step.agent_reasoning %}
+                <div class="reasoning-content">
+                    {% if step.agent_reasoning.question_analysis %}
+                    <div style="background: #e7f3ff; padding: 0.5rem; border-radius: 3px; margin-bottom: 0.5rem;">
+                        <strong>❓ Question Analysis:</strong> {{ step.agent_reasoning.question_analysis }}
+                    </div>
+                    {% endif %}
+                    
+                    <div><strong>🧠 Reasoning:</strong></div>
+                    <ul>
+                        {% for reasoning in step.agent_reasoning.reasoning_steps %}
+                        <li>{{ reasoning }}</li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <div style="margin-top: 0.5rem;">
+                        <strong>📊 Current Situation:</strong> {{ step.agent_reasoning.current_situation }}
+                    </div>
+                    
+                    {% if step.agent_reasoning.remaining_steps %}
+                    <div style="margin-top: 0.5rem;">
+                        <strong>📝 Remaining Steps:</strong>
+                        <ul>
+                            {% for remaining in step.agent_reasoning.remaining_steps %}
+                            <li>{{ remaining }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <div style="margin-top: 0.5rem;">
+                        <strong>✅ Enough Data:</strong> {{ step.agent_reasoning.enough_data }}
+                        <strong style="margin-left: 1rem;">🏁 Task Completed:</strong> {{ step.agent_reasoning.task_completed }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if step.step_type == 'openai_request' %}
+                <div class="openai-content">
+                    <div style="background: #fff3cd; padding: 0.5rem; border-radius: 3px; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <strong>🤖 Model:</strong> 
+                        <span class="badge model-badge" style="background: #17a2b8; color: white;">
+                            {{ step.model_info.model if step.model_info else 'Unknown' }}
+                        </span>
+                        {% if step.model_info %}
+                        <span style="margin-left: 1rem; font-size: 0.9em; color: #666;">
+                            Temp: {{ step.model_info.temperature }} | Max tokens: {{ step.model_info.max_tokens }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if step.raw_request %}
+                    <div style="margin-bottom: 0.5rem;">
+                        <strong>📤 Request:</strong>
+                        <details style="margin-top: 0.25rem;">
+                            <summary style="cursor: pointer; color: #667eea;">Show Request Details</summary>
+                            <pre style="max-height: 300px; overflow-y: auto; white-space: pre-wrap; margin-top: 0.5rem;"><code>{{ step.raw_request | tojson(indent=2) }}</code></pre>
+                        </details>
+                    </div>
+                    {% endif %}
+                    
+                    {% if step.raw_response %}
+                    <div>
+                        <strong>📥 Response:</strong>
+                        <details style="margin-top: 0.25rem;">
+                            <summary style="cursor: pointer; color: #667eea;">Show Response Details</summary>
+                            <pre style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; margin-top: 0.5rem;"><code>{{ step.raw_response | tojson(indent=2) }}</code></pre>
+                        </details>
+                    </div>
+                    {% endif %}
+                </div>
+                {% elif step.step_type == 'tool_execution' %}
+                <div class="tool-content">
+                    <div style="background: #f0f8ff; padding: 0.5rem; border-radius: 3px; margin-bottom: 0.5rem;">
+                        <strong>🔧 Tool:</strong> {{ step.tool_name or 'Unknown' }}
+                    </div>
+                    
+                    {% if step.agent_tool_context %}
+                    <div style="margin-bottom: 0.5rem;">
+                        <strong>📋 Context:</strong>
+                        <pre style="max-height: 200px; overflow-y: auto;"><code>{{ step.agent_tool_context | tojson(indent=2) }}</code></pre>
+                    </div>
+                    {% endif %}
+                    
+                    {% if step.agent_tool_execution_result %}
+                    <div>
+                        <strong>📤 Result:</strong>
+                        {% if step.agent_tool_execution_result|length > 10000 %}
+                        <div>
+                            <button onclick="toggleResult('result-{{ step.step_number }}')" class="btn btn-secondary" style="margin-bottom: 0.5rem; padding: 0.25rem 0.5rem; font-size: 0.8em;">
+                                Show Full Result ({{ step.agent_tool_execution_result|length }} chars)
+                            </button>
+                        </div>
+                        <pre id="result-{{ step.step_number }}-short" style="max-height: 300px; overflow-y: auto; white-space: pre-wrap;"><code>{{ step.agent_tool_execution_result[:10000] }}...
+
+[TRUNCATED - Click "Show Full Result" to see complete output]</code></pre>
+                        <pre id="result-{{ step.step_number }}-full" style="max-height: 500px; overflow-y: auto; white-space: pre-wrap; display: none;"><code>{{ step.agent_tool_execution_result }}</code></pre>
+                        {% else %}
+                        <pre style="max-height: 300px; overflow-y: auto; white-space: pre-wrap;"><code>{{ step.agent_tool_execution_result }}</code></pre>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if log_data.context.sources %}
+    <div class="card">
+        <h3>🔗 Sources Used</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>Title</th>
+                        <th>Content Length</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for url, source in log_data.context.sources.items() %}
+                    <tr>
+                        <td><a href="{{ url }}" target="_blank" class="truncate" style="max-width: 300px;">{{ url }}</a></td>
+                        <td class="truncate">{{ source.title or 'No title' }}</td>
+                        <td>{{ source.full_content|length if source.full_content else (source.snippet|length if source.snippet else 0) }} chars</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+        </div> <!-- Close main-content -->
+    </div> <!-- Close card -->
+</div> <!-- Close log-layout -->
+
+<style>
+    .log-layout {
+        display: flex;
+        gap: 1.5rem;
+        min-height: calc(100vh - 250px);
+        width: 100%;
+        max-width: none;
+    }
+    
+    .trace-sidebar {
+        width: 350px;
+        min-width: 300px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+        position: sticky;
+        top: 20px;
+        height: fit-content;
+        max-height: calc(100vh - 250px);
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+    }
+    
+    .trace-sidebar.hidden {
+        width: 0;
+        min-width: 0;
+        overflow: hidden;
+        opacity: 0;
+    }
+    
+    .trace-header {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px 10px 0 0;
+        min-height: 60px;
+    }
+    
+    .trace-header h3 {
+        margin: 0;
+        font-size: 1.1em;
+    }
+    
+    .btn-small {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8em;
+        background: rgba(255,255,255,0.2);
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    
+    .btn-small:hover {
+        background: rgba(255,255,255,0.3);
+    }
+    
+    .trace-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0.5rem;
+    }
+    
+    .trace-step {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border-radius: 5px;
+        border-left: 4px solid #667eea;
+        background: #f8f9fa;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    
+    .trace-step:hover {
+        background: #e9ecef;
+        transform: translateX(2px);
+    }
+    
+    .trace-step.active {
+        background: #e7f3ff;
+        border-left-color: #007bff;
+        box-shadow: 0 2px 5px rgba(0,123,255,0.2);
+    }
+    
+    .trace-step.reasoning {
+        border-left-color: #667eea;
+    }
+    
+    .trace-step.tool_execution {
+        border-left-color: #28a745;
+    }
+    
+    .trace-step.openai_request {
+        border-left-color: #ffc107;
+        background: linear-gradient(to right, #fff3cd, #ffffff);
+    }
+    
+    .trace-step-header {
+        font-weight: 600;
+        font-size: 0.9em;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .trace-step-summary {
+        font-size: 0.8em;
+        color: #666;
+        line-height: 1.3;
+    }
+    
+    .trace-step-time {
+        font-size: 0.7em;
+        color: #999;
+        margin-top: 0.25rem;
+    }
+    
+    .trace-step-icon {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #28a745;
+        position: relative;
+    }
+    
+    .trace-step-icon::before {
+        content: '✓';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 10px;
+        font-weight: bold;
+    }
+    
+    .trace-step.reasoning .trace-step-icon {
+        background: #667eea;
+    }
+    
+    .trace-step.reasoning .trace-step-icon::before {
+        content: '🧠';
+        font-size: 8px;
+    }
+    
+    .trace-step.tool_execution .trace-step-icon::before {
+        content: '🔧';
+        font-size: 8px;
+    }
+    
+    /* Специальные иконки для разных инструментов */
+    .trace-step[data-tool="websearchtool"] .trace-step-icon::before {
+        content: '🔍';
+        font-size: 8px;
+    }
+    
+    .trace-step[data-tool="extractcontenttool"] .trace-step-icon::before {
+        content: '📄';
+        font-size: 8px;
+    }
+    
+    .trace-step[data-tool="createreporttool"] .trace-step-icon::before {
+        content: '📝';
+        font-size: 8px;
+    }
+    
+    .trace-step[data-tool="agentcompletiontool"] .trace-step-icon::before {
+        content: '✅';
+        font-size: 8px;
+    }
+    
+    .trace-step.openai_request .trace-step-icon::before {
+        content: '🤖';
+        font-size: 8px;
+    }
+    
+    .main-content {
+        flex: 1;
+        min-width: 0;
+        overflow-x: auto;
+        width: calc(100% - 370px);
+    }
+    
+    .main-content .card {
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+    }
+    
+    /* Responsive design */
+    @media (max-width: 1200px) {
+        .log-layout {
+            flex-direction: column;
+        }
+        
+        .trace-sidebar {
+            width: 100%;
+            max-width: none;
+            position: relative;
+            max-height: 400px;
+            margin-bottom: 1rem;
+        }
+        
+        .main-content {
+            width: 100%;
+        }
+        
+        .step-card {
+            padding: 1rem;
+            font-size: 1em;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .trace-sidebar {
+            max-height: 300px;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .step-card {
+            padding: 0.75rem;
+            font-size: 0.95em;
+        }
+        
+        .openai-content pre,
+        .tool-content pre {
+            font-size: 0.8em;
+        }
+    }
+    .reasoning-content {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 5px;
+        margin-top: 0.5rem;
+    }
+    
+    .tool-content {
+        background: #f0f8ff;
+        padding: 1rem;
+        border-radius: 5px;
+        margin-top: 0.5rem;
+    }
+    
+    .reasoning-content ul, .tool-content ul {
+        margin-left: 1rem;
+    }
+    
+    .step-card.step-reasoning {
+        border-left: 4px solid #6f42c1;
+    }
+    
+    .step-card.step-tool_execution {
+        border-left: 4px solid #28a745;
+    }
+    
+    .step-card.step-openai_request {
+        border-left: 4px solid #ffc107;
+        background: linear-gradient(to right, #fff3cd, #ffffff);
+    }
+    
+    .openai-content {
+        background: #fffaec;
+        border-radius: 5px;
+        padding: 0.5rem;
+    }
+    
+    .openai-content details {
+        border: 1px solid #e0e0e0;
+        border-radius: 3px;
+        padding: 0.25rem;
+        background: #ffffff;
+    }
+    
+    .openai-content summary {
+        font-weight: 500;
+        padding: 0.25rem;
+    }
+    
+    .openai-content pre {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 3px;
+        font-size: 0.85em;
+    }
+    
+    .step-card {
+        border-left: 4px solid #6c757d;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        font-size: 1.05em;
+        line-height: 1.6;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+    }
+    
+    .stat-item strong {
+        color: #495057;
+        font-size: 0.95em;
+        display: flex;
+        align-items: center;
+    }
+    
+    .stat-item .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.4rem 0.6rem;
+        font-size: 0.85em;
+        line-height: 1.2;
+        vertical-align: middle;
+    }
+    
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+    }
+</style>
+
+<script>
+let traceData = null;
+let currentActiveStep = null;
+
+// Load trace data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadTraceData();
+    setupSidebarToggle();
+    setupScrollToStep();
+});
+
+async function loadTraceData() {
+    const filename = '{{ filename }}';
+    const traceContent = document.getElementById('traceContent');
+    
+    try {
+        const response = await fetch(`/api/log/${filename}/trace`);
+        if (!response.ok) {
+            throw new Error('Failed to load trace data');
+        }
+        
+        traceData = await response.json();
+        renderTrace(traceData);
+    } catch (error) {
+        console.error('Error loading trace:', error);
+        traceContent.innerHTML = '<div class="loading" style="color: #dc3545;">Failed to load trace data</div>';
+    }
+}
+
+function renderTrace(data) {
+    const traceContent = document.getElementById('traceContent');
+    
+    if (!data.trace || data.trace.length === 0) {
+        traceContent.innerHTML = '<div class="loading">No trace data available</div>';
+        return;
+    }
+    
+    let html = `
+        <div class="trace-summary">
+            <div style="font-size: 0.8em; color: #666; margin-bottom: 1rem; padding: 0.5rem; background: #f8f9fa; border-radius: 3px;">
+                <strong>Task:</strong> ${data.task}<br>
+                <strong>Steps:</strong> ${data.total_steps}<br>
+                <strong>Dataset:</strong> <span class="badge" style="background: #ffc107; color: #212529;">📊 ${data.dataset || 'SealQA'}</span><br>
+                <strong>Model:</strong> <span class="badge" style="background: #17a2b8;">🤖 ${data.model || 'gpt-4o-mini'}</span><br>
+                ${data.model_info && data.model_info.temperature ? `<strong>Temperature:</strong> <span class="badge" style="background: #6c757d;">${data.model_info.temperature}</span><br>` : ''}
+                <strong>Status:</strong> <span class="badge ${data.state === 'completed' ? 'success' : 'warning'}">${data.state}</span><br>
+                <div style="margin-top: 0.5rem;">
+                    <a href="${data.github_url || 'https://github.com/vakovalskii/sgr-deep-research'}" target="_blank" style="color: #667eea; text-decoration: none; font-size: 0.75em;">
+                        📚 SGR Deep Research
+                    </a>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    data.trace.forEach((step, index) => {
+        const stepClass = `trace-step ${step.step_type}`;
+        const timeDisplay = step.timestamp ? new Date(step.timestamp).toLocaleTimeString() : '';
+        
+        html += `
+            <div class="${stepClass}" ${step.tool_name ? `data-tool="${step.tool_name}"` : ''} onclick="scrollToStep(${step.step_number})" data-step="${step.step_number}">
+                <div class="trace-step-header">
+                    <span class="trace-step-icon"></span>
+                    <span>Step ${step.step_number}</span>
+                    ${step.step_type === 'openai_request' && step.model_info ? 
+                        `<span class="badge model-badge" style="background: #17a2b8; color: white; margin-left: 0.25rem; font-size: 0.6em;">🤖 ${step.model_info.model}</span>` : ''}
+                </div>
+                <div class="trace-step-summary">
+                    ${step.summary || step.step_type}
+                    ${step.tool_name ? `<br><small style="color: #666; font-size: 0.8em;">Tool: ${step.tool_name}</small>` : ''}
+                </div>
+                ${timeDisplay ? `<div class="trace-step-time">${timeDisplay}</div>` : ''}
+            </div>
+        `;
+    });
+    
+    traceContent.innerHTML = html;
+}
+
+function scrollToStep(stepNumber) {
+    // Remove active class from all trace steps
+    document.querySelectorAll('.trace-step').forEach(step => {
+        step.classList.remove('active');
+    });
+    
+    // Add active class to clicked step
+    const clickedStep = document.querySelector(`[data-step="${stepNumber}"]`);
+    if (clickedStep) {
+        clickedStep.classList.add('active');
+        currentActiveStep = stepNumber;
+    }
+    
+    // Scroll to the corresponding step in main content
+    const targetElement = document.querySelector(`#log-container .card:nth-child(${stepNumber})`);
+    if (targetElement) {
+        targetElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        // Highlight the step temporarily
+        targetElement.style.boxShadow = '0 0 15px rgba(0,123,255,0.3)';
+        setTimeout(() => {
+            targetElement.style.boxShadow = '';
+        }, 2000);
+    }
+}
+
+function setupSidebarToggle() {
+    const toggleButton = document.getElementById('toggleSidebar');
+    const sidebar = document.getElementById('traceSidebar');
+    
+    toggleButton.addEventListener('click', function() {
+        sidebar.classList.toggle('hidden');
+        toggleButton.textContent = sidebar.classList.contains('hidden') ? 'Show' : 'Hide';
+    });
+}
+
+function setupScrollToStep() {
+    // Auto-highlight step when scrolling through main content
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const stepCards = document.querySelectorAll('#log-container .card');
+                const stepIndex = Array.from(stepCards).indexOf(entry.target);
+                if (stepIndex >= 0 && traceData && traceData.trace[stepIndex]) {
+                    const stepNumber = traceData.trace[stepIndex].step_number;
+                    if (stepNumber !== currentActiveStep) {
+                        highlightTraceStep(stepNumber);
+                    }
+                }
+            }
+        });
+    }, {
+        root: null,
+        rootMargin: '-20% 0px -70% 0px',
+        threshold: 0.1
+    });
+    
+    // Observe all step cards in main content
+    setTimeout(() => {
+        document.querySelectorAll('#log-container .card').forEach(card => {
+            observer.observe(card);
+        });
+    }, 500);
+}
+
+function highlightTraceStep(stepNumber) {
+    document.querySelectorAll('.trace-step').forEach(step => {
+        step.classList.remove('active');
+    });
+    
+    const targetStep = document.querySelector(`[data-step="${stepNumber}"]`);
+    if (targetStep) {
+        targetStep.classList.add('active');
+        currentActiveStep = stepNumber;
+    }
+}
+
+function toggleResult(baseId) {
+    const shortDiv = document.getElementById(baseId + '-short');
+    const fullDiv = document.getElementById(baseId + '-full');
+    const button = event.target;
+    
+    if (fullDiv.style.display === 'none') {
+        shortDiv.style.display = 'none';
+        fullDiv.style.display = 'block';
+        button.textContent = 'Show Truncated Result';
+    } else {
+        shortDiv.style.display = 'block';
+        fullDiv.style.display = 'none';
+        button.textContent = 'Show Full Result (' + fullDiv.querySelector('code').textContent.length + ' chars)';
+    }
+}
+</script>
+{% endblock %}

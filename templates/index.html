@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Demo Overview - SGR Deep Research Capabilities{% endblock %}
+
+{% block content %}
+<div class="grid">
+    <div class="card">
+        <h2>📝 Latest Research Results</h2>
+        {% if reports %}
+            {% for report in reports %}
+            <div class="card" style="margin: 0.5rem 0; padding: 1rem;">
+                <h3><a href="/report/{{ report.filename }}" style="text-decoration: none; color: #667eea;">{{ report.title }}</a></h3>
+                {% if report.description %}
+                <p style="color: #666; margin: 0.5rem 0;">{{ report.description }}</p>
+                {% endif %}
+                <div class="meta">
+                    <span class="badge">{{ report.created.strftime('%Y-%m-%d %H:%M') }}</span>
+                    <span>{{ "%.1f"|format(report.size / 1024) }} KB</span>
+                </div>
+            </div>
+            {% endfor %}
+            <div style="text-align: center; margin-top: 1rem;">
+                <a href="/reports" class="btn">View All Reports</a>
+            </div>
+        {% else %}
+            <p style="text-align: center; color: #666; margin-top: 1rem;">No reports found</p>
+        {% endif %}
+    </div>
+    
+    <div class="card">
+        <h2>🔍 Recent Execution Traces</h2>
+        {% if logs %}
+            {% for log in logs %}
+            <div class="card" style="margin: 0.5rem 0; padding: 1rem;">
+                <h3><a href="/log/{{ log.filename }}" style="text-decoration: none; color: #667eea;">{{ log.agent_id[:20] }}...</a></h3>
+                <p class="truncate">{{ log.task }}</p>
+                <div class="meta">
+                    <span class="badge" style="background: #17a2b8;">🤖 {{ log.model_name }}</span>
+                    <span class="badge">{{ log.iterations }} iterations</span>
+                    <span>{{ log.modified.strftime('%Y-%m-%d %H:%M') }}</span>
+                    <span>{{ "%.1f"|format(log.size / 1024) }} KB</span>
+                </div>
+            </div>
+            {% endfor %}
+            <div style="text-align: center; margin-top: 1rem;">
+                <a href="/logs" class="btn">View All Executions</a>
+            </div>
+        {% else %}
+            <p style="text-align: center; color: #666; margin-top: 1rem;">No logs found</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card" style="margin-top: 2rem;">
+    <h2>📊 System Status</h2>
+    <div class="grid">
+        <div>
+            <h3>📁 Storage</h3>
+            <p><strong>Reports:</strong> {{ reports|length }} files</p>
+            <p><strong>Logs:</strong> {{ logs|length }} files</p>
+        </div>
+        <div>
+            <h3>🤖 AI Model</h3>
+            <p><strong>Dataset:</strong> <span class="badge" style="background: #ffc107; color: #212529;">📊 SealQA</span></p>
+            <p><strong>Model:</strong> <span class="badge" style="background: #17a2b8;">gpt-4o-mini</span></p>
+            <p><strong>Framework:</strong> <span class="badge" style="background: #28a745;">SGR</span></p>
+        </div>
+        <div>
+            <h3>🔗 Quick Links</h3>
+            <p><a href="/api/reports" class="btn btn-secondary">Reports API</a></p>
+            <p><a href="/api/logs" class="btn btn-secondary">Logs API</a></p>
+            <p><a href="https://github.com/vakovalskii/sgr-deep-research" target="_blank" class="btn btn-secondary">📚 GitHub Repo</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

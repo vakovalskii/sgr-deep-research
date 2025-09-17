@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}All Reports - SGR Deep Research Viewer{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>📝 All Reports ({{ reports|length }})</h2>
+        <a href="/" class="btn">← Back to Dashboard</a>
+    </div>
+    
+    {% if reports %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Created</th>
+                    <th>Size</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in reports %}
+                <tr>
+                    <td>
+                        <a href="/report/{{ report.filename }}" style="text-decoration: none; color: #667eea; font-weight: 500;">
+                            {{ report.title }}
+                        </a>
+                    </td>
+                    <td class="truncate" style="max-width: 300px; color: #666;">
+                        {{ report.description or "No description" }}
+                    </td>
+                    <td>{{ report.created.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ "%.1f"|format(report.size / 1024) }} KB</td>
+                    <td>
+                        <a href="/report/{{ report.filename }}" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.8em;">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 2rem; color: #666;">
+        <h3>No reports found</h3>
+        <p>Reports will appear here once agents complete their research tasks.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
