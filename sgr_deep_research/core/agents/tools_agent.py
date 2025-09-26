@@ -79,7 +79,7 @@ class ToolCallingResearchAgent(BaseAgent):
         ) as stream:
             async for event in stream:
                 if event.type == "chunk":
-                    self.streaming_generator.add_chunk(event)
+                    self.streaming_generator.add_chunk(event.chunk)
         tool = (await stream.get_final_completion()).choices[0].message.tool_calls[0].function.parsed_arguments
 
         if not isinstance(tool, BaseTool):

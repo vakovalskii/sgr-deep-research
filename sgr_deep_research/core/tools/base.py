@@ -84,6 +84,18 @@ class AdaptPlanTool(BaseTool):
         )
 
 
+class SimpleAnswerTool(BaseTool):
+    """Provide a simple direct answer when no research is needed."""
+
+    reasoning: str = Field(description="Why a simple answer is appropriate for this request")
+    answer: str = Field(description="Direct answer to user's question in the same language as the request")
+    confidence: Literal["high", "medium", "low"] = Field(description="Confidence in the answer")
+
+    def __call__(self, context: ResearchContext) -> str:
+        context.state = AgentStatesEnum.COMPLETED
+        return self.answer
+
+
 class AgentCompletionTool(BaseTool):
     """Finalize research task and complete agent execution after all steps are
     completed."""
@@ -177,6 +189,7 @@ system_agent_tools = [
     ClarificationTool,
     GeneratePlanTool,
     AdaptPlanTool,
+    SimpleAnswerTool,
     AgentCompletionTool,
     ReasoningTool,
 ]

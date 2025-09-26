@@ -7,6 +7,7 @@ from sgr_deep_research.core.tools.base import (
     NextStepToolsBuilder,
     NextStepToolStub,
     ReasoningTool,
+    SimpleAnswerTool,
     system_agent_tools,
 )
 from sgr_deep_research.core.tools.research import (
@@ -23,6 +24,7 @@ __all__ = [
     "WebSearchTool",
     "AdaptPlanTool",
     "CreateReportTool",
+    "SimpleAnswerTool",
     "AgentCompletionTool",
     "ReasoningTool",
     "NextStepToolStub",

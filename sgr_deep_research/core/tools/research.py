@@ -54,6 +54,13 @@ class CreateReportTool(BaseTool):
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(full_content)
 
+        # Mark that report has been created
+        try:
+            context.report_created = True
+        except (AttributeError, ValueError):
+            # Fallback for older context objects without this field
+            pass
+        
         report = {
             "title": self.title,
             "content": self.content,
