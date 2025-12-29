@@ -1,4 +1,5 @@
 import logging
+import sys
 from pathlib import Path
 from typing import ClassVar, Self
 
@@ -81,6 +82,7 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
             ValueError: If YAML file doesn't contain 'agents' key
         """
         agents_yaml_path = Path(agents_yaml_path)
+        sys.path.append(str(agents_yaml_path.resolve().parent))
         if not agents_yaml_path.exists():
             raise FileNotFoundError(f"Agents definitions file not found: {agents_yaml_path}")
 
