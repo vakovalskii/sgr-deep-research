@@ -141,8 +141,8 @@ class BaseAgent(AgentRegistryMixin):
         other context. Override this method to change the context setup for the
         agent.
 
-        Returns a list of dictionaries, each containing a role and
-        content key.
+        Returns a list of dictionaries OpenAI like format, each
+        containing a role and content key by default.
         """
         return [
             {"role": "system", "content": PromptLoader.get_system_prompt(self.toolkit, self.config.prompts)},

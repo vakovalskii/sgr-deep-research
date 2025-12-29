@@ -62,6 +62,10 @@ class AgentContext(BaseModel):
         default_factory=asyncio.Event, description="Event for clarification synchronization"
     )
 
+    custom_context: dict | BaseModel | None = Field(
+        default=None, description="Custom context for project-specific data"
+    )
+
     def agent_state(self) -> dict:
         return self.model_dump(exclude={"searches", "sources", "clarification_received"})
 

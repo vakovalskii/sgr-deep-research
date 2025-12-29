@@ -24,7 +24,7 @@ Tools are divided into two categories:
 
 All tools inherit from `BaseTool`, which provides the foundation for tool functionality.
 
-**Source:** [sgr_deep_research/core/base_tool.py](../sgr_deep_research/core/base_tool.py)
+**Source:** [sgr_agent_core/base_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/base_tool.py)
 
 ### BaseTool Class
 
@@ -34,7 +34,7 @@ class BaseTool(BaseModel, ToolRegistryMixin):
     description: ClassVar[str] = None
 
     async def __call__(
-        self, context: ResearchContext, config: AgentConfig, **kwargs
+        self, context: AgentContext, config: AgentConfig, **kwargs
     ) -> str:
         raise NotImplementedError("Execute method must be implemented by subclass")
 ```
@@ -58,13 +58,13 @@ To create a custom tool:
 Example:
 
 ```python
-from sgr_deep_research.core.base_tool import BaseTool
+from sgr_agent_core.base_tool import BaseTool
 from pydantic import Field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from sgr_deep_research.core.agent_definition import AgentConfig
-    from sgr_deep_research.core.models import ResearchContext
+    from sgr_agent_core.agent_definition import AgentConfig
+    from sgr_agent_core.models import AgentContext
 
 
 class CustomTool(BaseTool):
@@ -75,7 +75,7 @@ class CustomTool(BaseTool):
     reasoning: str = Field(description="Why this tool is needed")
     parameter: str = Field(description="Tool parameter")
 
-    async def __call__(self, context: ResearchContext, config: AgentConfig, **_) -> str:
+    async def __call__(self, context: AgentContext, config: AgentConfig, **_) -> str:
         # Tool implementation
         result = f"Processed: {self.parameter}"
         return result
@@ -88,7 +88,7 @@ The tool will be automatically registered and available for use in agent configu
 ### ReasoningTool
 
 **Type:** System Tool
-**Source:** [sgr_deep_research/core/tools/reasoning_tool.py](../sgr_deep_research/core/tools/reasoning_tool.py)
+**Source:** [sgr_agent_core/tools/reasoning_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/tools/reasoning_tool.py)
 
 Core tool for Schema-Guided Reasoning agents. Determines the next reasoning step with adaptive planning capabilities.
 
@@ -113,7 +113,7 @@ No specific configuration required. Tool behavior is controlled by agent prompts
 ### FinalAnswerTool
 
 **Type:** System Tool
-**Source:** [sgr_deep_research/core/tools/final_answer_tool.py](../sgr_deep_research/core/tools/final_answer_tool.py)
+**Source:** [sgr_agent_core/tools/final_answer_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/tools/final_answer_tool.py)
 
 Finalizes research task and completes agent execution.
 
@@ -146,7 +146,7 @@ execution:
 ### CreateReportTool
 
 **Type:** System Tool
-**Source:** [sgr_deep_research/core/tools/create_report_tool.py](../sgr_deep_research/core/tools/create_report_tool.py)
+**Source:** [sgr_agent_core/tools/create_report_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/tools/create_report_tool.py)
 
 Creates a comprehensive detailed report with citations as the final step of research.
 
@@ -184,7 +184,7 @@ execution:
 ### ClarificationTool
 
 **Type:** System Tool
-**Source:** [sgr_deep_research/core/tools/clarification_tool.py](../sgr_deep_research/core/tools/clarification_tool.py)
+**Source:** [sgr_agent_core/tools/clarification_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/tools/clarification_tool.py)
 
 Asks clarifying questions when facing an ambiguous request.
 
@@ -217,7 +217,7 @@ After reaching `max_clarifications`, the tool is automatically removed from avai
 ### GeneratePlanTool
 
 **Type:** System Tool
-**Source:** [sgr_deep_research/core/tools/generate_plan_tool.py](../sgr_deep_research/core/tools/generate_plan_tool.py)
+**Source:** [sgr_agent_core/tools/generate_plan_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/tools/generate_plan_tool.py)
 
 Generates a research plan to split complex requests into manageable steps.
 
@@ -242,7 +242,7 @@ No specific configuration required.
 ### AdaptPlanTool
 
 **Type:** System Tool
-**Source:** [sgr_deep_research/core/tools/adapt_plan_tool.py](../sgr_deep_research/core/tools/adapt_plan_tool.py)
+**Source:** [sgr_agent_core/tools/adapt_plan_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/tools/adapt_plan_tool.py)
 
 Adapts a research plan based on new findings.
 
@@ -270,7 +270,7 @@ No specific configuration required.
 ### WebSearchTool
 
 **Type:** Auxiliary Tool
-**Source:** [sgr_deep_research/core/tools/web_search_tool.py](../sgr_deep_research/core/tools/web_search_tool.py)
+**Source:** [sgr_agent_core/tools/web_search_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/tools/web_search_tool.py)
 
 Searches the web for real-time information using Tavily Search API.
 
@@ -327,7 +327,7 @@ agents:
 ### ExtractPageContentTool
 
 **Type:** Auxiliary Tool
-**Source:** [sgr_deep_research/core/tools/extract_page_content_tool.py](../sgr_deep_research/core/tools/extract_page_content_tool.py)
+**Source:** [sgr_agent_core/tools/extract_page_content_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/tools/extract_page_content_tool.py)
 
 Extracts full detailed content from specific web pages using Tavily Extract API.
 
@@ -413,7 +413,7 @@ This ensures agents complete tasks within configured limits.
 
 Tools can also be created from MCP (Model Context Protocol) servers. These tools inherit from `MCPBaseTool` and are automatically generated from MCP server schemas.
 
-**Source:** [sgr_deep_research/core/base_tool.py](../sgr_deep_research/core/base_tool.py) (MCPBaseTool class)
+**Source:** [sgr_agent_core/base_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/base_tool.py) (MCPBaseTool class)
 
 **Configuration:**
 
@@ -446,7 +446,7 @@ execution:
 
 All tools are automatically registered in `ToolRegistry` when defined. Tools can be referenced by name in agent configurations.
 
-**Source:** [sgr_deep_research/core/services/registry.py](../sgr_deep_research/core/services/registry.py)
+**Source:** [sgr_agent_core/services/registry.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/services/registry.py)
 
 Tools are registered with their `tool_name` (auto-generated from class name if not specified). Custom tools must be imported before agent creation to be registered.
 
@@ -454,7 +454,7 @@ Tools are registered with their `tool_name` (auto-generated from class name if n
 
 The default toolkit includes all standard tools:
 
-**Source:** [sgr_deep_research/default_definitions.py](../sgr_deep_research/default_definitions.py)
+**Source:** [sgr_deep_research/default_definitions.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_deep_research/default_definitions.py)
 
 ```python
 DEFAULT_TOOLKIT = [
