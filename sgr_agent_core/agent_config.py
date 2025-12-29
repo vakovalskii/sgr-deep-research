@@ -55,7 +55,8 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
 
     @classmethod
     def _resolve_relative_import(cls, base_class_path: str, config_path: Path | None) -> str:
-        """Resolve relative import path to absolute module path for any package in sys.path."""
+        """Resolve relative import path to absolute module path for any package
+        in sys.path."""
         if config_path is None:
             return base_class_path
 
