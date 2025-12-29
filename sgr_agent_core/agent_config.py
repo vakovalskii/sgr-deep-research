@@ -1,4 +1,5 @@
 import logging
+import sys
 from pathlib import Path
 from typing import ClassVar, Self
 
@@ -54,51 +55,46 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
 
     @classmethod
     def _resolve_relative_import(cls, base_class_path: str, config_path: Path | None) -> str:
-        """Resolve relative import path to absolute module path.
-
-        Args:
-            base_class_path: Import path (may be relative or absolute)
-            config_path: Path to config.yaml file
-
-        Returns:
-            Absolute module path
-        """
-        # If it's already an absolute path (starts with known root modules), return as is
-        known_roots = ["sgr_agent_core", "examples"]
-        if any(base_class_path.startswith(root) for root in known_roots):
-            return base_class_path
-
-        # If no config path, can't resolve relative imports
+        """Resolve relative import path to absolute module path for any package in sys.path."""
         if config_path is None:
             return base_class_path
 
-        # Convert config file path to module path
-        # e.g., examples/sgr_deep_research/config.yaml -> examples.sgr_deep_research
-        config_dir = config_path.parent
-        # Get relative path from project root (assuming we're in project root)
+        # Check if path is already absolute (first module part exists in sys.path)
+        first_part = base_class_path.split(".")[0]
+        for path in sys.path:
+            if not path:
+                continue
+            try:
+                path_obj = Path(path).resolve()
+                if (path_obj / first_part).exists() or (path_obj / f"{first_part}.py").exists():
+                    return base_class_path
+            except (ValueError, AttributeError, OSError):
+                continue
+
+        # Relative path - find package root from config location
         try:
-            # Try to find project root by looking for common markers
-            project_root = config_dir
-            while project_root.parent != project_root:
-                if (project_root / "pyproject.toml").exists() or (project_root / "setup.py").exists():
-                    break
-                project_root = project_root.parent
+            config_dir = config_path.parent.resolve()
+            package_root = None
 
-            # Get relative path from project root
-            rel_path = config_dir.relative_to(project_root)
-            # Convert to module path
-            module_base = str(rel_path).replace("/", ".").replace("\\", ".")
+            for path in sys.path:
+                if not path:
+                    continue
+                try:
+                    path_obj = Path(path).resolve()
+                    if config_dir.is_relative_to(path_obj):
+                        package_root = path_obj
+                        break
+                except (ValueError, AttributeError, OSError):
+                    continue
 
-            # Handle relative imports starting with .
-            if base_class_path.startswith("."):
-                # Remove leading dots and add to module base
-                relative_parts = base_class_path.lstrip(".").split(".")
-                return f"{module_base}.{'.'.join(relative_parts)}"
+            if package_root:
+                module_base = str(config_dir.relative_to(package_root)).replace("/", ".").replace("\\", ".")
             else:
-                # Direct relative import
-                return f"{module_base}.{base_class_path}"
+                module_base = config_dir.name
+
+            class_path = base_class_path.lstrip(".") if base_class_path.startswith(".") else base_class_path
+            return f"{module_base}.{class_path}" if module_base else class_path
         except (ValueError, AttributeError):
-            # If we can't resolve, return as is
             return base_class_path
 
     @classmethod
