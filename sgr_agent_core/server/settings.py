@@ -27,7 +27,8 @@ def setup_logging(logging_file: str) -> None:
     """
     logging_config_path = Path(logging_file)
     if not logging_config_path.exists():
-        raise FileNotFoundError(f"Logging config file not found: {logging_config_path}")
+        logger.warning(f"Logging config file not found: {logging_config_path}")
+        return
 
     with open(logging_config_path, "r", encoding="utf-8") as f:
         logging_config = yaml.safe_load(f)
