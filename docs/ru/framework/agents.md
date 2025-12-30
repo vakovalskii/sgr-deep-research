@@ -96,6 +96,13 @@ class BaseAgent:
         Returns string or dumped JSON result of the tool execution.
         """
         raise NotImplementedError("_action_phase must be implemented by subclass")
+
+    async def _execution_step(self):
+        """Execute a single step of the agent workflow.
+
+        Note: Override this method to change the agent workflow for each step.
+        """
+        raise NotImplementedError("_execution_step must be implemented by subclass")
 ```
 ## Основные модули агента
 

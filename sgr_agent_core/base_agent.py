@@ -138,8 +138,9 @@ class BaseAgent(AgentRegistryMixin):
 
     async def _prepare_context(self) -> list[dict]:
         """Prepare a conversation context with system prompt, task data and any
-        other context. Override this method to change the context setup for the
-        agent.
+        other context.
+
+        Note: Override this method to change the context setup for the agent.
 
         Returns a list of dictionaries OpenAI like format, each
         containing a role and content key by default.
@@ -155,7 +156,8 @@ class BaseAgent(AgentRegistryMixin):
 
     async def _prepare_tools(self) -> list[ChatCompletionFunctionToolParam]:
         """Prepare available tools for the current agent state and progress.
-        Override this method to change the tool setup or conditions for tool
+
+        Note: Override this method to change the tool setup or conditions for tool
         usage.
 
         Returns a list of ChatCompletionFunctionToolParam based
@@ -185,6 +187,23 @@ class BaseAgent(AgentRegistryMixin):
         """
         raise NotImplementedError("_action_phase must be implemented by subclass")
 
+    async def _execution_step(self):
+        """Execute a single step of the agent workflow.
+
+        Note: Override this method to change the agent workflow for each step.
+        """
+        reasoning = await self._reasoning_phase()
+        self._context.current_step_reasoning = reasoning
+        action_tool = await self._select_action_phase(reasoning)
+        await self._action_phase(action_tool)
+
+        if isinstance(action_tool, ClarificationTool):
+            self.logger.info("\n⏸️  Research paused - please answer questions")
+            self._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
+            self.streaming_generator.finish()
+            self._context.clarification_received.clear()
+            await self._context.clarification_received.wait()
+
     async def execute(
         self,
     ):
@@ -193,19 +212,7 @@ class BaseAgent(AgentRegistryMixin):
             while self._context.state not in AgentStatesEnum.FINISH_STATES.value:
                 self._context.iteration += 1
                 self.logger.info(f"Step {self._context.iteration} started")
-
-                reasoning = await self._reasoning_phase()
-                self._context.current_step_reasoning = reasoning
-                action_tool = await self._select_action_phase(reasoning)
-                await self._action_phase(action_tool)
-
-                if isinstance(action_tool, ClarificationTool):
-                    self.logger.info("\n⏸️  Research paused - please answer questions")
-                    self._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
-                    self.streaming_generator.finish()
-                    self._context.clarification_received.clear()
-                    await self._context.clarification_received.wait()
-                    continue
+                await self._execution_step()
             return self._context.execution_result
 
         except Exception as e:
