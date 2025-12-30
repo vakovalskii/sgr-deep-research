@@ -9,6 +9,11 @@
 
 **Чат сообщества**: Отвечаем на вопросы в [Telegram чате](https://t.me/sgragentcore) (ru/en)
 
+![](../assets/images/rmr750x200.png)
+
+Проект разрабатывается с поддержкой команды AI R&D в red_mad_robot, которая предоставляет исследовательские ресурсы, инженерную экспертизу, инфраструктуру и операционную поддержку.
+
+Узнайте больше о red_mad_robot: [redmadrobot.ai](https://redmadrobot.ai/)↗️ [habr](https://habr.com/ru/companies/redmadrobot/articles/)↗️ [telegram](https://t.me/Redmadnews/)↗️
 
 ## Дорожная карта
 

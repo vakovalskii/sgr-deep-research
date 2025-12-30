@@ -51,9 +51,11 @@ If you have any questions - feel free to join our [community chat](https://t.me/
 
 This project is developed by the **neuraldeep** community. It is inspired by the Schema-Guided Reasoning (SGR) work and [SGR Agent Demo](https://abdullin.com/schema-guided-reasoning/demo)↗️ delivered by "LLM Under the Hood" community and AI R&D Hub of [TIMETOACT GROUP Österreich](https://www.timetoact-group.at)↗️
 
-Recent benchmarks and validation experiments were conducted in collaboration with the AI R&D team at red_mad_robot. The lab operates at the intersection of fundamental science and real-world business challenges, running applied experiments and building scalable AI solutions with measurable value.
+![](./docs/assets/images/rmr750x200.png)
 
-Learn more about the company: [redmadrobot.ai](https://redmadrobot.ai/) ↗️
+This project is supported by the AI R&D team at red_mad_robot, providing research capacity, engineering expertise, infrastructure, and operational support.
+
+Learn more about red_mad_robot: [redmadrobot.ai](https://redmadrobot.ai/)↗️ [habr](https://habr.com/ru/companies/redmadrobot/articles/)↗️ [telegram](https://t.me/Redmadnews/)↗️
 
 ## Star History
 
