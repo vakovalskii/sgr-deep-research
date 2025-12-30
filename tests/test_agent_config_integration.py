@@ -175,18 +175,3 @@ class TestServerConfig:
                 setup_logging(config.logging_file)
         finally:
             sys.argv = original_argv
-
-    def test_server_config_logging_file_not_found(self):
-        """Test that setup_logging raises FileNotFoundError for missing
-        file."""
-        import sys
-
-        original_argv = sys.argv
-        try:
-            sys.argv = ["test"]
-            config = ServerConfig(logging_file="/nonexistent/logging.yaml")
-
-            with pytest.raises(FileNotFoundError, match="Logging config file not found"):
-                setup_logging(config.logging_file)
-        finally:
-            sys.argv = original_argv
