@@ -38,6 +38,12 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
         yaml_path = Path(yaml_path)
         if not yaml_path.exists():
             raise FileNotFoundError(f"Configuration file not found: {yaml_path}")
+
+        # Add config file directory to sys.path for dynamic imports
+        config_dir = str(yaml_path.resolve().parent)
+        if config_dir not in sys.path:
+            sys.path.insert(0, config_dir)
+
         config_data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
         main_config_agents = config_data.pop("agents", {})
         if cls._instance is None:
@@ -48,11 +54,15 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
             cls._initialized = False
             cls._instance = cls(**config_data, agents=cls._instance.agents)
         # agents should be initialized last to allow merging
-        cls._definitions_from_dict({"agents": main_config_agents})
+        cls._definitions_from_dict({"agents": main_config_agents}, config_dir=config_dir)
         return cls._instance
 
     @classmethod
-    def _definitions_from_dict(cls, agents_data: dict) -> Self:
+    def _definitions_from_dict(cls, agents_data: dict, config_dir: str | None = None) -> Self:
+        # Add config directory to sys.path if provided
+        if config_dir and config_dir not in sys.path:
+            sys.path.insert(0, config_dir)
+
         for agent_name, agent_config in agents_data.get("agents", {}).items():
             agent_config["name"] = agent_name
 
@@ -82,7 +92,9 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
             ValueError: If YAML file doesn't contain 'agents' key
         """
         agents_yaml_path = Path(agents_yaml_path)
-        sys.path.append(str(agents_yaml_path.resolve().parent))
+        config_dir = str(agents_yaml_path.resolve().parent)
+        if config_dir not in sys.path:
+            sys.path.insert(0, config_dir)
         if not agents_yaml_path.exists():
             raise FileNotFoundError(f"Agents definitions file not found: {agents_yaml_path}")
 
@@ -90,4 +102,4 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
         if not yaml_data.get("agents"):
             raise ValueError(f"Agents definitions file must contain 'agents' key: {agents_yaml_path}")
 
-        return cls._definitions_from_dict(yaml_data)
+        return cls._definitions_from_dict(yaml_data, config_dir=config_dir)

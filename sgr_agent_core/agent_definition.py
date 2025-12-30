@@ -1,6 +1,7 @@
 import inspect
 import logging
 import os
+import sys
 from functools import cached_property
 from pathlib import Path
 from typing import Any, Self
@@ -137,21 +138,56 @@ class AgentDefinition(AgentConfig):
 
     @field_validator("base_class", mode="before")
     def base_class_import_points_to_file(cls, v: Any) -> Any:
-        """Ensure ImportString based base_class points to an existing file to
-        catch a FileError and not interpret it as str class_name.
+        """Ensure ImportString based base_class points to an existing file or
+        package directory to catch a FileError and not interpret it as str
+        class_name.
 
         A dotted path indicates an import string (e.g.,
-        my_pkg.module.Class). We map the module portion to a .py file
-        relative to the working dir and raise if that file is missing.
+        my_pkg.module.Class). We map the module portion to either:
+        - A .py file (e.g., my_module.py)
+        - A package directory with __init__.py (e.g., my_module/__init__.py)
+
+        Checks relative to current working directory and sys.path entries
+        (including config file directory).
         """
         if isinstance(v, str) and "." in v:
             module_parts = v.split(".")
             if len(module_parts) >= 2:
+                module_path = os.sep.join(module_parts[:-1])
+
+                def check_module_exists(base_path: Path) -> bool:
+                    """Check if module exists as file or package directory."""
+                    # Check for .py file
+                    file_candidate = base_path / (module_path + ".py")
+                    if file_candidate.exists():
+                        return True
+
+                    # Check for package directory with __init__.py
+                    package_candidate = base_path / module_path / "__init__.py"
+                    if package_candidate.exists():
+                        return True
+
+                    return False
+
+                # Try to find relative to current working directory first
+                if check_module_exists(Path.cwd()):
+                    return v
+
+                # Try to find relative to sys.path entries (including config directory)
+                for sys_path in sys.path:
+                    if sys_path:
+                        base_path = Path(sys_path)
+                        if check_module_exists(base_path):
+                            return v
+
+                # If not found, raise error with helpful message
                 file_candidate = Path(os.sep.join(module_parts[:-1]) + ".py")
-                if not file_candidate.exists():
-                    raise FileNotFoundError(
-                        f"base_class import '{v}' points to '{file_candidate}', but the file does not exist"
-                    )
+                package_candidate = Path(os.sep.join(module_parts[:-1])) / "__init__.py"
+                raise FileNotFoundError(
+                    f"base_class import '{v}' points to module '{module_path}', but neither "
+                    f"'{file_candidate}' nor '{package_candidate}' exists. "
+                    f"Checked relative to current directory and sys.path entries."
+                )
         return v
 
     @model_validator(mode="before")
