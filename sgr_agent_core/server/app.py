@@ -8,9 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from sgr_agent_core import AgentFactory, AgentRegistry, ToolRegistry, __version__
 from sgr_agent_core.server.endpoints import router
-from sgr_agent_core.server.settings import setup_logging
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 

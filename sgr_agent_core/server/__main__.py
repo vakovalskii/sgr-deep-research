@@ -8,7 +8,7 @@ import yaml
 
 from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.server.app import app
-from sgr_agent_core.server.settings import ServerConfig
+from sgr_agent_core.server.settings import ServerConfig, setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,8 @@ def load_config(config_file: str, agents_file: str | None = None) -> GlobalConfi
 def main():
     """Start FastAPI server."""
     args = ServerConfig()
+
+    setup_logging(args.logging_file)
 
     load_config(args.config_file, args.agents_file)
 
