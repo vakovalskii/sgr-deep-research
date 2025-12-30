@@ -5,11 +5,9 @@ including settings loading, MCP integration, and environment-based
 setup.
 """
 
-import os
+import sys
 import tempfile
 from pathlib import Path
-import sys
-from unittest.mock import patch
 
 import pytest
 import yaml
@@ -157,11 +155,7 @@ class TestServerConfig:
                 logging_config = {
                     "version": 1,
                     "disable_existing_loggers": False,
-                    "formatters": {
-                        "standard": {
-                            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-                        }
-                    },
+                    "formatters": {"standard": {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}},
                     "handlers": {
                         "console": {
                             "class": "logging.StreamHandler",
@@ -170,9 +164,7 @@ class TestServerConfig:
                             "stream": "ext://sys.stdout",
                         }
                     },
-                    "loggers": {
-                        "root": {"level": "INFO", "handlers": ["console"]}
-                    },
+                    "loggers": {"root": {"level": "INFO", "handlers": ["console"]}},
                 }
 
                 with open(logging_file, "w", encoding="utf-8") as f:
@@ -185,7 +177,8 @@ class TestServerConfig:
             sys.argv = original_argv
 
     def test_server_config_logging_file_not_found(self):
-        """Test that setup_logging raises FileNotFoundError for missing file."""
+        """Test that setup_logging raises FileNotFoundError for missing
+        file."""
         import sys
 
         original_argv = sys.argv
