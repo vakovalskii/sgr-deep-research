@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from sgr_agent_core import AgentFactory, AgentRegistry, ToolRegistry, __version__
+from sgr_deep_research.adapters import OpenWebUIToolCallingAgent  # noqa: F401
 from sgr_deep_research.api.endpoints import router
 from sgr_deep_research.settings import setup_logging
 

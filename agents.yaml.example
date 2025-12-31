@@ -128,3 +128,41 @@ agents:
     tools:
       - "WebSearchTool"
       - "FinalAnswerTool"
+
+  # Example 6: Open-WebUI compatible agent
+  # ========================================
+  # This agent uses the OpenWebUIToolCallingAgent adapter for seamless
+  # integration with Open-WebUI frontend. It uses specialized OWUI tools
+  # that format responses as HTML <details> tags for better display.
+  #
+  # Features:
+  # - Streaming responses with proper HTML formatting
+  # - Tool calls displayed as collapsible details
+  # - Final answer generated via LLM completion
+  # - Conversation history management
+  #
+  # Note: Requires sgr_deep_research.adapters module
+  openwebui_research_agent:
+    base_class: "OpenWebUIToolCallingAgent"
+    
+    llm:
+      model: "gpt-4o"
+      temperature: 0.2
+      max_tokens: 16000
+    
+    search:
+      max_searches: 8
+      max_results: 15
+      content_limit: 2000
+    
+    execution:
+      max_iterations: 25
+      max_clarifications: 5
+      max_searches: 8
+    
+    # Open-WebUI specific tools (defined in sgr_deep_research.adapters.tools)
+    tools:
+      - "ReasoningToolOWUI"      # Reasoning with clean field names
+      - "FinalAnswerToolOWUI"    # Triggers LLM-generated final answer
+      - "WebSearchTool"          # Web search capability
+      - "ExtractPageContentTool" # Extract content from web pages
