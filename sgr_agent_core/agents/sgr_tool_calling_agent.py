@@ -3,7 +3,7 @@ from typing import Literal, Type
 from openai import AsyncOpenAI, pydantic_function_tool
 
 from sgr_agent_core.agent_config import AgentConfig
-from sgr_agent_core.agents.sgr_agent import SGRAgent
+from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.models import AgentStatesEnum
 from sgr_agent_core.tools import (
     BaseTool,
@@ -12,7 +12,7 @@ from sgr_agent_core.tools import (
 )
 
 
-class SGRToolCallingAgent(SGRAgent):
+class SGRToolCallingAgent(BaseAgent):
     """Agent that uses OpenAI native function calling to select and execute
     tools based on SGR like a reasoning scheme."""
 
@@ -122,3 +122,12 @@ class SGRToolCallingAgent(SGRAgent):
             f"{self._context.iteration}-action", tool.tool_name, tool.model_dump_json()
         )
         return tool
+
+    async def _action_phase(self, tool: BaseTool) -> str:
+        result = await tool(self._context, self.config)
+        self.conversation.append(
+            {"role": "tool", "content": result, "tool_call_id": f"{self._context.iteration}-action"}
+        )
+        self.streaming_generator.add_chunk_from_str(f"{result}\n")
+        self._log_tool_execution(tool, result)
+        return result
