@@ -1,3 +1,4 @@
+import importlib.util
 import inspect
 import logging
 import os
@@ -141,16 +142,21 @@ class AgentDefinition(AgentConfig):
         catch a FileError and not interpret it as str class_name.
 
         A dotted path indicates an import string (e.g.,
-        my_pkg.module.Class). We map the module portion to a .py file
-        relative to the working dir and raise if that file is missing.
+        dir.agent.MyAgent). We use importlib to automatically search for
+        the module in sys.path.
         """
         if isinstance(v, str) and "." in v:
             module_parts = v.split(".")
             if len(module_parts) >= 2:
-                file_candidate = Path(os.sep.join(module_parts[:-1]) + ".py")
-                if not file_candidate.exists():
+                # Get module path (everything except the class name)
+                module_path = ".".join(module_parts[:-1])
+                # Use importlib to find module in sys.path automatically
+                spec = importlib.util.find_spec(module_path)
+                if spec is None or spec.origin is None:
+                    file_path = Path(*module_parts[:-1]).with_suffix(".py")
                     raise FileNotFoundError(
-                        f"base_class import '{v}' points to '{file_candidate}', but the file does not exist"
+                        f"base_class import '{v}' points to '{file_path}', "
+                        f"but the file could not be found in sys.path"
                     )
         return v
 

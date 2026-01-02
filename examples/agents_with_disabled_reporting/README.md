@@ -35,7 +35,7 @@ cp config.yaml my_config.yaml
 To run the SGR Deep Research API server with agents from this directory:
 
 ```bash
-python sgr_deep_research --config-file examples/agents_with_disabled_reporting/config.yaml
+sgr --config-file examples/agents_with_disabled_reporting/config.yaml
 ```
 
 ### Using Python API

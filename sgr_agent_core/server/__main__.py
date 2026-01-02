@@ -7,9 +7,8 @@ import uvicorn
 import yaml
 
 from sgr_agent_core.agent_config import GlobalConfig
-from sgr_deep_research.app import app
-from sgr_deep_research.default_definitions import get_default_agents_definitions
-from sgr_deep_research.settings import ServerConfig
+from sgr_agent_core.server.app import app
+from sgr_agent_core.server.settings import ServerConfig, setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +18,10 @@ def load_config(config_file: str, agents_file: str | None = None) -> GlobalConfi
 
     This function implements the configuration loading logic:
     1. Load config.yaml (including agents section if present)
-    2. Add default agents
-    3. Load agents.yaml if provided (overrides existing agents)
+    2. Load agents.yaml if provided (overrides existing agents)
+
+    Agents are loaded dynamically from the paths specified in base_class fields.
+    The core has no hard dependencies on specific agent implementations.
 
     Args:
         config_file: Path to config.yaml file
@@ -30,9 +31,8 @@ def load_config(config_file: str, agents_file: str | None = None) -> GlobalConfi
         GlobalConfig instance with loaded configuration and agents
     """
     config = GlobalConfig.from_yaml(config_file)
-    config.agents.update(get_default_agents_definitions())
 
-    # Load agents from separate file if exists
+    # Load agents from separate file if exists (overrides config.yaml agents)
     if agents_file and Path(agents_file).exists():
         try:
             config.definitions_from_yaml(agents_file)
@@ -49,6 +49,8 @@ def load_config(config_file: str, agents_file: str | None = None) -> GlobalConfi
 def main():
     """Start FastAPI server."""
     args = ServerConfig()
+
+    setup_logging(args.logging_file)
 
     load_config(args.config_file, args.agents_file)
 

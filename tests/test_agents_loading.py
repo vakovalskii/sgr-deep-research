@@ -14,12 +14,12 @@ import pytest
 import yaml
 
 from sgr_agent_core.agent_config import GlobalConfig
-from sgr_deep_research.__main__ import load_config
+from sgr_agent_core.server.__main__ import load_config
 
 # Verify we're importing the real function
 assert (
-    load_config.__module__ == "sgr_deep_research.__main__"
-), "Must import load_config from sgr_deep_research.__main__, not a mock!"
+    load_config.__module__ == "sgr_agent_core.server.__main__"
+), "Must import load_config from sgr_agent_core.server.__main__, not a mock!"
 
 
 @pytest.fixture
@@ -270,7 +270,7 @@ class TestAgentsLoadingOrder:
         config_yaml.write_text(yaml.dump(config_data), encoding="utf-8")
 
         # Mock logger to check if error is logged
-        with patch("sgr_deep_research.__main__.logger") as mock_logger:
+        with patch("sgr_agent_core.server.__main__.logger") as mock_logger:
             # Use actual load_config() from __main__.py
             with pytest.raises(ValueError, match="must contain 'agents' key"):
                 load_config(str(config_yaml), str(agents_yaml))
@@ -302,7 +302,7 @@ class TestAgentsLoadingOrder:
         config_yaml.write_text(yaml.dump(config_data), encoding="utf-8")
 
         # Mock logger to check if error is logged
-        with patch("sgr_deep_research.__main__.logger") as mock_logger:
+        with patch("sgr_agent_core.server.__main__.logger") as mock_logger:
             # Use actual load_config() from __main__.py
             with pytest.raises(yaml.YAMLError):
                 load_config(str(config_yaml), str(agents_yaml))
@@ -328,12 +328,10 @@ class TestAgentsLoadingOrder:
         # Use actual load_config() from __main__.py
         config = load_config(str(config_yaml), None)
 
-        # Agents dict should contain default agents
+        # Agents dict should be empty if no agents in config
         assert isinstance(config.agents, dict)
-        # Default agents should be present
-        assert "sgr_agent" in config.agents
-        assert "tool_calling_agent" in config.agents
-        assert "sgr_tool_calling_agent" in config.agents
+        # No default agents should be loaded automatically (core has no hard dependencies)
+        assert len(config.agents) == 0
 
     def test_agents_file_not_exists(self, temp_dir, reset_global_config):
         """Test that load_config works when agents_file doesn't exist."""
@@ -346,17 +344,18 @@ class TestAgentsLoadingOrder:
         non_existent_agents_file = temp_dir / "non_existent_agents.yaml"
         config = load_config(str(config_yaml), str(non_existent_agents_file))
 
-        # Should still work and contain default agents
+        # Should still work, but no agents if not in config
         assert isinstance(config.agents, dict)
-        assert "sgr_agent" in config.agents
+        # No default agents should be loaded automatically
+        assert len(config.agents) == 0
 
-    def test_default_agents_added_after_config_yaml(self, temp_dir, reset_global_config):
-        """Test that default agents are added AFTER config.yaml agents.
+    def test_config_yaml_agents_loaded_correctly(self, temp_dir, reset_global_config):
+        """Test that agents from config.yaml are loaded correctly.
 
-        This test will fail if the order in load_config() is changed. If
-        you swap lines 32 and 33 in __main__.py, this test will fail.
+        Core should load agents only from config files, without hard
+        dependencies.
         """
-        # Create config.yaml with an agent that has the same name as a default agent
+        # Create config.yaml with an agent
         config_yaml = temp_dir / "config.yaml"
         config_data = {
             "llm": {"api_key": "test-key", "model": "gpt-4o-mini"},
@@ -370,27 +369,18 @@ class TestAgentsLoadingOrder:
         }
         config_yaml.write_text(yaml.dump(config_data), encoding="utf-8")
 
-        # Load config - default agents should override config.yaml agent with same name
+        # Load config - agents should be loaded from config.yaml
         config = load_config(str(config_yaml), None)
 
-        # Default sgr_agent should override config.yaml sgr_agent
-        # Current order: config.yaml (temp 0.9) -> defaults.update() (temp 0.4, overrides)
-        # If order is wrong (defaults before config.yaml), temperature would be 0.9
-        # If order is correct (config.yaml then defaults), temperature should be default (0.4)
+        # Agent from config.yaml should be present with correct temperature
         assert "sgr_agent" in config.agents
-        # Default temperature is 0.4, config.yaml has 0.9
-        # Since defaults.update() is called AFTER config.yaml, it should override
-        # So temperature should be 0.4 (from defaults), not 0.9 (from config.yaml)
-        assert (
-            config.agents["sgr_agent"].llm.temperature == 0.4
-        ), "Default agents should override config.yaml agents with same name"
+        # Temperature should be 0.9 from config.yaml (no defaults override)
+        assert config.agents["sgr_agent"].llm.temperature == 0.9
 
-    def test_agents_yaml_overrides_both_config_and_defaults(self, temp_dir, reset_global_config):
-        """Test that agents.yaml overrides both config.yaml and default agents.
+    def test_agents_yaml_overrides_config_yaml(self, temp_dir, reset_global_config):
+        """Test that agents.yaml overrides config.yaml agents.
 
-        This test will fail if agents.yaml is loaded before defaults or
-        config.yaml. If you move line 38 in __main__.py before line 33,
-        this test will fail.
+        This test verifies the loading order: config.yaml -> agents.yaml (overrides).
         """
         # Create config.yaml with agent
         config_yaml = temp_dir / "config.yaml"
@@ -411,7 +401,7 @@ class TestAgentsLoadingOrder:
         }
         config_yaml.write_text(yaml.dump(config_data), encoding="utf-8")
 
-        # Create agents.yaml that overrides both
+        # Create agents.yaml that overrides config.yaml
         agents_yaml = temp_dir / "agents.yaml"
         agents_data = {
             "agents": {
@@ -432,11 +422,9 @@ class TestAgentsLoadingOrder:
         # Load config
         config = load_config(str(config_yaml), str(agents_yaml))
 
-        # agents.yaml should override both config.yaml and defaults
+        # agents.yaml should override config.yaml
         assert config.agents["test_agent"].llm.temperature == 0.8  # From agents.yaml
-        assert (
-            config.agents["sgr_agent"].llm.temperature == 0.9
-        )  # From agents.yaml (overrides both config.yaml 0.6 and default 0.4)
+        assert config.agents["sgr_agent"].llm.temperature == 0.9  # From agents.yaml (overrides config.yaml 0.6)
 
     def test_load_config_order_matters(self, temp_dir, reset_global_config):
         """Test that changing the order of operations in load_config() breaks
@@ -478,23 +466,18 @@ class TestAgentsLoadingOrder:
 
         config = load_config(str(config_yaml), str(agents_yaml))
 
-        # Verify final state: should have custom_agent from agents.yaml, plus default agents
+        # Verify final state: should have custom_agent from agents.yaml
         assert "custom_agent" in config.agents
         assert config.agents["custom_agent"].llm.temperature == 0.7  # From agents.yaml
-        assert "sgr_agent" in config.agents  # Default agent should exist
-        assert "tool_calling_agent" in config.agents  # Default agent should exist
-        assert "sgr_tool_calling_agent" in config.agents  # Default agent should exist
+        # No default agents should be loaded automatically
+        assert len(config.agents) == 1
 
     def test_changing_load_config_order_breaks_tests(self, temp_dir, reset_global_config):
         """CRITICAL TEST: This test will FAIL if you change the order in load_config().
 
-        Try swapping lines 32 and 33 in __main__.py - this test should fail.
-        Try moving line 38 before line 33 - this test should fail.
-
         This test verifies the exact order:
         1. GlobalConfig.from_yaml() - loads config.yaml and its agents
-        2. config.agents.update(get_default_agents_definitions()) - adds defaults (overrides config.yaml)
-        3. config.definitions_from_yaml() - loads agents.yaml (overrides everything)
+        2. config.definitions_from_yaml() - loads agents.yaml (overrides config.yaml)
         """
         # Create config.yaml with agent that conflicts with default
         config_yaml = temp_dir / "config.yaml"
@@ -526,12 +509,52 @@ class TestAgentsLoadingOrder:
         config = load_config(str(config_yaml), str(agents_yaml))
 
         # Final temperature should be 0.88 from agents.yaml
-        # If you swap lines 32-33: would be 0.4 (defaults loaded first, then config.yaml overrides)
-        # If you move line 38 before 33: would be 0.99 (agents.yaml loaded before defaults)
-        # Correct order: config.yaml (0.99) -> defaults (0.4, overrides) -> agents.yaml (0.88, overrides)
+        # Correct order: config.yaml (0.99) -> agents.yaml (0.88, overrides)
         actual_temp = config.agents["sgr_agent"].llm.temperature
         assert actual_temp == 0.88, (
             f"Temperature should be 0.88 from agents.yaml, but got {actual_temp}. "
             f"This means the order in load_config() was changed! "
-            f"Expected order: config.yaml -> defaults -> agents.yaml"
+            f"Expected order: config.yaml -> agents.yaml"
         )
+
+    def test_config_agents_replace_core_class_names(self, temp_dir, reset_global_config):
+        """Test that agents from config with names matching core class names
+        replace existing definitions.
+
+        If an agent in config has the same name as a core agent class
+        (e.g., 'sgr_agent'), it should replace any existing definition
+        with that name.
+        """
+        # Create config.yaml with agent that has same name as core class
+        config_yaml = temp_dir / "config.yaml"
+        config_data = {
+            "llm": {"api_key": "test-key", "model": "gpt-4o-mini"},
+            "agents": {
+                "sgr_agent": {
+                    "base_class": "examples.sgr_deep_research.agents.ResearchSGRAgent",
+                    "llm": {"api_key": "test-key", "model": "gpt-4o-mini", "temperature": 0.9},
+                    "tools": ["FinalAnswerTool"],
+                },
+                "tool_calling_agent": {
+                    "base_class": "examples.sgr_deep_research.agents.ResearchToolCallingAgent",
+                    "llm": {"api_key": "test-key", "model": "gpt-4o-mini", "temperature": 0.7},
+                    "tools": ["FinalAnswerTool"],
+                },
+            },
+        }
+        config_yaml.write_text(yaml.dump(config_data), encoding="utf-8")
+
+        # Load config
+        config = load_config(str(config_yaml), None)
+
+        # Verify that config agents replaced any existing definitions
+        assert "sgr_agent" in config.agents
+        assert "tool_calling_agent" in config.agents
+
+        # Verify they use the classes from config, not core defaults
+        assert config.agents["sgr_agent"].llm.temperature == 0.9
+        assert config.agents["tool_calling_agent"].llm.temperature == 0.7
+
+        # Verify base_class is from config (examples.sgr_deep_research), not core
+        base_class_name = config.agents["sgr_agent"].base_class.__name__
+        assert base_class_name == "ResearchSGRAgent", f"Expected ResearchSGRAgent, got {base_class_name}"

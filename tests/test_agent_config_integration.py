@@ -5,10 +5,16 @@ including settings loading, MCP integration, and environment-based
 setup.
 """
 
+import sys
+import tempfile
+from pathlib import Path
+
 import pytest
+import yaml
 
 from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.agents import SGRAgent, SGRToolCallingAgent
+from sgr_agent_core.server.settings import ServerConfig, setup_logging
 from tests.conftest import create_test_agent
 
 
@@ -95,3 +101,77 @@ class TestMultipleAgentConfigurationConsistency:
             for j, other_agent in enumerate(agents):
                 if i != j:
                     assert agent.id != other_agent.id
+
+
+class TestServerConfig:
+    """Tests for ServerConfig reading configuration."""
+
+    def test_server_config_defaults(self):
+        """Test that ServerConfig has correct default values."""
+        original_argv = sys.argv
+        try:
+            sys.argv = ["test"]
+            config = ServerConfig()
+        finally:
+            sys.argv = original_argv
+
+        assert config.logging_file == "logging_config.yaml"
+        assert config.config_file == "config.yaml"
+        assert config.agents_file is None
+        assert config.host == "0.0.0.0"
+        assert config.port == 8010
+
+    def test_server_config_from_environment(self):
+        """Test that ServerConfig reads from environment variables."""
+        original_argv = sys.argv
+        try:
+            sys.argv = ["test"]
+            with pytest.MonkeyPatch().context() as m:
+                m.setenv("LOGGING_FILE", "custom_logging.yaml")
+                m.setenv("CONFIG_FILE", "custom_config.yaml")
+                m.setenv("AGENTS_FILE", "custom_agents.yaml")
+                m.setenv("HOST", "127.0.0.1")
+                m.setenv("PORT", "9000")
+
+                config = ServerConfig()
+
+                assert config.logging_file == "custom_logging.yaml"
+                assert config.config_file == "custom_config.yaml"
+                assert config.agents_file == "custom_agents.yaml"
+                assert config.host == "127.0.0.1"
+                assert config.port == 9000
+        finally:
+            sys.argv = original_argv
+
+    def test_server_config_logging_file_reading(self):
+        """Test that setup_logging uses logging_file from ServerConfig."""
+        import sys
+
+        original_argv = sys.argv
+        try:
+            sys.argv = ["test"]
+            with tempfile.TemporaryDirectory() as tmpdir:
+                logging_file = Path(tmpdir) / "test_logging.yaml"
+                logging_config = {
+                    "version": 1,
+                    "disable_existing_loggers": False,
+                    "formatters": {"standard": {"format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"}},
+                    "handlers": {
+                        "console": {
+                            "class": "logging.StreamHandler",
+                            "level": "INFO",
+                            "formatter": "standard",
+                            "stream": "ext://sys.stdout",
+                        }
+                    },
+                    "loggers": {"root": {"level": "INFO", "handlers": ["console"]}},
+                }
+
+                with open(logging_file, "w", encoding="utf-8") as f:
+                    yaml.dump(logging_config, f)
+
+                config = ServerConfig(logging_file=str(logging_file))
+                # Should not raise an error
+                setup_logging(config.logging_file)
+        finally:
+            sys.argv = original_argv

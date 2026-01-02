@@ -4,15 +4,10 @@ from openai import AsyncOpenAI
 
 from sgr_agent_core.agent_definition import AgentConfig
 from sgr_agent_core.base_agent import BaseAgent
+from sgr_agent_core.next_step_tool import NextStepToolsBuilder
 from sgr_agent_core.tools import (
     BaseTool,
-    ClarificationTool,
-    CreateReportTool,
-    ExtractPageContentTool,
-    FinalAnswerTool,
-    NextStepToolsBuilder,
     NextStepToolStub,
-    WebSearchTool,
 )
 
 
@@ -38,6 +33,11 @@ class SGRAgent(BaseAgent):
             def_name=def_name,
             **kwargs,
         )
+
+    async def _prepare_tools(self) -> Type[NextStepToolStub]:
+        """Prepare available tools for the current agent state and progress."""
+        tools = set(self.toolkit)
+        return NextStepToolsBuilder.build_NextStepTools(list(tools))
 
     async def _reasoning_phase(self) -> NextStepToolStub:
         async with self.openai_client.chat.completions.stream(
@@ -90,44 +90,3 @@ class SGRAgent(BaseAgent):
         self.streaming_generator.add_chunk_from_str(f"{result}\n")
         self._log_tool_execution(tool, result)
         return result
-
-
-class ResearchSGRAgent(SGRAgent):
-    """Agent for deep research tasks."""
-
-    def __init__(
-        self,
-        task: str,
-        openai_client: AsyncOpenAI,
-        agent_config: AgentConfig,
-        toolkit: list[Type[BaseTool]],
-        def_name: str | None = None,
-        **kwargs: dict,
-    ):
-        research_toolkit = [WebSearchTool, ExtractPageContentTool, CreateReportTool, FinalAnswerTool]
-        super().__init__(
-            task=task,
-            openai_client=openai_client,
-            agent_config=agent_config,
-            toolkit=research_toolkit + [t for t in toolkit if t not in research_toolkit],
-            def_name=def_name,
-            **kwargs,
-        )
-
-    async def _prepare_tools(self) -> Type[NextStepToolStub]:
-        """Prepare available tools for the current agent state and progress."""
-        tools = set(self.toolkit)
-        if self._context.iteration >= self.config.execution.max_iterations:
-            tools = {
-                CreateReportTool,
-                FinalAnswerTool,
-            }
-        if self._context.clarifications_used >= self.config.execution.max_clarifications:
-            tools -= {
-                ClarificationTool,
-            }
-        if self._context.searches_used >= self.config.search.max_searches:
-            tools -= {
-                WebSearchTool,
-            }
-        return NextStepToolsBuilder.build_NextStepTools(list(tools))

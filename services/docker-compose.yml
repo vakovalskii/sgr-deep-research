@@ -3,12 +3,16 @@ services:
     build:
       context: ./api_service
       dockerfile: Dockerfile
+    command:
+      - --config-file=/app/config.yaml
+      - --agents-file=/app/agents.yaml
     container_name: sgr-agent-core-backend
     restart: unless-stopped
     ports:
       - "${BACKEND_PORT:-8010}:8010"
     volumes:
-      - ../sgr_deep_research:/app/sgr_deep_research:ro
+      - ../examples/sgr_deep_research:/app/examples/sgr_deep_research:ro
+      - ../sgr_agent_core:/app/sgr_agent_core:ro
       - ../config.yaml:/app/config.yaml:ro
       - ../agents.yaml:/app/agents.yaml:ro
       - ../logging_config.yaml:/app/logging_config.yaml:ro

@@ -111,7 +111,7 @@ class BaseAgent(AgentRegistryMixin):
                 "step_number": self._context.iteration,
                 "timestamp": datetime.now().isoformat(),
                 "step_type": "reasoning",
-                "agent_reasoning": result.model_dump(),
+                "agent_reasoning": result.model_dump(mode="json"),
             }
         )
 
@@ -131,7 +131,7 @@ class BaseAgent(AgentRegistryMixin):
                 "timestamp": datetime.now().isoformat(),
                 "step_type": "tool_execution",
                 "tool_name": tool.tool_name,
-                "agent_tool_context": tool.model_dump(),
+                "agent_tool_context": tool.model_dump(mode="json"),
                 "agent_tool_execution_result": result,
             }
         )
@@ -150,7 +150,7 @@ class BaseAgent(AgentRegistryMixin):
         agent_log = {
             "id": self.id,
             "model_config": self.config.llm.model_dump(
-                exclude={"api_key", "proxy"}
+                exclude={"api_key", "proxy"}, mode="json"
             ),  # Sensitive data excluded by default
             "task": self.task,
             "toolkit": [tool.tool_name for tool in self.toolkit],
@@ -182,7 +182,13 @@ class BaseAgent(AgentRegistryMixin):
         return list(reversed(collected))
 
     async def _prepare_context(self) -> list[dict]:
-        """Prepare conversation context with system prompt."""
+        """Prepare a conversation context with system prompt, task data and any
+        other context. Override this method to change the context setup for the
+        agent.
+
+        Returns a list of dictionaries, each containing a role and
+        content key.
+        """
         user_context = self.extract_user_content_from_messages(self.conversation)
 
         conversation_without_user_context = (
@@ -210,7 +216,8 @@ class BaseAgent(AgentRegistryMixin):
 
     async def _prepare_tools(self) -> list[ChatCompletionFunctionToolParam]:
         """Prepare available tools for the current agent state and progress.
-        Override this method to change the tool setup or conditions for tool
+
+        Note: Override this method to change the tool setup or conditions for tool
         usage.
 
         Returns a list of ChatCompletionFunctionToolParam based
@@ -240,6 +247,23 @@ class BaseAgent(AgentRegistryMixin):
         """
         raise NotImplementedError("_action_phase must be implemented by subclass")
 
+    async def _execution_step(self):
+        """Execute a single step of the agent workflow.
+
+        Note: Override this method to change the agent workflow for each step.
+        """
+        reasoning = await self._reasoning_phase()
+        self._context.current_step_reasoning = reasoning
+        action_tool = await self._select_action_phase(reasoning)
+        await self._action_phase(action_tool)
+
+        if isinstance(action_tool, ClarificationTool):
+            self.logger.info("\n⏸️  Research paused - please answer questions")
+            self._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
+            self.streaming_generator.finish()
+            self._context.clarification_received.clear()
+            await self._context.clarification_received.wait()
+
     async def execute(
         self,
     ):
@@ -248,19 +272,7 @@ class BaseAgent(AgentRegistryMixin):
             while self._context.state not in AgentStatesEnum.FINISH_STATES.value:
                 self._context.iteration += 1
                 self.logger.info(f"Step {self._context.iteration} started")
-
-                reasoning = await self._reasoning_phase()
-                self._context.current_step_reasoning = reasoning
-                action_tool = await self._select_action_phase(reasoning)
-                await self._action_phase(action_tool)
-
-                if isinstance(action_tool, ClarificationTool):
-                    self.logger.info("\n⏸️  Research paused - please answer questions")
-                    self._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
-                    self.streaming_generator.finish()
-                    self._context.clarification_received.clear()
-                    await self._context.clarification_received.wait()
-                    continue
+                await self._execution_step()
             return self._context.execution_result
 
         except Exception as e:

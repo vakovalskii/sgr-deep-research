@@ -9,21 +9,6 @@ from sgr_agent_core.tools.generate_plan_tool import GeneratePlanTool
 from sgr_agent_core.tools.reasoning_tool import ReasoningTool
 from sgr_agent_core.tools.web_search_tool import WebSearchTool
 
-# Tool lists for backward compatibility
-system_agent_tools = [
-    ClarificationTool,
-    GeneratePlanTool,
-    AdaptPlanTool,
-    FinalAnswerTool,
-    ReasoningTool,
-]
-
-research_agent_tools = [
-    WebSearchTool,
-    ExtractPageContentTool,
-    CreateReportTool,
-]
-
 __all__ = [
     # Base classes
     "BaseTool",
@@ -42,7 +27,4 @@ __all__ = [
     # Tool lists
     "NextStepToolStub",
     "NextStepToolsBuilder",
-    # Tool Collections
-    "system_agent_tools",
-    "research_agent_tools",
 ]

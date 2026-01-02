@@ -1,6 +1,6 @@
 # Example Custom Agents Configuration
 # =====================================
-# This file demonstrates how to define custom agents for SGR Deep Research
+# This file demonstrates how to define custom agents for SGR Agent Core.
 
 # Notes:
 # ------
@@ -12,8 +12,8 @@
 agents:
   # Example 1: Simple custom research agent with overrides
   custom_research_agent:
-    base_class: "sgr_agent_core.agents.sgr_agent.ResearchSGRAgent"
-    # Optional: Override LLM settings for this agent
+    base_class: "sgr_agent_core.agents.sgr_agent.SGRAgent"
+    # Optional: Override LLM settings for this agentк
     llm:
       model: "gpt-4o"
       temperature: 0.3
@@ -113,7 +113,7 @@ agents:
 
   # Example 5: Agent using inline prompts instead of files
   inline_prompt_agent:
-    base_class: "ResearchSGRAgent"
+    base_class: "SGRAgent"
 
     prompts:
       system_prompt_str: |

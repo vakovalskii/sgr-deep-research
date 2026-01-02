@@ -12,7 +12,7 @@ from fastapi import HTTPException
 
 from sgr_agent_core.agents import SGRAgent
 from sgr_agent_core.models import AgentStatesEnum
-from sgr_deep_research.api.endpoints import (
+from sgr_agent_core.server.endpoints import (
     _is_agent_id,
     agents_storage,
     create_chat_completion,
@@ -21,7 +21,7 @@ from sgr_deep_research.api.endpoints import (
     get_agents_list,
     provide_clarification,
 )
-from sgr_deep_research.api.models import ChatCompletionRequest, ClarificationRequest
+from sgr_agent_core.server.models import ChatCompletionRequest, ClarificationRequest
 from tests.conftest import create_test_agent
 
 
@@ -121,7 +121,7 @@ class TestChatCompletionEndpoint:
         # Clear agents storage
         agents_storage.clear()
 
-    @patch("sgr_deep_research.api.endpoints.AgentFactory")
+    @patch("sgr_agent_core.server.endpoints.AgentFactory")
     @pytest.mark.asyncio
     async def test_create_new_agent_success(self, mock_factory):
         """Test successful creation of new agent."""
@@ -147,7 +147,7 @@ class TestChatCompletionEndpoint:
         )
 
         # Mock asyncio.create_task to properly handle coroutines
-        with patch("sgr_deep_research.api.endpoints.asyncio.create_task") as mock_create_task:
+        with patch("sgr_agent_core.server.endpoints.asyncio.create_task") as mock_create_task:
             # Schedule the coroutine via event loop to avoid 'never awaited' warnings
             def mock_create_task_func(coro):
                 loop = asyncio.get_event_loop()

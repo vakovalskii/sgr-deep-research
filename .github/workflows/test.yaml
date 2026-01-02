@@ -1,0 +1,34 @@
+name: Test PR
+
+on:
+  - pull_request
+  - workflow_call
+
+jobs:
+  test-pr:
+    name: Test on ${{ matrix.os }} with python${{ matrix.pythonv }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: False
+      matrix:
+        os: [ubuntu-latest]
+        pythonv: ["3.x"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.pythonv }}
+
+      - name: Install from sdist
+        shell: bash
+        run: |
+          pipx run build --sdist .
+          source_file=$(ls ./dist/*.tar.gz)
+          pip install "${source_file}[tests]"
+
+      - name: Run test cases
+        run: coverage run -m pytest
+
+      - name: Create report
+        run: coverage report

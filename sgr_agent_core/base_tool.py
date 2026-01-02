@@ -48,7 +48,7 @@ class MCPBaseTool(BaseTool):
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs) -> str:
         config = GlobalConfig()
-        payload = self.model_dump()
+        payload = self.model_dump(mode="json")
         try:
             async with self._client:
                 result = await self._client.call_tool(self.tool_name, payload)

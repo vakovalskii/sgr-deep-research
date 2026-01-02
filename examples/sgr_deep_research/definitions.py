@@ -1,8 +1,18 @@
+"""Agent definitions for research agents.
+
+This module provides agent definitions that can be used to configure
+research agents in the SGR Agent Core system.
+"""
+
 from pathlib import Path
 
 import sgr_agent_core.tools as tools
+from examples.sgr_deep_research.agents import (
+    ResearchSGRAgent,
+    ResearchSGRToolCallingAgent,
+    ResearchToolCallingAgent,
+)
 from sgr_agent_core.agent_definition import AgentDefinition, PromptsConfig
-from sgr_agent_core.agents import ResearchSGRAgent, ResearchSGRToolCallingAgent, ResearchToolCallingAgent
 
 DEFAULT_TOOLKIT = [
     tools.ClarificationTool,
@@ -15,14 +25,11 @@ DEFAULT_TOOLKIT = [
 ]
 
 
-def get_default_agents_definitions() -> dict[str, AgentDefinition]:
-    """Get default agent definitions.
-
-    This function creates agent definitions lazily to avoid issues with
-    configuration initialization order.
+def get_research_agents_definitions() -> dict[str, AgentDefinition]:
+    """Get research agent definitions.
 
     Returns:
-        Dictionary of default agent definitions keyed by agent name
+        Dictionary of research agent definitions keyed by agent name
     """
     agents = [
         AgentDefinition(

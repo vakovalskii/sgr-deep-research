@@ -1,0 +1,81 @@
+# SGR Deep Research - Configuration for research agents
+# Copy this file and fill in your API keys
+
+# LLM Configuration
+llm:
+  api_key: "your-openai-api-key-here"  # Your OpenAI API key
+  base_url: "https://api.openai.com/v1"  # API base URL
+  model: "gpt-4o-mini"  # Model name
+  max_tokens: 8000  # Max output tokens
+  temperature: 0.4  # Temperature (0.0-1.0)
+  # proxy: "socks5://127.0.0.1:1081"  # Optional proxy (socks5:// or http://)
+
+# Search Configuration (Tavily)
+search:
+  tavily_api_key: "your-tavily-api-key-here"  # Tavily API key (get at tavily.com)
+  tavily_api_base_url: "https://api.tavily.com"  # Tavily API URL
+  max_searches: 4  # Max search operations
+  max_results: 10  # Max results in search query
+  content_limit: 1500  # Content char limit per source
+
+# Execution Settings
+execution:
+  max_clarifications: 3  # Max clarification requests
+  max_iterations: 10  # Max agent iterations
+  mcp_context_limit: 15000  # Max context length from MCP server response
+  logs_dir: "logs"  # Directory for saving agent execution logs
+  reports_dir: "reports"  # Directory for saving research reports
+
+# MCP (Model Context Protocol) Configuration
+mcp:
+  mcpServers:
+    deepwiki:
+      url: "https://mcp.deepwiki.com/mcp"
+
+# Agent Definitions
+agents:
+  # SGR Agent for research
+  sgr_agent:
+    base_class: "agents.ResearchSGRAgent"
+    llm:
+      model: "gpt-4o-mini"
+      temperature: 0.4
+    tools:
+      - "WebSearchTool"
+      - "ExtractPageContentTool"
+      - "CreateReportTool"
+      - "FinalAnswerTool"
+      - "ClarificationTool"
+      - "GeneratePlanTool"
+      - "AdaptPlanTool"
+
+  # Tool Calling Agent for research
+  tool_calling_agent:
+    base_class: "agents.ResearchToolCallingAgent"
+    llm:
+      model: "gpt-4o-mini"
+      temperature: 0.4
+    tools:
+      - "WebSearchTool"
+      - "ExtractPageContentTool"
+      - "CreateReportTool"
+      - "FinalAnswerTool"
+      - "ClarificationTool"
+      - "GeneratePlanTool"
+      - "AdaptPlanTool"
+
+  # SGR Tool Calling Agent for research
+  sgr_tool_calling_agent:
+    base_class: "agents.ResearchSGRToolCallingAgent"
+    llm:
+      model: "gpt-4o-mini"
+      temperature: 0.4
+    tools:
+      - "WebSearchTool"
+      - "ExtractPageContentTool"
+      - "CreateReportTool"
+      - "FinalAnswerTool"
+      - "ClarificationTool"
+      - "ReasoningTool"
+      - "GeneratePlanTool"
+      - "AdaptPlanTool"

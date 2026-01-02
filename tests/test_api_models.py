@@ -7,7 +7,7 @@ endpoints.
 import pytest
 from pydantic import ValidationError
 
-from sgr_deep_research.api.models import (
+from sgr_agent_core.server.models import (
     AgentListItem,
     AgentListResponse,
     AgentStateResponse,

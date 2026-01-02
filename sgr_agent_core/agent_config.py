@@ -1,4 +1,5 @@
 import logging
+import sys
 from pathlib import Path
 from typing import ClassVar, Self
 
@@ -35,6 +36,7 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
     @classmethod
     def from_yaml(cls, yaml_path: str) -> Self:
         yaml_path = Path(yaml_path)
+        sys.path.append(str(yaml_path.resolve().parent))
         if not yaml_path.exists():
             raise FileNotFoundError(f"Configuration file not found: {yaml_path}")
         config_data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
@@ -81,6 +83,8 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
             ValueError: If YAML file doesn't contain 'agents' key
         """
         agents_yaml_path = Path(agents_yaml_path)
+
+        sys.path.append(str(agents_yaml_path.resolve().parent))
         if not agents_yaml_path.exists():
             raise FileNotFoundError(f"Agents definitions file not found: {agents_yaml_path}")
 

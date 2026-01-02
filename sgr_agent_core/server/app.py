@@ -7,10 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from sgr_agent_core import AgentFactory, AgentRegistry, ToolRegistry, __version__
-from sgr_deep_research.api.endpoints import router
-from sgr_deep_research.settings import setup_logging
+from sgr_agent_core.server.endpoints import router
 
-setup_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -25,7 +23,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="SGR Deep Research API", version=__version__, lifespan=lifespan)
+app = FastAPI(title="SGR Agent Core API", version=__version__, lifespan=lifespan)
 # Don't use this CORS setting in production!
 app.add_middleware(
     CORSMiddleware,

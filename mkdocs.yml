@@ -1,0 +1,94 @@
+site_name: SGR Agent Core
+site_url: https://vamplabai.github.io/sgr-agent-core/
+repo_url: https://github.com/vamplabai/sgr-agent-core
+repo_name: vamplabAI/sgr-agent-core
+
+plugins:
+  - search
+  - i18n:
+      docs_structure: folder
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: ru
+          name: Русский
+          build: true
+          nav_translations:
+            Home: Главная
+            Main Concepts: Основные концепции
+            User Guide: Руководство пользователя
+            Quick Start: Быстрый старт
+            Configuration: Конфигурация
+            Build your agent: Собери своего агента
+            Workflow: Рабочий процесс
+            Demonstration: Демонстрация
+            Integration & Examples: Интеграция и примеры
+            Description API: Описание API
+            Summary Table: Сводная таблица
+            SGR vs Function Calling: SGR vs Function Calling
+
+theme:
+  name: material
+  icon:
+    annotation: material/plus-circle
+  palette:
+
+    - scheme: slate
+      primary: green
+      accent: green
+      toggle:
+        icon: material/brightness-7
+        name: Переключить на светлую тему
+
+    - scheme: default
+      primary: green
+      accent: green
+      toggle:
+        icon: material/brightness-4
+        name: Переключить на тёмную тему
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.code.highlight
+nav:
+  - Home: index.md
+  - Agent Core Framework:
+    - Main Concepts: framework/main-concepts.md
+    - User Guide:
+        - Quick Start: framework/first-steps.md
+        - Configuration: framework/configuration.md
+        - Build your agent: framework/agents.md
+        - Tools: framework/tools.md
+    - QnA: framework/qna.md
+  - SGR API service:
+    - Quick Start: sgr-api/SGR-Quick-Start.md
+    - Workflow: sgr-api/SGR-Agent's-Workflow.md
+    - Demonstration: sgr-api/SGR-Demonstration.md
+    - Integration & Examples: sgr-api/SGR-Integration-&-Examples.md
+    - Description API: sgr-api/SGR-Description-API.md
+    - Summary Table: sgr-api/SGR-Summary-table.md
+    - SGR vs Function Calling: sgr-api/SGR-vs-Function-Calling_-When-to-Use-Each-Approach.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format

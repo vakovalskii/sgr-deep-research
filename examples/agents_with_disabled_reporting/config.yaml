@@ -36,7 +36,7 @@ mcp:
 agents:
   # SGR Agent without reporting
   sgr_agent_no_reporting:
-    base_class: "examples.agents_with_disabled_reporting.agents.ResearchSGRAgentNoReporting"
+    base_class: "agents.ResearchSGRAgentNoReporting"
     llm:
       model: "gpt-4o-mini"
       temperature: 0.4
@@ -48,7 +48,7 @@ agents:
 
   # Tool Calling Agent without reporting
   tool_calling_agent_no_reporting:
-    base_class: "examples.agents_with_disabled_reporting.agents.ResearchToolCallingAgentNoReporting"
+    base_class: "agents.ResearchToolCallingAgentNoReporting"
     llm:
       model: "gpt-4o-mini"
       temperature: 0.4
@@ -60,7 +60,7 @@ agents:
 
   # SGR Tool Calling Agent without reporting
   sgr_tool_calling_agent_no_reporting:
-    base_class: "examples.agents_with_disabled_reporting.agents.ResearchSGRToolCallingAgentNoReporting"
+    base_class: "agents.ResearchSGRToolCallingAgentNoReporting"
     llm:
       model: "gpt-4o-mini"
       temperature: 0.4

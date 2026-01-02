@@ -1,7 +1,7 @@
 from openai import pydantic_function_tool
 from openai.types.chat import ChatCompletionFunctionToolParam
 
-from sgr_agent_core.agents import ResearchSGRToolCallingAgent
+from examples.sgr_deep_research.agents import ResearchSGRToolCallingAgent
 from sgr_agent_core.tools import ExtractPageContentTool, FinalAnswerTool, ReasoningTool, WebSearchTool
 
 

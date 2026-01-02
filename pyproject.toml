@@ -11,7 +11,7 @@ authors = [
     {name = "virrius"},
     {name = "VaKovaLskii"},
     {name = "abdullin"},
-    {name = "Pavel Zloi"},
+    {name = "EvilFreelancer"},
     {name = "Shadekss"},
     {name = "mixaill76"}
 ]
@@ -33,24 +33,17 @@ keywords = ["ai", "research", "reasoning", "schema-guided", "openai"]
 
 dependencies = [
     # Core dependencies
-    "openai>=1.0.0",
-    "pydantic>=2.0.0",
-    "rich>=13.0.0",
-    # HTTP client with proxy support
-    "httpx>=0.25.0",
-    "socksio>=1.0.0",
-    # Search and research
-    "tavily-python>=0.3.0",
-    # Web scraping and content extraction
-    "trafilatura>=1.6.0",
-    "youtube-transcript-api>=0.6.0",
-    # Configuration and utilities
     "PyYAML>=6.0",
     "python-dateutil>=2.8.0",
+    "pydantic>=2.0.0",
     "pydantic-settings>=2.10.1",
+    "openai>=1.0.0",
+    "httpx[socks]>=0.25.0",
+    # Search and research
+    "tavily-python>=0.3.0",
+    # Configuration and utilities
     "fastapi>=0.116.1",
     "uvicorn>=0.35.0",
-    "lxml<6",
     "fastmcp>=2.12.4",
     "jambo>=0.1.3.post2",
 ]
@@ -61,16 +54,15 @@ Repository = "https://github.com/vamplabAI/sgr-agent-core"
 Issues = "https://github.com/vamplabAI/sgr-agent-core/issues"
 Documentation = "https://vamplabai.github.io/sgr-agent-core/"
 "SGR Concept Creator - @abdullin" = "https://t.me/llm_under_hood"
-"Project Coordinator - @VaKovaLskii" = "https://t.me/neuraldeep"
-"Lead Core Developer - @virrius" = "https://t.me/virrius_tech"
-"API Development - Pavel Zloi" = "https://t.me/evilfreelancer"
-"Hybrid FC Research - @Shadekss" = "https://t.me/Shadekss"
+"Coordinator - @VaKovaLskii" = "https://t.me/neuraldeep"
+"Core Developer - @virrius" = "https://t.me/virrius_tech"
+"Core Developer - @EvilFreelancer" = "https://t.me/evilfreelancer"
 "DevOps & Deployment - @mixaill76" = "https://t.me/mixaill76"
 
 [project.scripts]
-sgr = "sgr_agent_core.__main__:main"
+sgr = "sgr_agent_core.server.__main__:main"
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
@@ -118,3 +110,9 @@ line-ending = "lf"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["sgr_agent_core"]
+
+[tool.coverage.report]
+show_missing = true

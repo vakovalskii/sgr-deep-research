@@ -1,0 +1,21 @@
+# SGR Agent Core
+
+- [🚀 SGR API Service](sgr-api/SGR-Quick-Start.md) — Собранный под задачи deep research сервис с REST API и веб-интерфейсом.
+- [🛠️ Agent Core Framework](framework/main-concepts.md) — Python библиотека для создания собственных агентов.
+
+## Контакты и сообщество
+
+**По вопросам сотрудничества**: [@VaKovaLskii](https://t.me/neuraldeep)
+
+**Чат сообщества**: Отвечаем на вопросы в [Telegram чате](https://t.me/sgragentcore) (ru/en)
+
+![](../assets/images/rmr750x200.png)
+
+Проект разрабатывается с поддержкой команды AI R&D в red_mad_robot, которая предоставляет исследовательские ресурсы, инженерную экспертизу, инфраструктуру и операционную поддержку.
+
+Узнайте больше о red_mad_robot: [redmadrobot.ai](https://redmadrobot.ai/)↗️ [habr](https://habr.com/ru/companies/redmadrobot/articles/)↗️ [telegram](https://t.me/Redmadnews/)↗️
+
+## Дорожная карта
+
+!!!warning "В разработке"
+    Дорожная карта находится в стадии разработки. Следите за обновлениями!
