@@ -119,7 +119,7 @@ async def create_chat_completion(request: ChatCompletionRequest):
     ):
         return await provide_clarification(
             agent_id=request.model,
-            request=ClarificationRequest(messages=request.messages),
+            request=ClarificationRequest(messages=request.messages.root),
         )
 
     try:
@@ -130,7 +130,7 @@ async def create_chat_completion(request: ChatCompletionRequest):
                 detail=f"Invalid model '{request.model}'. "
                 f"Available models: {[ad.name for ad in AgentFactory.get_definitions_list()]}",
             )
-        agent = await AgentFactory.create(agent_def, request.messages)
+        agent = await AgentFactory.create(agent_def, request.messages.root)
         logger.info(f"Created agent '{request.model}' with {len(request.messages)} messages")
 
         agents_storage[agent.id] = agent

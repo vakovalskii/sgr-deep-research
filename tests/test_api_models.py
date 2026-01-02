@@ -16,6 +16,7 @@ from sgr_agent_core.server.models import (
     ChatCompletionResponse,
     ClarificationRequest,
     HealthResponse,
+    MessagesList,
 )
 
 
@@ -88,7 +89,7 @@ class TestChatCompletionRequest:
         """Test that messages validator accepts list of dicts."""
         messages = [{"role": "user", "content": "Test"}]
         request = ChatCompletionRequest(messages=messages)
-        assert isinstance(request.messages, list)
+        assert isinstance(request.messages, MessagesList)
         assert isinstance(request.messages[0], dict)
 
     def test_chat_completion_request_validation_rejects_non_list(self):
@@ -364,3 +365,232 @@ class TestClarificationRequest:
         assert len(request.messages) == 2
         assert request.messages[0]["role"] == "system"
         assert request.messages[1]["role"] == "user"
+
+
+class TestMessagesListTruncation:
+    """Tests for MessagesList base64 image URL truncation."""
+
+    def test_truncate_long_base64_image_url(self):
+        """Test that long base64 image URLs are truncated to 200 characters."""
+        long_base64 = "data:image/png;base64," + "A" * 500  # 500 characters after prefix
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "What's in this image?"},
+                    {"type": "image_url", "image_url": {"url": long_base64}},
+                ],
+            }
+        ]
+        messages_list = MessagesList(root=messages)
+
+        # Serialize to trigger truncation
+        serialized = messages_list.model_dump()
+
+        # Check that URL was truncated
+        image_url = serialized[0]["content"][1]["image_url"]["url"]
+        assert len(image_url) == MessagesList.MAX_BASE64_LENGTH + len("...[truncated]")
+        assert image_url.endswith("...[truncated]")
+        assert image_url.startswith("data:image/png;base64,")
+
+    def test_short_base64_image_url_not_truncated(self):
+        """Test that short base64 image URLs are not truncated."""
+        short_base64 = "data:image/png;base64,abc123"  # Short URL
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": short_base64}},
+                ],
+            }
+        ]
+        messages_list = MessagesList(root=messages)
+
+        # Serialize to trigger truncation logic
+        serialized = messages_list.model_dump()
+
+        # Check that URL was not truncated (still original)
+        image_url = serialized[0]["content"][0]["image_url"]["url"]
+        assert image_url == short_base64
+        assert len(image_url) < MessagesList.MAX_BASE64_LENGTH
+        assert not image_url.endswith("...[truncated]")
+
+    def test_multiple_images_truncated(self):
+        """Test that multiple images in different messages are truncated."""
+        long_base64_1 = "data:image/png;base64," + "B" * 300
+        long_base64_2 = "data:image/jpeg;base64," + "C" * 400
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": long_base64_1}},
+                ],
+            },
+            {
+                "role": "assistant",
+                "content": "I see the images",
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Another image"},
+                    {"type": "image_url", "image_url": {"url": long_base64_2}},
+                ],
+            },
+        ]
+        messages_list = MessagesList(root=messages)
+
+        serialized = messages_list.model_dump()
+
+        # First image should be truncated
+        assert len(serialized[0]["content"][0]["image_url"]["url"]) == MessagesList.MAX_BASE64_LENGTH + len(
+            "...[truncated]"
+        )
+        assert serialized[0]["content"][0]["image_url"]["url"].endswith("...[truncated]")
+
+        # Second message (text only) should be unchanged
+        assert serialized[1]["content"] == "I see the images"
+
+        # Third message's image should be truncated
+        assert len(serialized[2]["content"][1]["image_url"]["url"]) == MessagesList.MAX_BASE64_LENGTH + len(
+            "...[truncated]"
+        )
+        assert serialized[2]["content"][1]["image_url"]["url"].endswith("...[truncated]")
+
+    def test_text_content_not_affected(self):
+        """Test that text content is not affected by truncation."""
+        long_base64 = "data:image/png;base64," + "D" * 500
+        text_content = "A" * 1000  # Long text content
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": text_content},
+                    {"type": "image_url", "image_url": {"url": long_base64}},
+                ],
+            }
+        ]
+        messages_list = MessagesList(root=messages)
+
+        serialized = messages_list.model_dump()
+
+        # Text should be unchanged
+        assert serialized[0]["content"][0]["text"] == text_content
+        assert len(serialized[0]["content"][0]["text"]) == 1000
+
+        # Image URL should be truncated
+        assert len(serialized[0]["content"][1]["image_url"]["url"]) == MessagesList.MAX_BASE64_LENGTH + len(
+            "...[truncated]"
+        )
+        assert serialized[0]["content"][1]["image_url"]["url"].endswith("...[truncated]")
+
+    def test_string_content_not_affected(self):
+        """Test that string content (non-list) is not affected."""
+        messages = [
+            {
+                "role": "user",
+                "content": "This is a simple text message with no images",
+            }
+        ]
+        messages_list = MessagesList(root=messages)
+
+        serialized = messages_list.model_dump()
+
+        # String content should be unchanged
+        assert serialized[0]["content"] == "This is a simple text message with no images"
+
+    def test_missing_content_handled_gracefully(self):
+        """Test that missing content field is handled gracefully."""
+        messages = [
+            {
+                "role": "user",
+                # Missing content field
+            }
+        ]
+        messages_list = MessagesList(root=messages)
+
+        # Should not raise an exception
+        serialized = messages_list.model_dump()
+        assert "content" not in serialized[0] or serialized[0].get("content") is None
+
+    def test_empty_content_list_handled(self):
+        """Test that empty content list is handled gracefully."""
+        messages = [
+            {
+                "role": "user",
+                "content": [],
+            }
+        ]
+        messages_list = MessagesList(root=messages)
+
+        serialized = messages_list.model_dump()
+        assert serialized[0]["content"] == []
+
+    def test_non_image_url_types_not_affected(self):
+        """Test that non-image_url content types are not affected."""
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Some text"},
+                    {"type": "other_type", "data": "some data"},
+                ],
+            }
+        ]
+        messages_list = MessagesList(root=messages)
+
+        serialized = messages_list.model_dump()
+
+        # Both entries should be unchanged
+        assert serialized[0]["content"][0]["text"] == "Some text"
+        assert serialized[0]["content"][1]["data"] == "some data"
+
+    def test_exact_200_characters_not_truncated(self):
+        """Test that exactly 200 characters are not truncated (boundary
+        case)."""
+        # Create URL with exactly 200 chars total
+        prefix = "data:image/png;base64,"
+        base64_part = "X" * (MessagesList.MAX_BASE64_LENGTH - len(prefix))
+        exact_200_url = prefix + base64_part
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": exact_200_url}},
+                ],
+            }
+        ]
+        messages_list = MessagesList(root=messages)
+
+        serialized = messages_list.model_dump()
+
+        # Should NOT be truncated (exactly at the limit)
+        image_url = serialized[0]["content"][0]["image_url"]["url"]
+        assert image_url == exact_200_url
+        assert len(image_url) == MessagesList.MAX_BASE64_LENGTH
+        assert not image_url.endswith("...[truncated]")
+
+    def test_201_characters_truncated(self):
+        """Test that 201 characters are truncated (boundary case)."""
+        # Create URL with exactly 201 chars (one over the limit)
+        prefix = "data:image/png;base64,"
+        base64_part = "X" * (MessagesList.MAX_BASE64_LENGTH - len(prefix) + 1)
+        over_200_url = prefix + base64_part
+
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": over_200_url}},
+                ],
+            }
+        ]
+        messages_list = MessagesList(root=messages)
+
+        serialized = messages_list.model_dump()
+
+        # Should be truncated to MAX_BASE64_LENGTH + "...[truncated]"
+        image_url = serialized[0]["content"][0]["image_url"]["url"]
+        assert len(image_url) == MessagesList.MAX_BASE64_LENGTH + len("...[truncated]")
+        assert image_url.endswith("...[truncated]")
