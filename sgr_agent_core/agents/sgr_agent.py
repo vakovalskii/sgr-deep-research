@@ -18,7 +18,7 @@ class SGRAgent(BaseAgent):
 
     def __init__(
         self,
-        task: str,
+        task_messages: list,
         openai_client: AsyncOpenAI,
         agent_config: AgentConfig,
         toolkit: list[Type[BaseTool]],
@@ -26,7 +26,7 @@ class SGRAgent(BaseAgent):
         **kwargs: dict,
     ):
         super().__init__(
-            task=task,
+            task_messages=task_messages,
             openai_client=openai_client,
             agent_config=agent_config,
             toolkit=toolkit,

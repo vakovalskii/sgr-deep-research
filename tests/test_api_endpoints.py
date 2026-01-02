@@ -16,12 +16,11 @@ from sgr_agent_core.server.endpoints import (
     _is_agent_id,
     agents_storage,
     create_chat_completion,
-    extract_user_content_from_messages,
     get_agent_state,
     get_agents_list,
     provide_clarification,
 )
-from sgr_agent_core.server.models import ChatCompletionRequest, ChatMessage, ClarificationRequest
+from sgr_agent_core.server.models import ChatCompletionRequest, ClarificationRequest
 from tests.conftest import create_test_agent
 
 
@@ -69,46 +68,6 @@ class TestIsAgentId:
         assert _is_agent_id(exactly_22) is True
 
 
-class TestExtractUserContentFromMessages:
-    """Tests for extract_user_content_from_messages function."""
-
-    def test_extract_from_single_user_message(self):
-        """Test extracting content from single user message."""
-        messages = [ChatMessage(role="user", content="Hello, this is a test message")]
-
-        content = extract_user_content_from_messages(messages)
-        assert content == "Hello, this is a test message"
-
-    def test_extract_from_multiple_messages_gets_latest_user(self):
-        """Test extracting content gets the latest user message."""
-        messages = [
-            ChatMessage(role="system", content="System message"),
-            ChatMessage(role="user", content="First user message"),
-            ChatMessage(role="assistant", content="Assistant response"),
-            ChatMessage(role="user", content="Latest user message"),
-        ]
-
-        content = extract_user_content_from_messages(messages)
-        assert content == "Latest user message"
-
-    def test_extract_no_user_message_raises_error(self):
-        """Test that missing user message raises ValueError."""
-        messages = [
-            ChatMessage(role="system", content="System message"),
-            ChatMessage(role="assistant", content="Assistant response"),
-        ]
-
-        with pytest.raises(ValueError, match="User message not found"):
-            extract_user_content_from_messages(messages)
-
-    def test_extract_empty_messages_raises_error(self):
-        """Test that empty messages list raises ValueError."""
-        messages = []
-
-        with pytest.raises(ValueError, match="User message not found"):
-            extract_user_content_from_messages(messages)
-
-
 class TestChatCompletionEndpoint:
     """Tests for create_chat_completion endpoint."""
 
@@ -139,7 +98,7 @@ class TestChatCompletionEndpoint:
 
         # Create request
         request = ChatCompletionRequest(
-            model="sgr_agent", messages=[ChatMessage(role="user", content="Test task")], stream=True
+            model="sgr_agent", messages=[{"role": "user", "content": "Test task"}], stream=True
         )
 
         # Mock asyncio.create_task to properly handle coroutines
@@ -155,6 +114,8 @@ class TestChatCompletionEndpoint:
 
             # Verify agent was created and stored
             mock_factory.create.assert_called_once()
+            call_args = mock_factory.create.call_args[0]
+            assert call_args[1] == [{"role": "user", "content": "Test task"}]
             assert mock_agent.id in agents_storage
             assert agents_storage[mock_agent.id] == mock_agent
 
@@ -162,10 +123,107 @@ class TestChatCompletionEndpoint:
             mock_create_task.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_create_agent_with_multiple_messages(self):
+        """Test creating agent with multiple messages."""
+        from unittest.mock import patch
+
+        mock_agent = Mock()
+        mock_agent.id = "test_agent_12345678-1234-1234-1234-123456789012"
+        mock_agent.streaming_generator.stream.return_value = iter(["chunk1"])
+
+        async def mock_execute():
+            pass
+
+        mock_agent.execute = mock_execute
+
+        with patch("sgr_agent_core.server.endpoints.AgentFactory") as mock_factory:
+            mock_agent_def = Mock()
+            mock_factory.get_definitions_list.return_value = [mock_agent_def]
+            mock_agent_def.name = "sgr_agent"
+            mock_factory.create = AsyncMock(return_value=mock_agent)
+
+            request = ChatCompletionRequest(
+                model="sgr_agent",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant"},
+                    {"role": "user", "content": "First message"},
+                    {"role": "assistant", "content": "Response"},
+                    {"role": "user", "content": "Second message"},
+                ],
+                stream=True,
+            )
+
+            with patch("sgr_agent_core.server.endpoints.asyncio.create_task") as mock_create_task:
+
+                def mock_create_task_func(coro):
+                    loop = asyncio.get_event_loop()
+                    return loop.create_task(coro)
+
+                mock_create_task.side_effect = mock_create_task_func
+
+                await create_chat_completion(request)
+
+                mock_factory.create.assert_called_once()
+                call_args = mock_factory.create.call_args[0]
+                assert len(call_args[1]) == 4
+                assert call_args[1][0]["role"] == "system"
+                assert call_args[1][1]["role"] == "user"
+
+    @pytest.mark.asyncio
+    async def test_create_agent_with_multimodal_message(self):
+        """Test creating agent with multimodal message (text and image)."""
+        from unittest.mock import patch
+
+        mock_agent = Mock()
+        mock_agent.id = "test_agent_12345678-1234-1234-1234-123456789012"
+        mock_agent.streaming_generator.stream.return_value = iter(["chunk1"])
+
+        async def mock_execute():
+            pass
+
+        mock_agent.execute = mock_execute
+
+        with patch("sgr_agent_core.server.endpoints.AgentFactory") as mock_factory:
+            mock_agent_def = Mock()
+            mock_factory.get_definitions_list.return_value = [mock_agent_def]
+            mock_agent_def.name = "sgr_agent"
+            mock_factory.create = AsyncMock(return_value=mock_agent)
+
+            request = ChatCompletionRequest(
+                model="sgr_agent",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "What's in this image?"},
+                            {"type": "image_url", "image_url": {"url": "data:image/png;base64,abc123"}},
+                        ],
+                    }
+                ],
+                stream=True,
+            )
+
+            with patch("sgr_agent_core.server.endpoints.asyncio.create_task") as mock_create_task:
+
+                def mock_create_task_func(coro):
+                    loop = asyncio.get_event_loop()
+                    return loop.create_task(coro)
+
+                mock_create_task.side_effect = mock_create_task_func
+
+                await create_chat_completion(request)
+
+                mock_factory.create.assert_called_once()
+                call_args = mock_factory.create.call_args[0]
+                assert len(call_args[1]) == 1
+                assert isinstance(call_args[1][0]["content"], list)
+                assert len(call_args[1][0]["content"]) == 2
+
+    @pytest.mark.asyncio
     async def test_non_streaming_request_raises_error(self):
         """Test that non-streaming request raises HTTPException."""
         request = ChatCompletionRequest(
-            model="sgr_agent", messages=[ChatMessage(role="user", content="Test task")], stream=False
+            model="sgr_agent", messages=[{"role": "user", "content": "Test task"}], stream=False
         )
 
         with pytest.raises(HTTPException) as exc_info:
@@ -178,7 +236,7 @@ class TestChatCompletionEndpoint:
     async def test_invalid_model_raises_error(self):
         """Test that invalid model raises HTTPException."""
         request = ChatCompletionRequest(
-            model="invalid_model", messages=[ChatMessage(role="user", content="Test task")], stream=True
+            model="invalid_model", messages=[{"role": "user", "content": "Test task"}], stream=True
         )
 
         with pytest.raises(HTTPException) as exc_info:
@@ -191,25 +249,27 @@ class TestChatCompletionEndpoint:
     async def test_clarification_request_for_existing_agent(self):
         """Test providing clarification to existing agent."""
         # Create and store an agent waiting for clarification
-        agent = create_test_agent(SGRAgent, task="Test task")
+        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Test task"}])
         agent._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
         agents_storage[agent.id] = agent
 
         # Mock the agent's methods with actual async function
-        async def mock_provide_clarification(clarifications):
+        async def mock_provide_clarification(messages):
             pass
 
         agent.provide_clarification = Mock(side_effect=mock_provide_clarification)
         agent.streaming_generator.stream = Mock(return_value=iter(["clarification response"]))
 
         request = ChatCompletionRequest(
-            model=agent.id, messages=[ChatMessage(role="user", content="Here is my clarification")], stream=True
+            model=agent.id, messages=[{"role": "user", "content": "Here is my clarification"}], stream=True
         )
 
         await create_chat_completion(request)
 
         # Verify clarification was provided
-        agent.provide_clarification.assert_called_once_with("Here is my clarification")
+        agent.provide_clarification.assert_called_once()
+        call_args = agent.provide_clarification.call_args[0][0]
+        assert call_args == [{"role": "user", "content": "Here is my clarification"}]
 
 
 class TestAgentStateEndpoint:
@@ -225,7 +285,7 @@ class TestAgentStateEndpoint:
         from sgr_agent_core.models import SourceData
 
         # Create and store an agent
-        agent = create_test_agent(SGRAgent, task="Test task")
+        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Test task"}])
         agent._context.sources = {
             "https://example.com/1": SourceData(number=1, url="https://example.com/1", title="Source 1"),
             "https://example.com/2": SourceData(number=2, url="https://example.com/2", title="Source 2"),
@@ -235,8 +295,28 @@ class TestAgentStateEndpoint:
         response = await get_agent_state(agent.id)
 
         assert response.agent_id == agent.id
-        assert response.task == "Test task"
+        assert len(response.task_messages) == 1
+        assert response.task_messages[0]["content"] == "Test task"
         assert response.sources_count == 2
+
+    @pytest.mark.asyncio
+    async def test_get_agent_state_with_multiple_messages(self):
+        """Test agent state retrieval with multiple task messages."""
+        agent = create_test_agent(
+            SGRAgent,
+            task_messages=[
+                {"role": "system", "content": "You are a researcher"},
+                {"role": "user", "content": "Research quantum computing"},
+            ],
+        )
+        agents_storage[agent.id] = agent
+
+        response = await get_agent_state(agent.id)
+
+        assert response.agent_id == agent.id
+        assert len(response.task_messages) == 2
+        assert response.task_messages[0]["role"] == "system"
+        assert response.task_messages[1]["role"] == "user"
 
     @pytest.mark.asyncio
     async def test_get_agent_state_not_found(self):
@@ -269,8 +349,8 @@ class TestAgentsListEndpoint:
     async def test_get_agents_list_multiple_agents(self):
         """Test getting agents list with multiple agents."""
         # Create and store multiple agents
-        agent1 = create_test_agent(SGRAgent, task="Task 1")
-        agent2 = create_test_agent(SGRAgent, task="Task 2")
+        agent1 = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Task 1"}])
+        agent2 = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Task 2"}])
 
         agents_storage[agent1.id] = agent1
         agents_storage[agent2.id] = agent2
@@ -285,6 +365,12 @@ class TestAgentsListEndpoint:
         assert agent1.id in agent_ids
         assert agent2.id in agent_ids
 
+        # Verify task_messages are preserved
+        agent1_response = next(item for item in response.agents if item.agent_id == agent1.id)
+        agent2_response = next(item for item in response.agents if item.agent_id == agent2.id)
+        assert agent1_response.task_messages[0]["content"] == "Task 1"
+        assert agent2_response.task_messages[0]["content"] == "Task 2"
+
 
 class TestProvideClarificationEndpoint:
     """Tests for provide_clarification endpoint."""
@@ -297,28 +383,57 @@ class TestProvideClarificationEndpoint:
     async def test_provide_clarification_success(self):
         """Test successful clarification provision."""
         # Create and store an agent
-        agent = create_test_agent(SGRAgent, task="Test task")
+        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Test task"}])
 
         # Mock the agent's methods with actual async function
-        async def mock_provide_clarification(clarifications):
+        async def mock_provide_clarification(messages):
             pass
 
         agent.provide_clarification = Mock(side_effect=mock_provide_clarification)
         agent.streaming_generator.stream = Mock(return_value=iter(["clarification response"]))
         agents_storage[agent.id] = agent
 
-        request = ClarificationRequest(clarifications="This is my clarification")
+        request = ClarificationRequest(messages=[{"role": "user", "content": "This is my clarification"}])
 
         await provide_clarification(agent.id, request)
 
         # Verify clarification was provided
-        agent.provide_clarification.assert_called_once_with("This is my clarification")
+        agent.provide_clarification.assert_called_once()
+        call_args = agent.provide_clarification.call_args[0][0]
+        assert call_args == [{"role": "user", "content": "This is my clarification"}]
+
+    @pytest.mark.asyncio
+    async def test_provide_clarification_multiple_messages(self):
+        """Test clarification provision with multiple messages."""
+        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Test task"}])
+
+        async def mock_provide_clarification(messages):
+            pass
+
+        agent.provide_clarification = Mock(side_effect=mock_provide_clarification)
+        agent.streaming_generator.stream = Mock(return_value=iter(["response"]))
+        agents_storage[agent.id] = agent
+
+        request = ClarificationRequest(
+            messages=[
+                {"role": "user", "content": "Answer 1: Yes"},
+                {"role": "user", "content": "Answer 2: No"},
+            ]
+        )
+
+        await provide_clarification(agent.id, request)
+
+        agent.provide_clarification.assert_called_once()
+        call_args = agent.provide_clarification.call_args[0][0]
+        assert len(call_args) == 2
+        assert call_args[0]["content"] == "Answer 1: Yes"
+        assert call_args[1]["content"] == "Answer 2: No"
 
     @pytest.mark.asyncio
     async def test_provide_clarification_agent_not_found(self):
         """Test clarification provision for non-existent agent."""
         non_existent_id = "non_existent_agent_id"
-        request = ClarificationRequest(clarifications="Some clarification")
+        request = ClarificationRequest(messages=[{"role": "user", "content": "Some clarification"}])
 
         # Agent not found, exception will be raised
         # The code catches any exception and returns 500, not 404
@@ -333,16 +448,16 @@ class TestProvideClarificationEndpoint:
     async def test_provide_clarification_with_exception(self):
         """Test clarification provision when agent raises exception."""
         # Create agent that raises exception
-        agent = create_test_agent(SGRAgent, task="Test task")
+        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Test task"}])
 
         # Mock the agent's method to raise exception
-        async def mock_provide_clarification_error(clarifications):
+        async def mock_provide_clarification_error(messages):
             raise Exception("Test error")
 
         agent.provide_clarification = Mock(side_effect=mock_provide_clarification_error)
         agents_storage[agent.id] = agent
 
-        request = ClarificationRequest(clarifications="Some clarification")
+        request = ClarificationRequest(messages=[{"role": "user", "content": "Some clarification"}])
 
         with pytest.raises(HTTPException) as exc_info:
             await provide_clarification(agent.id, request)
@@ -361,8 +476,8 @@ class TestAgentStorageIntegration:
     def test_agent_storage_persistence(self):
         """Test that agents persist in storage across operations."""
         # Create agents
-        agent1 = create_test_agent(SGRAgent, task="Task 1")
-        agent2 = create_test_agent(SGRAgent, task="Task 2")
+        agent1 = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Task 1"}])
+        agent2 = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Task 2"}])
 
         # Store in agents_storage
         agents_storage[agent1.id] = agent1
@@ -372,8 +487,8 @@ class TestAgentStorageIntegration:
         assert len(agents_storage) == 2
         assert agent1.id in agents_storage
         assert agent2.id in agents_storage
-        assert agents_storage[agent1.id].task == "Task 1"
-        assert agents_storage[agent2.id].task == "Task 2"
+        assert agents_storage[agent1.id].task_messages[0]["content"] == "Task 1"
+        assert agents_storage[agent2.id].task_messages[0]["content"] == "Task 2"
 
     def test_agent_storage_isolation(self):
         """Test that different test methods have isolated storage."""

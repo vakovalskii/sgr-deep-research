@@ -14,42 +14,9 @@ from sgr_agent_core.server.models import (
     ChatCompletionChoice,
     ChatCompletionRequest,
     ChatCompletionResponse,
-    ChatMessage,
     ClarificationRequest,
     HealthResponse,
 )
-
-
-class TestChatMessage:
-    """Tests for ChatMessage model."""
-
-    def test_chat_message_creation(self):
-        """Test creating a chat message with valid data."""
-        message = ChatMessage(role="user", content="Hello, world!")
-        assert message.role == "user"
-        assert message.content == "Hello, world!"
-
-    def test_chat_message_default_role(self):
-        """Test that default role is 'user'."""
-        message = ChatMessage(content="Test message")
-        assert message.role == "user"
-
-    def test_chat_message_all_roles(self):
-        """Test all valid message roles."""
-        roles = ["system", "user", "assistant", "tool"]
-        for role in roles:
-            message = ChatMessage(role=role, content="Test")
-            assert message.role == role
-
-    def test_chat_message_invalid_role(self):
-        """Test that invalid role raises validation error."""
-        with pytest.raises(ValidationError):
-            ChatMessage(role="invalid_role", content="Test")
-
-    def test_chat_message_required_content(self):
-        """Test that content is required."""
-        with pytest.raises(ValidationError):
-            ChatMessage(role="user")
 
 
 class TestChatCompletionRequest:
@@ -57,14 +24,14 @@ class TestChatCompletionRequest:
 
     def test_chat_completion_request_creation(self):
         """Test creating a chat completion request."""
-        messages = [ChatMessage(role="user", content="Hello")]
+        messages = [{"role": "user", "content": "Hello"}]
         request = ChatCompletionRequest(messages=messages)
         assert len(request.messages) == 1
-        assert request.messages[0].content == "Hello"
+        assert request.messages[0]["content"] == "Hello"
 
     def test_chat_completion_request_defaults(self):
         """Test default values for chat completion request."""
-        messages = [ChatMessage(role="user", content="Test")]
+        messages = [{"role": "user", "content": "Test"}]
         request = ChatCompletionRequest(messages=messages)
         assert request.model == "sgr_tool_calling_agent"
         assert request.stream is True
@@ -73,7 +40,7 @@ class TestChatCompletionRequest:
 
     def test_chat_completion_request_custom_values(self):
         """Test custom values for chat completion request."""
-        messages = [ChatMessage(role="user", content="Test")]
+        messages = [{"role": "user", "content": "Test"}]
         request = ChatCompletionRequest(
             model="custom_model",
             messages=messages,
@@ -94,12 +61,45 @@ class TestChatCompletionRequest:
     def test_chat_completion_request_multiple_messages(self):
         """Test request with multiple messages."""
         messages = [
-            ChatMessage(role="system", content="You are a helpful assistant"),
-            ChatMessage(role="user", content="Hello"),
-            ChatMessage(role="assistant", content="Hi there!"),
+            {"role": "system", "content": "You are a helpful assistant"},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there!"},
         ]
         request = ChatCompletionRequest(messages=messages)
         assert len(request.messages) == 3
+
+    def test_chat_completion_request_multimodal_message(self):
+        """Test request with multimodal message (text and image)."""
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "What's in this image?"},
+                    {"type": "image_url", "image_url": {"url": "data:image/png;base64,abc123"}},
+                ],
+            }
+        ]
+        request = ChatCompletionRequest(messages=messages)
+        assert len(request.messages) == 1
+        assert isinstance(request.messages[0]["content"], list)
+        assert len(request.messages[0]["content"]) == 2
+
+    def test_chat_completion_request_validation_list_of_dicts(self):
+        """Test that messages validator accepts list of dicts."""
+        messages = [{"role": "user", "content": "Test"}]
+        request = ChatCompletionRequest(messages=messages)
+        assert isinstance(request.messages, list)
+        assert isinstance(request.messages[0], dict)
+
+    def test_chat_completion_request_validation_rejects_non_list(self):
+        """Test that messages validator rejects non-list."""
+        with pytest.raises(ValidationError):
+            ChatCompletionRequest(messages="not a list")
+
+    def test_chat_completion_request_validation_rejects_non_dict_items(self):
+        """Test that messages validator rejects non-dict items."""
+        with pytest.raises(ValidationError):
+            ChatCompletionRequest(messages=["not a dict"])
 
 
 class TestChatCompletionResponse:
@@ -109,7 +109,7 @@ class TestChatCompletionResponse:
         """Test creating a chat completion response."""
         choice = ChatCompletionChoice(
             index=0,
-            message=ChatMessage(role="assistant", content="Response"),
+            message={"role": "assistant", "content": "Response"},
             finish_reason="stop",
         )
         response = ChatCompletionResponse(
@@ -128,7 +128,7 @@ class TestChatCompletionResponse:
         """Test response with usage information."""
         choice = ChatCompletionChoice(
             index=0,
-            message=ChatMessage(role="assistant", content="Response"),
+            message={"role": "assistant", "content": "Response"},
             finish_reason="stop",
         )
         usage = {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
@@ -144,15 +144,15 @@ class TestChatCompletionResponse:
 
     def test_chat_completion_choice_structure(self):
         """Test ChatCompletionChoice structure."""
-        message = ChatMessage(role="assistant", content="Test response")
+        message = {"role": "assistant", "content": "Test response"}
         choice = ChatCompletionChoice(
             index=0,
             message=message,
             finish_reason="stop",
         )
         assert choice.index == 0
-        assert choice.message.role == "assistant"
-        assert choice.message.content == "Test response"
+        assert choice.message["role"] == "assistant"
+        assert choice.message["content"] == "Test response"
         assert choice.finish_reason == "stop"
 
 
@@ -179,7 +179,7 @@ class TestAgentStateResponse:
         """Test creating an agent state response."""
         response = AgentStateResponse(
             agent_id="agent_123",
-            task="Research task",
+            task_messages=[{"role": "user", "content": "Research task"}],
             state="researching",
             iteration=5,
             searches_used=3,
@@ -187,7 +187,8 @@ class TestAgentStateResponse:
             sources_count=10,
         )
         assert response.agent_id == "agent_123"
-        assert response.task == "Research task"
+        assert len(response.task_messages) == 1
+        assert response.task_messages[0]["content"] == "Research task"
         assert response.state == "researching"
         assert response.iteration == 5
         assert response.searches_used == 3
@@ -198,7 +199,7 @@ class TestAgentStateResponse:
         """Test agent state response with optional fields."""
         response = AgentStateResponse(
             agent_id="agent_123",
-            task="Research task",
+            task_messages=[{"role": "user", "content": "Research task"}],
             state="completed",
             iteration=10,
             searches_used=5,
@@ -214,7 +215,7 @@ class TestAgentStateResponse:
         """Test that optional fields default to None."""
         response = AgentStateResponse(
             agent_id="agent_123",
-            task="Test",
+            task_messages=[{"role": "user", "content": "Test"}],
             state="inited",
             iteration=0,
             searches_used=0,
@@ -223,6 +224,24 @@ class TestAgentStateResponse:
         )
         assert response.current_step_reasoning is None
         assert response.execution_result is None
+
+    def test_agent_state_response_multiple_messages(self):
+        """Test agent state response with multiple task messages."""
+        response = AgentStateResponse(
+            agent_id="agent_123",
+            task_messages=[
+                {"role": "system", "content": "You are a researcher"},
+                {"role": "user", "content": "Research quantum computing"},
+            ],
+            state="researching",
+            iteration=1,
+            searches_used=0,
+            clarifications_used=0,
+            sources_count=0,
+        )
+        assert len(response.task_messages) == 2
+        assert response.task_messages[0]["role"] == "system"
+        assert response.task_messages[1]["role"] == "user"
 
 
 class TestAgentListItem:
@@ -235,19 +254,20 @@ class TestAgentListItem:
         now = datetime.now()
         item = AgentListItem(
             agent_id="agent_123",
-            task="Research quantum computing",
+            task_messages=[{"role": "user", "content": "Research quantum computing"}],
             state="researching",
             creation_time=now,
         )
         assert item.agent_id == "agent_123"
-        assert item.task == "Research quantum computing"
+        assert len(item.task_messages) == 1
+        assert item.task_messages[0]["content"] == "Research quantum computing"
         assert item.state == "researching"
         assert item.creation_time == now
 
     def test_agent_list_item_required_fields(self):
         """Test that all fields are required."""
         with pytest.raises(ValidationError):
-            AgentListItem(agent_id="agent_123", task="Test")
+            AgentListItem(agent_id="agent_123", task_messages=[{"role": "user", "content": "Test"}])
 
 
 class TestAgentListResponse:
@@ -261,13 +281,13 @@ class TestAgentListResponse:
         items = [
             AgentListItem(
                 agent_id="agent_1",
-                task="Task 1",
+                task_messages=[{"role": "user", "content": "Task 1"}],
                 state="completed",
                 creation_time=now,
             ),
             AgentListItem(
                 agent_id="agent_2",
-                task="Task 2",
+                task_messages=[{"role": "user", "content": "Task 2"}],
                 state="researching",
                 creation_time=now,
             ),
@@ -290,7 +310,7 @@ class TestAgentListResponse:
         items = [
             AgentListItem(
                 agent_id="agent_1",
-                task="Task 1",
+                task_messages=[{"role": "user", "content": "Task 1"}],
                 state="completed",
                 creation_time=now,
             )
@@ -306,15 +326,41 @@ class TestClarificationRequest:
 
     def test_clarification_request_creation(self):
         """Test creating a clarification request."""
-        request = ClarificationRequest(clarifications="Here are my answers: 1. Yes 2. No 3. Maybe")
-        assert request.clarifications == "Here are my answers: 1. Yes 2. No 3. Maybe"
+        content = "Here are my answers: 1. Yes 2. No 3. Maybe"
+        request = ClarificationRequest(messages=[{"role": "user", "content": content}])
+        assert len(request.messages) == 1
+        assert request.messages[0]["content"] == content
 
     def test_clarification_request_required_field(self):
-        """Test that clarifications field is required."""
+        """Test that messages field is required."""
         with pytest.raises(ValidationError):
             ClarificationRequest()
 
-    def test_clarification_request_empty_string(self):
-        """Test clarification request with empty string."""
-        request = ClarificationRequest(clarifications="")
-        assert request.clarifications == ""
+    def test_clarification_request_empty_list(self):
+        """Test clarification request with empty list."""
+        request = ClarificationRequest(messages=[])
+        assert request.messages == []
+
+    def test_clarification_request_multiple_messages(self):
+        """Test clarification request with multiple messages."""
+        request = ClarificationRequest(
+            messages=[
+                {"role": "user", "content": "Answer 1: Yes"},
+                {"role": "user", "content": "Answer 2: No"},
+            ]
+        )
+        assert len(request.messages) == 2
+        assert request.messages[0]["content"] == "Answer 1: Yes"
+        assert request.messages[1]["content"] == "Answer 2: No"
+
+    def test_clarification_request_with_system_message(self):
+        """Test clarification request with system message."""
+        request = ClarificationRequest(
+            messages=[
+                {"role": "system", "content": "Context for clarification"},
+                {"role": "user", "content": "My clarification"},
+            ]
+        )
+        assert len(request.messages) == 2
+        assert request.messages[0]["role"] == "system"
+        assert request.messages[1]["role"] == "user"

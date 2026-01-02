@@ -5,6 +5,7 @@ from typing import Type, TypeVar
 
 import httpx
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
 
 from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.agent_definition import AgentDefinition, LLMConfig
@@ -40,12 +41,12 @@ class AgentFactory:
         return AsyncOpenAI(**client_kwargs)
 
     @classmethod
-    async def create(cls, agent_def: AgentDefinition, task: str) -> Agent:
+    async def create(cls, agent_def: AgentDefinition, task_messages: list[ChatCompletionMessageParam]) -> Agent:
         """Create an agent instance from a definition.
 
         Args:
             agent_def: Agent definition with configuration (classes already resolved)
-            task: Task for the agent to execute
+            task_messages: Task messages in OpenAI ChatCompletionMessageParam format
 
         Returns:
             Created agent instance
@@ -88,7 +89,7 @@ class AgentFactory:
 
         try:
             agent = BaseClass(
-                task=task,
+                task_messages=task_messages,
                 def_name=agent_def.name,
                 toolkit=tools,
                 openai_client=cls._create_client(agent_def.llm),

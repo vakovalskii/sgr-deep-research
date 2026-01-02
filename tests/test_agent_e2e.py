@@ -253,7 +253,7 @@ def _assert_agent_completed(agent, expected_result: str = "Final answer to the r
 @pytest.mark.asyncio
 async def test_sgr_agent_full_execution_cycle():
     agent = SGRAgent(
-        task="Test research task",
+        task_messages=[{"role": "user", "content": "Test research task"}],
         openai_client=create_mock_openai_client_for_sgr_agent(AdaptPlanTool, FinalAnswerTool),
         agent_config=_create_test_agent_config(),
         toolkit=[FinalAnswerTool, AdaptPlanTool],
@@ -271,7 +271,7 @@ async def test_sgr_agent_full_execution_cycle():
 @pytest.mark.asyncio
 async def test_tool_calling_agent_full_execution_cycle():
     agent = ToolCallingAgent(
-        task="Test research task",
+        task_messages=[{"role": "user", "content": "Test research task"}],
         openai_client=create_mock_openai_client_for_tool_calling_agent(AdaptPlanTool, FinalAnswerTool),
         agent_config=_create_test_agent_config(),
         toolkit=[FinalAnswerTool, AdaptPlanTool],
@@ -291,7 +291,7 @@ async def test_sgr_tool_calling_agent_full_execution_cycle():
     """Validates that SGRToolCallingAgent overrides _prepare_tools()
     correctly."""
     agent = SGRToolCallingAgent(
-        task="Test research task",
+        task_messages=[{"role": "user", "content": "Test research task"}],
         openai_client=create_mock_openai_client_for_sgr_tool_calling_agent(AdaptPlanTool, FinalAnswerTool),
         agent_config=_create_test_agent_config(),
         toolkit=[FinalAnswerTool, AdaptPlanTool],

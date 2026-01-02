@@ -36,7 +36,7 @@ async def get_agent_state(agent_id: str):
 
     return AgentStateResponse(
         agent_id=agent.id,
-        task=agent.task,
+        task_messages=agent.task_messages,
         sources_count=len(agent._context.sources),
         **agent._context.model_dump(),
     )
@@ -47,7 +47,7 @@ async def get_agents_list():
     agents_list = [
         AgentListItem(
             agent_id=agent.id,
-            task=agent.task,
+            task_messages=agent.task_messages,
             state=agent._context.state,
             creation_time=agent.creation_time,
         )
@@ -73,13 +73,6 @@ async def get_available_models():
     return {"data": models_data, "object": "list"}
 
 
-def extract_user_content_from_messages(messages):
-    for message in reversed(messages):
-        if message.role == "user":
-            return message.content
-    raise ValueError("User message not found in messages")
-
-
 @router.post("/agents/{agent_id}/provide_clarification")
 async def provide_clarification(agent_id: str, request: ClarificationRequest):
     try:
@@ -87,9 +80,9 @@ async def provide_clarification(agent_id: str, request: ClarificationRequest):
         if not agent:
             raise HTTPException(status_code=404, detail="Agent not found")
 
-        logger.info(f"Providing clarification to agent {agent.id}: {request.clarifications[:100]}...")
+        logger.info(f"Providing clarification to agent {agent.id}: {len(request.messages)} messages")
 
-        await agent.provide_clarification(request.clarifications)
+        await agent.provide_clarification(request.messages)
         return StreamingResponse(
             agent.streaming_generator.stream(),
             media_type="text/event-stream",
@@ -126,12 +119,10 @@ async def create_chat_completion(request: ChatCompletionRequest):
     ):
         return await provide_clarification(
             agent_id=request.model,
-            request=ClarificationRequest(clarifications=extract_user_content_from_messages(request.messages)),
+            request=ClarificationRequest(messages=request.messages),
         )
 
     try:
-        task = extract_user_content_from_messages(request.messages)
-
         agent_def = next(filter(lambda ad: ad.name == request.model, AgentFactory.get_definitions_list()), None)
         if not agent_def:
             raise HTTPException(
@@ -139,8 +130,8 @@ async def create_chat_completion(request: ChatCompletionRequest):
                 detail=f"Invalid model '{request.model}'. "
                 f"Available models: {[ad.name for ad in AgentFactory.get_definitions_list()]}",
             )
-        agent = await AgentFactory.create(agent_def, task)
-        logger.info(f"Created agent '{request.model}' for task: {task[:100]}...")
+        agent = await AgentFactory.create(agent_def, request.messages)
+        logger.info(f"Created agent '{request.model}' with {len(request.messages)} messages")
 
         agents_storage[agent.id] = agent
         _ = asyncio.create_task(agent.execute())

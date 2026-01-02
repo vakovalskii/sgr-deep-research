@@ -165,10 +165,10 @@ class TestPromptLoader:
             assert result == "This template has no placeholders."
 
     def test_get_initial_user_request(self):
-        """Test get_initial_user_request formats task correctly."""
+        """Test get_initial_user_request formats date correctly."""
         with tempfile.TemporaryDirectory() as tmpdir:
             template_file = os.path.join(tmpdir, "initial_user_request.txt")
-            template = "Current Date: {current_date}\nTASK:\n{task}"
+            template = "Current Date: {current_date}"
             with open(template_file, "w", encoding="utf-8") as f:
                 f.write(template)
 
@@ -183,11 +183,9 @@ class TestPromptLoader:
                 clarification_response_file=dummy_file,
             )
 
-            task = "Research quantum computing"
-            result = PromptLoader.get_initial_user_request(task, prompts_config)
+            task_messages = [{"role": "user", "content": "Research quantum computing"}]
+            result = PromptLoader.get_initial_user_request(task_messages, prompts_config)
 
-            assert "TASK:" in result
-            assert "Research quantum computing" in result
             assert "Current Date:" in result
             # Check that date is in the result
             current_year = datetime.now().year
@@ -198,7 +196,7 @@ class TestPromptLoader:
         date."""
         with tempfile.TemporaryDirectory() as tmpdir:
             template_file = os.path.join(tmpdir, "initial_user_request.txt")
-            template = "{current_date}|{task}"
+            template = "{current_date}|test"
             with open(template_file, "w", encoding="utf-8") as f:
                 f.write(template)
 
@@ -213,7 +211,8 @@ class TestPromptLoader:
                 clarification_response_file=dummy_file,
             )
 
-            result = PromptLoader.get_initial_user_request("test task", prompts_config)
+            task_messages = [{"role": "user", "content": "test task"}]
+            result = PromptLoader.get_initial_user_request(task_messages, prompts_config)
 
             # Check format YYYY-MM-DD HH:MM:SS
             parts = result.split("|")
@@ -229,7 +228,7 @@ class TestPromptLoader:
         """Test get_clarification_template formats clarifications correctly."""
         with tempfile.TemporaryDirectory() as tmpdir:
             template_file = os.path.join(tmpdir, "clarification_response.txt")
-            template = "Date: {current_date}\nCLARIFICATIONS:\n{clarifications}"
+            template = "Date: {current_date}"
             with open(template_file, "w", encoding="utf-8") as f:
                 f.write(template)
 
@@ -244,20 +243,23 @@ class TestPromptLoader:
                 initial_user_request_file=dummy_file,
             )
 
-            clarifications = "1. Answer A\n2. Answer B"
-            result = PromptLoader.get_clarification_template(clarifications, prompts_config)
+            clarification_messages = [
+                {"role": "user", "content": "1. Answer A"},
+                {"role": "user", "content": "2. Answer B"},
+            ]
+            result = PromptLoader.get_clarification_template(clarification_messages, prompts_config)
 
-            assert "CLARIFICATIONS:" in result
-            assert "1. Answer A" in result
-            assert "2. Answer B" in result
             assert "Date:" in result
+            # Check that date is in the result
+            current_year = datetime.now().year
+            assert str(current_year) in result
 
     def test_get_clarification_template_date_format(self):
         """Test that get_clarification_template includes properly formatted
         date."""
         with tempfile.TemporaryDirectory() as tmpdir:
             template_file = os.path.join(tmpdir, "clarification_response.txt")
-            template = "{current_date}|{clarifications}"
+            template = "{current_date}|test"
             with open(template_file, "w", encoding="utf-8") as f:
                 f.write(template)
 
@@ -272,7 +274,8 @@ class TestPromptLoader:
                 initial_user_request_file=dummy_file,
             )
 
-            result = PromptLoader.get_clarification_template("test", prompts_config)
+            clarification_messages = [{"role": "user", "content": "test"}]
+            result = PromptLoader.get_clarification_template(clarification_messages, prompts_config)
 
             # Check that date is properly formatted
             parts = result.split("|")

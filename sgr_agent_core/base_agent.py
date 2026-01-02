@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Type
 
 from openai import AsyncOpenAI, pydantic_function_tool
-from openai.types.chat import ChatCompletionFunctionToolParam
+from openai.types.chat import ChatCompletionFunctionToolParam, ChatCompletionMessageParam
 
 from sgr_agent_core.agent_definition import AgentConfig
 from sgr_agent_core.models import AgentContext, AgentStatesEnum
@@ -35,7 +35,7 @@ class BaseAgent(AgentRegistryMixin):
 
     def __init__(
         self,
-        task: str,
+        task_messages: list[ChatCompletionMessageParam],
         openai_client: AsyncOpenAI,
         agent_config: AgentConfig,
         toolkit: list[Type[BaseTool]],
@@ -46,7 +46,7 @@ class BaseAgent(AgentRegistryMixin):
         self.openai_client = openai_client
         self.config = agent_config
         self.creation_time = datetime.now()
-        self.task = task
+        self.task_messages = task_messages
         self.toolkit = toolkit
 
         self._context = AgentContext()
@@ -56,15 +56,18 @@ class BaseAgent(AgentRegistryMixin):
         self.logger = logging.getLogger(f"sgr_agent_core.agents.{self.id}")
         self.log = []
 
-    async def provide_clarification(self, clarifications: str):
-        """Receive clarification from an external source (e.g. user input)"""
+    async def provide_clarification(self, messages: list[ChatCompletionMessageParam]):
+        """Receive clarification from an external source (e.g. user input) in
+        OpenAI messages format."""
+        self.conversation.extend(messages)
         self.conversation.append(
-            {"role": "user", "content": PromptLoader.get_clarification_template(clarifications, self.config.prompts)}
+            {"role": "user", "content": PromptLoader.get_clarification_template(messages, self.config.prompts)}
         )
+
         self._context.clarifications_used += 1
         self._context.clarification_received.set()
         self._context.state = AgentStatesEnum.RESEARCHING
-        self.logger.info(f"✅ Clarification received: {clarifications[:2000]}...")
+        self.logger.info(f"✅ Clarification received: {len(messages)} messages")
 
     def _log_reasoning(self, result: ReasoningTool) -> None:
         next_step = result.remaining_steps[0] if result.remaining_steps else "Completing"
@@ -129,7 +132,7 @@ class BaseAgent(AgentRegistryMixin):
             "model_config": self.config.llm.model_dump(
                 exclude={"api_key", "proxy"}, mode="json"
             ),  # Sensitive data excluded by default
-            "task": self.task,
+            "task_messages": self.task_messages,
             "toolkit": [tool.tool_name for tool in self.toolkit],
             "log": self.log,
         }
@@ -145,12 +148,11 @@ class BaseAgent(AgentRegistryMixin):
         Returns a list of dictionaries OpenAI like format, each
         containing a role and content key by default.
         """
+
         return [
             {"role": "system", "content": PromptLoader.get_system_prompt(self.toolkit, self.config.prompts)},
-            {
-                "role": "user",
-                "content": PromptLoader.get_initial_user_request(self.task, self.config.prompts),
-            },
+            *self.task_messages,
+            {"role": "user", "content": PromptLoader.get_initial_user_request(self.task_messages, self.config.prompts)},
             *self.conversation,
         ]
 
@@ -207,7 +209,7 @@ class BaseAgent(AgentRegistryMixin):
     async def execute(
         self,
     ):
-        self.logger.info(f"🚀 Starting for task: '{self.task}'")
+        self.logger.info(f"🚀 User provided {len(self.task_messages)} messages.")
         try:
             while self._context.state not in AgentStatesEnum.FINISH_STATES.value:
                 self._context.iteration += 1

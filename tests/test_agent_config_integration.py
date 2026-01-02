@@ -23,16 +23,18 @@ class TestAgentConfigurationIntegration:
 
     def test_config_loading_in_agents(self):
         """Test that agents properly load configuration."""
-        agent = create_test_agent(SGRAgent, task="Config integration test")
+        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Config integration test"}])
 
-        assert agent.task == "Config integration test"
+        assert len(agent.task_messages) == 1
+        assert agent.task_messages[0]["content"] == "Config integration test"
         assert agent.name == "sgr_agent"
 
     def test_mcp_integration_in_agents(self):
         """Test that agents properly integrate MCP tools from config."""
-        agent = create_test_agent(SGRAgent, task="MCP integration test")
+        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "MCP integration test"}])
 
-        assert agent.task == "MCP integration test"
+        assert len(agent.task_messages) == 1
+        assert agent.task_messages[0]["content"] == "MCP integration test"
         assert hasattr(agent, "toolkit")
 
 
@@ -41,9 +43,10 @@ class TestAgentEnvironmentVariables:
 
     def test_default_config_parameters(self):
         """Test that agents work with default configuration parameters."""
-        agent = create_test_agent(SGRAgent, task="Default config test")
+        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Default config test"}])
 
-        assert agent.task == "Default config test"
+        assert len(agent.task_messages) == 1
+        assert agent.task_messages[0]["content"] == "Default config test"
         assert agent.name == "sgr_agent"
 
 
@@ -67,10 +70,11 @@ class TestAgentConfigurationEdgeCases:
         # Should still create agent (validation happens in OpenAI client)
         agent = create_test_agent(
             SGRAgent,
-            task="Invalid config test",
+            task_messages=[{"role": "user", "content": "Invalid config test"}],
             llm_config=LLMConfig(api_key="test-key", base_url=""),
         )
-        assert agent.task == "Invalid config test"
+        assert len(agent.task_messages) == 1
+        assert agent.task_messages[0]["content"] == "Invalid config test"
 
 
 class TestMultipleAgentConfigurationConsistency:
@@ -78,11 +82,13 @@ class TestMultipleAgentConfigurationConsistency:
 
     def test_multiple_agents_same_config(self):
         """Test that multiple agents can be created successfully."""
-        agent1 = create_test_agent(SGRAgent, task="Task 1")
-        agent2 = create_test_agent(SGRToolCallingAgent, task="Task 2")
+        agent1 = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Task 1"}])
+        agent2 = create_test_agent(SGRToolCallingAgent, task_messages=[{"role": "user", "content": "Task 2"}])
 
-        assert agent1.task == "Task 1"
-        assert agent2.task == "Task 2"
+        assert len(agent1.task_messages) == 1
+        assert agent1.task_messages[0]["content"] == "Task 1"
+        assert len(agent2.task_messages) == 1
+        assert agent2.task_messages[0]["content"] == "Task 2"
         assert agent1.name == "sgr_agent"
         assert agent2.name == "sgr_tool_calling_agent"
 
@@ -90,13 +96,14 @@ class TestMultipleAgentConfigurationConsistency:
         """Test that multiple agents have unique IDs."""
         agents = []
         for i in range(3):
-            agents.append(create_test_agent(SGRAgent, task=f"Task {i}"))
+            agents.append(create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": f"Task {i}"}]))
 
         assert len(agents) == 3
 
         # All agents should have same task format and different IDs
         for i, agent in enumerate(agents):
-            assert agent.task == f"Task {i}"
+            assert len(agent.task_messages) == 1
+            assert agent.task_messages[0]["content"] == f"Task {i}"
             # Verify unique IDs
             for j, other_agent in enumerate(agents):
                 if i != j:
