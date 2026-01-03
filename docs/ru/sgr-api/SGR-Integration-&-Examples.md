@@ -101,6 +101,39 @@ if clarification_questions and agent_id:
 print("\n\nИсследование завершено!")
 ```
 
+### Пример 3: Исследовательский запрос с изображением
+
+Отправка исследовательского запроса с вложенным изображением.
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8010/v1", api_key="dummy")
+
+# Исследовательский запрос с изображением
+response = client.chat.completions.create(
+    model="sgr-agent",
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "Проанализируй этот график и исследуй показанные тренды"},
+            {"type": "image_url", "image_url": {"url": "https://example.com/chart.png"}}
+        ]
+    }],
+    stream=True,
+    temperature=0.4,
+)
+
+# Вывести потоковый ответ
+for chunk in response:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")
+```
+
+**Поддерживаемые форматы изображений:**
+- URL изображений (HTTP/HTTPS)
+- Изображения в формате Base64 (`data:image/jpeg;base64,...` или `data:image/png;base64,...`)
+
 #### Примечания по использованию
 
 - Замените `localhost:8010` на URL вашего сервера

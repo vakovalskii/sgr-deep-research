@@ -112,7 +112,7 @@ Create a chat completion for research tasks. This is the main endpoint for inter
 **Parameters:**
 
 - `model` (string, required): Agent type or existing agent ID
-- `messages` (array, required): List of chat messages
+- `messages` (array, required): List of chat messages in OpenAI format (ChatCompletionMessageParam)
 - `stream` (boolean, default: true): Enable streaming mode
 - `max_tokens` (integer, optional): Maximum number of tokens
 - `temperature` (float, optional): Generation temperature (0.0-1.0)
@@ -140,6 +140,44 @@ curl -X POST "http://localhost:8010/v1/chat/completions" \
   }'
 ```
 
+**Example with Image (URL):**
+
+```bash
+curl -X POST "http://localhost:8010/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "sgr-agent",
+    "messages": [{
+      "role": "user",
+      "content": [
+        {"type": "text", "text": "Analyze this chart and research the trends"},
+        {"type": "image_url", "image_url": {"url": "https://example.com/chart.png"}}
+      ]
+    }],
+    "stream": true
+  }'
+```
+
+**Example with Image (Base64):**
+
+```bash
+curl -X POST "http://localhost:8010/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "sgr-agent",
+    "messages": [{
+      "role": "user",
+      "content": [
+        {"type": "text", "text": "What is shown in this image?"},
+        {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."}}
+      ]
+    }],
+    "stream": true
+  }'
+```
+
+**Note:** Base64 image URLs longer than 200 characters will be truncated in responses for performance reasons.
+
 </details>
 
 ______________________________________________________________________
@@ -158,7 +196,12 @@ Get a list of all active agents.
   "agents": [
     {
       "agent_id": "sgr_agent_12345-67890-abcdef",
-      "task": "Research BMW X6 2025 prices",
+      "task_messages": [
+        {
+          "role": "user",
+          "content": "Research BMW X6 2025 prices"
+        }
+      ],
       "state": "RESEARCHING"
     }
   ],
@@ -195,7 +238,12 @@ Get detailed state information for a specific agent.
 ```json
 {
   "agent_id": "sgr_agent_12345-67890-abcdef",
-  "task": "Research BMW X6 2025 prices",
+  "task_messages": [
+    {
+      "role": "user",
+      "content": "Research BMW X6 2025 prices"
+    }
+  ],
   "state": "RESEARCHING",
   "iteration": 3,
   "searches_used": 2,
@@ -234,14 +282,19 @@ Provide clarification to an agent that is waiting for input.
 
 ```json
 {
-  "clarifications": "Focus on luxury models only, price range 5-8 million rubles"
+  "messages": [
+    {
+      "role": "user",
+      "content": "Focus on luxury models only, price range 5-8 million rubles"
+    }
+  ]
 }
 ```
 
 **Parameters:**
 
 - `agent_id` (string, required): Unique agent identifier
-- `clarifications` (string, required): Clarification text
+- `messages` (array, required): Clarification messages in OpenAI format (ChatCompletionMessageParam)
 
 **Response:**
 Streaming response with continued research after clarification.
@@ -252,7 +305,7 @@ Streaming response with continued research after clarification.
 curl -X POST "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/provide_clarification" \
   -H "Content-Type: application/json" \
   -d '{
-    "clarifications": "Focus on luxury models only"
+    "messages": [{"role": "user", "content": "Focus on luxury models only"}]
   }'
 ```
 
