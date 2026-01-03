@@ -21,7 +21,7 @@ sgr --config-file examples/sgr_deep_research/config.yaml
 Run the example script:
 
 ```bash
-python examples/research_with_messages/research_with_messages.py
+python examples/research_with_images/research_with_images.py
 ```
 
 ## Example: Message with Image
