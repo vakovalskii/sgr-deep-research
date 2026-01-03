@@ -101,6 +101,39 @@ if clarification_questions and agent_id:
 print("\n\nResearch completed!")
 ```
 
+### Example 3: Research Request with Image
+
+Send a research request with an image attachment.
+
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8010/v1", api_key="dummy")
+
+# Research request with image
+response = client.chat.completions.create(
+    model="sgr-agent",
+    messages=[{
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "Analyze this chart and research the trends shown"},
+            {"type": "image_url", "image_url": {"url": "https://example.com/chart.png"}}
+        ]
+    }],
+    stream=True,
+    temperature=0.4,
+)
+
+# Print streaming response
+for chunk in response:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")
+```
+
+**Image Formats Supported:**
+- Image URLs (HTTP/HTTPS)
+- Base64 encoded images (`data:image/jpeg;base64,...` or `data:image/png;base64,...`)
+
 #### Usage Notes
 
 - Replace `localhost:8010` with your server URL

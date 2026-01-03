@@ -112,7 +112,7 @@ ______________________________________________________________________
 **Параметры:**
 
 - `model` (string, обязательный): Тип агента или существующий ID агента
-- `messages` (array, обязательный): Список сообщений чата
+- `messages` (array, обязательный): Список сообщений чата в формате OpenAI (ChatCompletionMessageParam)
 - `stream` (boolean, по умолчанию: true): Включить режим потоковой передачи
 - `max_tokens` (integer, опциональный): Максимальное количество токенов
 - `temperature` (float, опциональный): Температура генерации (0.0-1.0)
@@ -140,6 +140,44 @@ curl -X POST "http://localhost:8010/v1/chat/completions" \
   }'
 ```
 
+**Пример с изображением (URL):**
+
+```bash
+curl -X POST "http://localhost:8010/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "sgr-agent",
+    "messages": [{
+      "role": "user",
+      "content": [
+        {"type": "text", "text": "Проанализируй этот график и исследуй тренды"},
+        {"type": "image_url", "image_url": {"url": "https://example.com/chart.png"}}
+      ]
+    }],
+    "stream": true
+  }'
+```
+
+**Пример с изображением (Base64):**
+
+```bash
+curl -X POST "http://localhost:8010/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "sgr-agent",
+    "messages": [{
+      "role": "user",
+      "content": [
+        {"type": "text", "text": "Что показано на этом изображении?"},
+        {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."}}
+      ]
+    }],
+    "stream": true
+  }'
+```
+
+**Примечание:** Base64 URL изображений длиннее 200 символов будут обрезаны в ответах для оптимизации производительности.
+
 </details>
 
 ______________________________________________________________________
@@ -158,7 +196,12 @@ ______________________________________________________________________
   "agents": [
     {
       "agent_id": "sgr_agent_12345-67890-abcdef",
-      "task": "Research BMW X6 2025 prices",
+      "task_messages": [
+        {
+          "role": "user",
+          "content": "Research BMW X6 2025 prices"
+        }
+      ],
       "state": "RESEARCHING"
     }
   ],
@@ -195,7 +238,12 @@ ______________________________________________________________________
 ```json
 {
   "agent_id": "sgr_agent_12345-67890-abcdef",
-  "task": "Research BMW X6 2025 prices",
+  "task_messages": [
+    {
+      "role": "user",
+      "content": "Research BMW X6 2025 prices"
+    }
+  ],
   "state": "RESEARCHING",
   "iteration": 3,
   "searches_used": 2,
@@ -234,14 +282,19 @@ ______________________________________________________________________
 
 ```json
 {
-  "clarifications": "Focus on luxury models only, price range 5-8 million rubles"
+  "messages": [
+    {
+      "role": "user",
+      "content": "Focus on luxury models only, price range 5-8 million rubles"
+    }
+  ]
 }
 ```
 
 **Параметры:**
 
 - `agent_id` (string, обязательный): Уникальный идентификатор агента
-- `clarifications` (string, обязательный): Текст уточнения
+- `messages` (array, обязательный): Сообщения уточнения в формате OpenAI (ChatCompletionMessageParam)
 
 **Ответ:**
 Потоковый ответ с продолжением исследования после уточнения.
@@ -252,7 +305,7 @@ ______________________________________________________________________
 curl -X POST "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/provide_clarification" \
   -H "Content-Type: application/json" \
   -d '{
-    "clarifications": "Focus on luxury models only"
+    "messages": [{"role": "user", "content": "Focus on luxury models only"}]
   }'
 ```
 
