@@ -114,7 +114,7 @@ client = OpenAI(base_url="http://localhost:8010/v1", api_key="dummy")
 # Read local image file and encode to base64
 with open("chart.png", "rb") as image_file:
     image_data = base64.b64encode(image_file.read()).decode("utf-8")
-    image_url = f"data:image/png;base64,{image_data}"
+    image_base64 = f"data:image/png;base64,{image_data}"
 
 # Research request with local image
 response = client.chat.completions.create(
@@ -123,7 +123,7 @@ response = client.chat.completions.create(
         "role": "user",
         "content": [
             {"type": "text", "text": "Analyze this chart and research the trends shown"},
-            {"type": "image_url", "image_url": {"url": image_url}}
+            {"type": "image_url", "image_url": {"url": image_base64}}
         ]
     }],
     stream=True,
@@ -137,7 +137,6 @@ for chunk in response:
 ```
 
 **Image Formats Supported:**
-- Local image files (converted to Base64): PNG, JPEG, GIF, WebP
 - Image URLs (HTTP/HTTPS)
 - Base64 encoded images (`data:image/jpeg;base64,...` or `data:image/png;base64,...`)
 
