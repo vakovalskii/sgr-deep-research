@@ -103,21 +103,27 @@ print("\n\nИсследование завершено!")
 
 ### Пример 3: Исследовательский запрос с изображением
 
-Отправка исследовательского запроса с вложенным изображением.
+Отправка исследовательского запроса с локальным файлом изображения.
 
 ```python
+import base64
 from openai import OpenAI
 
 client = OpenAI(base_url="http://localhost:8010/v1", api_key="dummy")
 
-# Исследовательский запрос с изображением
+# Прочитать локальный файл изображения и закодировать в base64
+with open("chart.png", "rb") as image_file:
+    image_data = base64.b64encode(image_file.read()).decode("utf-8")
+    image_url = f"data:image/png;base64,{image_data}"
+
+# Исследовательский запрос с локальным изображением
 response = client.chat.completions.create(
     model="sgr-agent",
     messages=[{
         "role": "user",
         "content": [
             {"type": "text", "text": "Проанализируй этот график и исследуй показанные тренды"},
-            {"type": "image_url", "image_url": {"url": "https://example.com/chart.png"}}
+            {"type": "image_url", "image_url": {"url": image_url}}
         ]
     }],
     stream=True,
@@ -131,6 +137,7 @@ for chunk in response:
 ```
 
 **Поддерживаемые форматы изображений:**
+- Локальные файлы изображений (конвертируются в Base64): PNG, JPEG, GIF, WebP
 - URL изображений (HTTP/HTTPS)
 - Изображения в формате Base64 (`data:image/jpeg;base64,...` или `data:image/png;base64,...`)
 
