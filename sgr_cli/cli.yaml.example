@@ -1,0 +1,19 @@
+# SGR CLI Configuration
+# Copy this file to cli.yaml and customize as needed
+
+# UI Theme
+theme: "default"  # Theme name (future: support for custom themes)
+
+# Panel visibility (panels are hidden by default, use Ctrl+T and Ctrl+H to toggle)
+show_tools_panel: false   # Show tools execution panel by default (Ctrl+T to toggle)
+show_history_panel: false # Show conversation history panel by default (Ctrl+H to toggle)
+
+# Panel sizes
+tools_panel_width: 40      # Width of tools panel in characters
+history_panel_height: 10   # Height of history panel in lines
+
+# Tool execution
+auto_approve_tools: false  # Automatically approve tool execution (not recommended)
+
+# History settings
+max_history_items: 100     # Maximum number of history items to keep
