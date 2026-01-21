@@ -59,8 +59,8 @@ Documentation = "https://vamplabai.github.io/sgr-agent-core/"
 "Core Developer - @EvilFreelancer" = "https://t.me/evilfreelancer"
 "DevOps & Deployment - @mixaill76" = "https://t.me/mixaill76"
 "Hybrid FC research - @Shadekss" = "https://t.me/Shadekss"
- 
- 
+
+
 [project.scripts]
 sgr = "sgr_agent_core.server.__main__:main"
 
