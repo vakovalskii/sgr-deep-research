@@ -1,7 +1,7 @@
 """Main entry point for SGR Agent Core API server."""
 
+import argparse
 import logging
-import sys
 from pathlib import Path
 
 import uvicorn
@@ -9,7 +9,7 @@ import yaml
 
 from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.server.app import app
-from sgr_agent_core.server.settings import ServerConfig, setup_logging
+from sgr_agent_core.server.settings import setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -49,21 +49,36 @@ def load_config(config_file: str, agents_file: str | None = None) -> GlobalConfi
 
 def main():
     """Start FastAPI server."""
-    # Convert -c to --config-file for pydantic-settings compatibility
-    argv = sys.argv[1:]
-    for i, arg in enumerate(argv):
-        if arg == "-c" and i + 1 < len(argv):
-            argv[i] = "--config-file"
-            break
+    parser = argparse.ArgumentParser(description="SGR Agent Core API server")
+    parser.add_argument(
+        "--logging-file",
+        default="logging_config.yaml",
+        help="Logging configuration file path (default: logging_config.yaml)",
+    )
+    parser.add_argument(
+        "-c",
+        "--config-file",
+        default="config.yaml",
+        help="SGR core configuration file path (default: config.yaml)",
+    )
+    parser.add_argument(
+        "--agents-file",
+        default=None,
+        help="Optional agents definitions file path",
+    )
+    parser.add_argument(
+        "--host",
+        default="0.0.0.0",
+        help="Host to listen on (default: 0.0.0.0)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8010,
+        help="Port to listen on (default: 8010)",
+    )
 
-    # Temporarily replace sys.argv for pydantic-settings
-    original_argv = sys.argv
-    sys.argv = [sys.argv[0]] + argv
-
-    try:
-        args = ServerConfig()
-    finally:
-        sys.argv = original_argv
+    args = parser.parse_args()
 
     setup_logging(args.logging_file)
 
