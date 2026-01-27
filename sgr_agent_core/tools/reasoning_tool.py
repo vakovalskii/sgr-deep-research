@@ -13,6 +13,8 @@ class ReasoningTool(BaseTool):
     Usage: Required tool. Use this tool before any other tool execution
     """
 
+    isSystemTool = True
+
     # Reasoning chain - step-by-step thinking process (helps stabilize model)
     reasoning_steps: list[str] = Field(
         description="Step-by-step reasoning (brief, 1 sentence each)",

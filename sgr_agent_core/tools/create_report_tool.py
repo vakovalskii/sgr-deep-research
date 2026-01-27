@@ -26,6 +26,8 @@ class CreateReportTool(BaseTool):
     Citations must be integrated directly into sentences, not just listed at the end.
     """
 
+    isSystemTool = True
+
     reasoning: str = Field(description="Why ready to create report now")
     title: str = Field(description="Report title")
     user_request_language_reference: str = Field(

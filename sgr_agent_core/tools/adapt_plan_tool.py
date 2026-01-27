@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 class AdaptPlanTool(BaseTool):
     """Adapt a research plan based on new findings."""
 
+    isSystemTool = True
+
     reasoning: str = Field(description="Why plan needs adaptation based on new data")
     original_goal: str = Field(description="Original research goal")
     new_goal: str = Field(description="Updated research goal")

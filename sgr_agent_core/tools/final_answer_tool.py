@@ -23,6 +23,8 @@ class FinalAnswerTool(BaseTool):
     Usage: Call after you are ready to finalize your work and provide the final answer to the user.
     """
 
+    isSystemTool = True
+
     reasoning: str = Field(description="Why task is now complete and how answer was verified")
     completed_steps: list[str] = Field(
         description="Summary of completed steps including verification", min_length=1, max_length=5
