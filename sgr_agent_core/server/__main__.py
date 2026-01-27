@@ -1,6 +1,7 @@
 """Main entry point for SGR Agent Core API server."""
 
 import logging
+import sys
 from pathlib import Path
 
 import uvicorn
@@ -48,7 +49,21 @@ def load_config(config_file: str, agents_file: str | None = None) -> GlobalConfi
 
 def main():
     """Start FastAPI server."""
-    args = ServerConfig()
+    # Convert -c to --config-file for pydantic-settings compatibility
+    argv = sys.argv[1:]
+    for i, arg in enumerate(argv):
+        if arg == "-c" and i + 1 < len(argv):
+            argv[i] = "--config-file"
+            break
+
+    # Temporarily replace sys.argv for pydantic-settings
+    original_argv = sys.argv
+    sys.argv = [sys.argv[0]] + argv
+
+    try:
+        args = ServerConfig()
+    finally:
+        sys.argv = original_argv
 
     setup_logging(args.logging_file)
 

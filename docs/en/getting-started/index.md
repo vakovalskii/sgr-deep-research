@@ -31,6 +31,31 @@ docker pull ghcr.io/vamplabai/sgr-agent-core:latest
 
 See the [Installation Guide](installation.md) for detailed instructions.
 
+### CLI Tool (`sgrsh`)
+
+After installation, you can use the `sgrsh` command-line tool for interactive agent usage:
+
+```bash
+# Single query mode
+sgrsh "Find the current Bitcoin price"
+
+# With agent selection
+sgrsh --agent sgr_agent "What is AI?"
+
+# With custom config file
+sgrsh -c config.yaml -a sgr_agent "Your query"
+
+# Interactive chat mode (no query argument)
+sgrsh
+sgrsh -a sgr_agent
+```
+
+The `sgrsh` command:
+- Automatically looks for `config.yaml` in the current directory
+- Supports interactive chat mode for multiple queries
+- Handles clarification requests from agents interactively
+- Works with any agent defined in your configuration
+
 ### Quick Example
 
 ```python

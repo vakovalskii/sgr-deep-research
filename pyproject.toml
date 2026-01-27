@@ -63,6 +63,7 @@ Documentation = "https://vamplabai.github.io/sgr-agent-core/"
 
 [project.scripts]
 sgr = "sgr_agent_core.server.__main__:main"
+sgrsh = "sgr_agent_core.cli.__main__:main"
 
 [project.optional-dependencies]
 dev = [

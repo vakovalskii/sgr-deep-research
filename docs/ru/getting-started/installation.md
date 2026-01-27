@@ -40,10 +40,17 @@ pip install sgr-agent-core[docs]
 python -c "import sgr_agent_core; print(sgr_agent_core.__version__)"
 ```
 
-Также вы должны иметь возможность использовать утилиту командной строки `sgr`:
+Также вы должны иметь возможность использовать утилиты командной строки:
 
 ```bash
+# Команда API сервера
 sgr --help
+# или с коротким параметром
+sgr -c config.yaml
+
+# Интерактивная CLI команда
+sgrsh --help
+sgrsh "Ваш запрос здесь"
 ```
 
 ## Установка через Docker

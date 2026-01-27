@@ -40,10 +40,17 @@ After installation, verify that the package is correctly installed:
 python -c "import sgr_agent_core; print(sgr_agent_core.__version__)"
 ```
 
-You should also be able to use the `sgr` command-line utility:
+You should also be able to use the command-line utilities:
 
 ```bash
+# API server command
 sgr --help
+# or with short option
+sgr -c config.yaml
+
+# Interactive CLI command
+sgrsh --help
+sgrsh "Your query here"
 ```
 
 ## Installation via Docker

@@ -54,6 +54,8 @@ cp examples/sgr_deep_research/config.yaml my_config.yaml
 
 ```bash
 sgr --config-file examples/sgr_deep_research/config.yaml
+# or use short option
+sgr -c examples/sgr_deep_research/config.yaml
 ```
 
 The server will start on `http://localhost:8010` with OpenAI-compatible API endpoints.
@@ -63,6 +65,31 @@ The server will start on `http://localhost:8010` with OpenAI-compatible API endp
 > ```bash
 > python -m sgr_agent_core.server --config-file examples/sgr_deep_research/config.yaml
 > ```
+
+### Using the CLI Tool (`sgrsh`)
+
+For interactive command-line usage, you can use the `sgrsh` utility:
+
+```bash
+# Single query mode
+sgrsh "Найди цену биткоина"
+
+# With agent selection
+sgrsh --agent sgr_agent "What is AI?"
+
+# With custom config file
+sgrsh -c config.yaml -a sgr_agent "Your query"
+
+# Interactive chat mode (no query argument)
+sgrsh
+sgrsh -a sgr_agent
+```
+
+The `sgrsh` command:
+- Automatically looks for `config.yaml` in the current directory
+- Supports interactive chat mode for multiple queries
+- Handles clarification requests from agents
+- Works with any agent defined in your configuration
 
 For more examples and detailed usage instructions, see the [examples/](examples/) directory.
 
