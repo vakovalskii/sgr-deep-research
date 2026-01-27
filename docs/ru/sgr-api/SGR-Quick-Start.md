@@ -1,3 +1,5 @@
+Это руководство поможет вам быстро начать работу с запуском SGR Agent Core как REST API сервиса.
+
 ## Настройка файлов конфигурации
 
 1. **Создайте config.yaml из шаблона:**
@@ -93,6 +95,7 @@ VITE_API_BASE_URL=http://localhost:8010 npm run dev
 
 - **Frontend:** http://localhost:5173
 - **Backend API:** http://localhost:8010
+  - **Документация API (Swagger UI):** http://localhost:8010/docs
   - Проверка здоровья: http://localhost:8010/health
   - Endpoint агентов: http://localhost:8010/agents
   - API endpoints: http://localhost:8010/v1/\*
@@ -162,6 +165,7 @@ docker run -d \
 После запуска контейнера вы можете получить доступ:
 
 - **Backend API:** http://localhost:8010
+  - **Документация API (Swagger UI):** http://localhost:8010/docs
   - Проверка здоровья: http://localhost:8010/health
   - Endpoint агентов: http://localhost:8010/agents
   - API endpoints: http://localhost:8010/v1/\*
@@ -198,6 +202,7 @@ docker-compose up -d
 
 - **Frontend:** http://localhost:5173 (или пользовательский `FRONTEND_PORT`)
 - **Backend API:** http://localhost:8010 (или пользовательский `BACKEND_PORT`)
+  - **Документация API (Swagger UI):** http://localhost:8010/docs
   - Проверка здоровья: http://localhost:8010/health
   - Endpoint агентов: http://localhost:8010/agents
   - API endpoints: http://localhost:8010/v1/\*

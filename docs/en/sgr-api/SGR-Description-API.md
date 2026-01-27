@@ -1,49 +1,58 @@
 SGR Agent Core provides a comprehensive REST API that is fully compatible with OpenAI's API format, making it easy to integrate with existing applications.
 
-## 🔍 Base URL
+## Base URL
 
 ```
 http://localhost:8010
 ```
 
-## 🔍 Authentication
+## API Documentation
 
-No authentication required for local development. For production deployments, configure authentication as needed.
+Interactive API documentation (Swagger UI) is available at `http://localhost:8010/docs`. You can explore all endpoints, test requests, and view request/response schemas directly in your browser.
 
-______________________________________________________________________
+## Authentication
 
-<details>
-<summary><strong>🏥 Health Check</strong> - Check API status and availability</summary>
+Authentication is not supported by the API. For production deployments, use a reverse proxy with authentication configured.
 
-## 🔍 GET `/health`
+## GET `/health`
 
 Check if the API is running and healthy.
+
+**Request:**
+
+```bash
+curl http://localhost:8010/health
+```
 
 **Response:**
 
 ```json
 {
   "status": "healthy",
-  "service": "sgr-agent-core API"
+  "service": "SGR Agent Core API"
 }
 ```
 
-**Example:**
+**Response Fields:**
+
+- `status` (string, literal: "healthy"): Always returns "healthy" when API is operational
+- `service` (string): Service name identifier
+
+## GET `/v1/models`
+
+Retrieve a list of available agent models. This endpoint returns all agent definitions configured in the system.
+
+**Available Models:**
+
+- `sgr_agent` - Pure SGR (Schema-Guided Reasoning)
+- `sgr_tool_calling_agent` - SGR + Function Calling hybrid
+- `tool_calling_agent` - Pure Function Calling
+
+**Request:**
 
 ```bash
-curl http://localhost:8010/health
+curl http://localhost:8010/v1/models
 ```
-
-</details>
-
-______________________________________________________________________
-
-<details>
-<summary><strong>🤖 Available Models</strong> - Get list of supported agent models</summary>
-
-## 🔍 GET `/v1/models`
-
-Retrieve a list of available agent models.
 
 **Response:**
 
@@ -54,41 +63,31 @@ Retrieve a list of available agent models.
       "id": "sgr_agent",
       "object": "model",
       "created": 1234567890,
-      "owned_by": "sgr-deep-research"
+      "owned_by": "sgr-agent-core"
     },
     {
-      "id": "sgr_tools_agent",
+      "id": "sgr_tool_calling_agent",
       "object": "model",
       "created": 1234567890,
-      "owned_by": "sgr-deep-research"
+      "owned_by": "sgr-agent-core"
     }
   ],
   "object": "list"
 }
 ```
 
-**Available Models:**
+**Response Fields:**
 
-- `sgr_agent` - Pure SGR (Schema-Guided Reasoning)
-- `sgr_tool_calling_agent` - SGR + Function Calling hybrid
-- `tool_calling_agent` - Pure Function Calling
+- `data` (array): List of available agent models
+  - `id` (string): Agent model identifier (matches agent definition name)
+  - `object` (string, literal: "model"): Object type identifier
+  - `created` (integer): Timestamp placeholder (OpenAI compatibility)
+  - `owned_by` (string): Always "sgr-agent-core"
+- `object` (string, literal: "list"): Response type identifier
 
-**Example:**
+## POST `/v1/chat/completions`
 
-```bash
-curl http://localhost:8010/v1/models
-```
-
-</details>
-
-______________________________________________________________________
-
-<details>
-<summary><strong>💬 Chat Completions</strong> - Main research endpoint with streaming support</summary>
-
-## 🔍 POST `/v1/chat/completions`
-
-Create a chat completion for research tasks. This is the main endpoint for interacting with SGR agents.
+Create a chat completion for research tasks. This is the main endpoint for interacting with SGR agents. Creates a new agent instance and starts its execution asynchronously.
 
 **Request Body:**
 
@@ -107,25 +106,59 @@ Create a chat completion for research tasks. This is the main endpoint for inter
 }
 ```
 
-**Parameters:**
+**Request Parameters:**
 
-- `model` (string, required): Agent type or existing agent ID
-- `messages` (array, required): List of chat messages in OpenAI format (ChatCompletionMessageParam)
-- `stream` (boolean, default: true): Enable streaming mode
-- `max_tokens` (integer, optional): Maximum number of tokens
-- `temperature` (float, optional): Generation temperature (0.0-1.0)
+- `model` (string, required, default: "sgr_tool_calling_agent"): Agent type name (e.g., "sgr_agent", "sgr_tool_calling_agent") or existing agent ID for clarification requests
+- `messages` (array, required): List of chat messages in OpenAI format (ChatCompletionMessageParam). Supports:
+  - Text messages: `{"role": "user", "content": "text"}`
+  - Multimodal messages: `{"role": "user", "content": [{"type": "text", "text": "..."}, {"type": "image_url", "image_url": {"url": "..."}}]}`
+  - System messages: `{"role": "system", "content": "..."}`
+- `stream` (boolean, required, default: true): **Must be `true`** - only streaming responses are supported
+- `max_tokens` (integer, optional, default: 1500): Maximum number of tokens for generation
+- `temperature` (float, optional, default: 0): Generation temperature (0.0-1.0). Lower values make output more deterministic
+
+**Special Behavior - Clarification Requests:**
+
+If `model` contains an agent ID (format: `{agent_name}_{uuid}`) and the agent is in `waiting_for_clarification` state, this endpoint will automatically route to the clarification handler instead of creating a new agent.
+
+**Response:**
 
 **Response Headers:**
 
-- `X-Agent-ID`: Unique agent identifier
-- `X-Agent-Model`: Agent model used
-- `Cache-Control`: no-cache
-- `Connection`: keep-alive
+- `X-Agent-ID` (string): Unique agent identifier (format: `{agent_name}_{uuid}`)
+- `X-Agent-Model` (string): Agent model name used
+- `Cache-Control`: `no-cache`
+- `Connection`: `keep-alive`
+- `Content-Type`: `text/event-stream`
 
-**Streaming Response:**
-The response is streamed as Server-Sent Events (SSE) with real-time updates.
+**Streaming Response Format:**
 
-**Example:**
+The response is streamed as Server-Sent Events (SSE) with real-time updates. Each event follows OpenAI-compatible format:
+
+```
+data: {"id":"...","object":"chat.completion.chunk","created":...,"model":"sgr_agent","choices":[{"index":0,"delta":{"content":"..."},"finish_reason":null}]}
+
+data: {"id":"...","object":"chat.completion.chunk","created":...,"model":"sgr_agent","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+
+data: [DONE]
+```
+
+**Error Responses:**
+
+- `400 Bad Request`: Invalid model name or malformed request
+  ```json
+  {
+    "detail": "Invalid model 'invalid_model'. Available models: ['sgr_agent', 'sgr_tool_calling_agent']"
+  }
+  ```
+- `501 Not Implemented`: Non-streaming request (stream must be true)
+  ```json
+  {
+    "detail": "Only streaming responses are supported. Set 'stream=true'"
+  }
+  ```
+
+**Request:**
 
 ```bash
 curl -X POST "http://localhost:8010/v1/chat/completions" \
@@ -138,7 +171,7 @@ curl -X POST "http://localhost:8010/v1/chat/completions" \
   }'
 ```
 
-**Example with Image (URL):**
+**Request with Image (URL):**
 
 ```bash
 curl -X POST "http://localhost:8010/v1/chat/completions" \
@@ -156,7 +189,7 @@ curl -X POST "http://localhost:8010/v1/chat/completions" \
   }'
 ```
 
-**Example with Image (Base64):**
+**Request with Image (Base64):**
 
 ```bash
 curl -X POST "http://localhost:8010/v1/chat/completions" \
@@ -176,16 +209,15 @@ curl -X POST "http://localhost:8010/v1/chat/completions" \
 
 **Note:** Base64 image URLs longer than 200 characters will be truncated in responses for performance reasons.
 
-</details>
+## GET `/agents`
 
-______________________________________________________________________
+Get a list of all active agents currently stored in memory. Returns empty list if no agents are active.
 
-<details>
-<summary><strong>📋 Agent Management</strong> - List and monitor active agents</summary>
+**Request:**
 
-## 🔍 GET `/agents`
-
-Get a list of all active agents.
+```bash
+curl http://localhost:8010/agents
+```
 
 **Response:**
 
@@ -200,39 +232,46 @@ Get a list of all active agents.
           "content": "Research BMW X6 2025 prices"
         }
       ],
-      "state": "RESEARCHING"
+      "state": "researching",
+      "creation_time": "2025-01-27T12:00:00"
     }
   ],
   "total": 1
 }
 ```
 
+**Response Fields:**
+
+- `agents` (array): List of agent items
+  - `agent_id` (string): Unique agent identifier (format: `{agent_name}_{uuid}`)
+  - `task_messages` (array): Original task messages in OpenAI format
+  - `state` (string): Current agent state (see Agent States below)
+  - `creation_time` (string, ISO 8601): Agent creation timestamp
+- `total` (integer): Total number of agents in storage
+
 **Agent States:**
 
-- `INITED` - Agent initialized
-- `RESEARCHING` - Agent is actively researching
-- `WAITING_FOR_CLARIFICATION` - Agent needs clarification
-- `COMPLETED` - Research completed
-- `CANCELLED` - Agent execution was cancelled
-- `FAILED` - Agent execution failed
-- `ERROR` - Agent execution error
+- `inited` - Agent initialized, ready to start
+- `researching` - Agent is actively researching and executing tasks
+- `waiting_for_clarification` - Agent needs user clarification to proceed
+- `completed` - Research completed successfully
+- `cancelled` - Agent execution was cancelled
+- `failed` - Agent execution failed
+- `error` - Agent execution error occurred
 
-**Example:**
+## GET `/agents/{agent_id}/state`
+
+Get detailed state information for a specific agent. Returns comprehensive information about agent's current execution state, progress, and context.
+
+**Path Parameters:**
+
+- `agent_id` (string, required): Unique agent identifier (format: `{agent_name}_{uuid}`)
+
+**Request:**
 
 ```bash
-curl http://localhost:8010/agents
+curl http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/state
 ```
-
-</details>
-
-______________________________________________________________________
-
-<details>
-<summary><strong>🔍 Agent State</strong> - Get detailed information about a specific agent</summary>
-
-## 🔍 GET `/agents/{agent_id}/state`
-
-Get detailed state information for a specific agent.
 
 **Response:**
 
@@ -245,7 +284,7 @@ Get detailed state information for a specific agent.
       "content": "Research BMW X6 2025 prices"
     }
   ],
-  "state": "RESEARCHING",
+  "state": "researching",
   "iteration": 3,
   "searches_used": 2,
   "clarifications_used": 0,
@@ -254,30 +293,39 @@ Get detailed state information for a specific agent.
     "action": "web_search",
     "query": "BMW X6 2025 price Russia",
     "reason": "Need current market data"
-  }
+  },
+  "execution_result": null
 }
 ```
 
-**Parameters:**
+**Response Fields:**
 
-- `agent_id` (string, required): Unique agent identifier
+- `agent_id` (string): Unique agent identifier
+- `task_messages` (array): Original task messages in OpenAI format
+- `state` (string): Current agent state (see Agent States in GET `/agents`)
+- `iteration` (integer): Current iteration number (starts from 0)
+- `searches_used` (integer): Number of web searches performed so far
+- `clarifications_used` (integer): Number of clarification requests made
+- `sources_count` (integer): Total number of unique sources collected
+- `current_step_reasoning` (object | null): Current step reasoning data (structure varies by agent type)
+- `execution_result` (string | null): Final execution result if agent completed, null otherwise
 
-**Example:**
+**Error Responses:**
 
-```bash
-curl http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/state
-```
+- `404 Not Found`: Agent not found in storage
+  ```json
+  {
+    "detail": "Agent not found"
+  }
+  ```
 
-</details>
+## POST `/agents/{agent_id}/provide_clarification`
 
-______________________________________________________________________
+Provide clarification to an agent that is waiting for input. Resumes agent execution after receiving clarification messages.
 
-<details>
-<summary><strong>❓ Provide Clarification</strong> - Respond to agent clarification requests</summary>
+**Path Parameters:**
 
-## 🔍 POST `/agents/{agent_id}/provide_clarification`
-
-Provide clarification to an agent that is waiting for input.
+- `agent_id` (string, required): Unique agent identifier (format: `{agent_name}_{uuid}`)
 
 **Request Body:**
 
@@ -292,15 +340,11 @@ Provide clarification to an agent that is waiting for input.
 }
 ```
 
-**Parameters:**
+**Request Parameters:**
 
-- `agent_id` (string, required): Unique agent identifier
-- `messages` (array, required): Clarification messages in OpenAI format (ChatCompletionMessageParam)
+- `messages` (array, required): Clarification messages in OpenAI format (ChatCompletionMessageParam). Can contain multiple messages for complex clarifications.
 
-**Response:**
-Streaming response with continued research after clarification.
-
-**Example:**
+**Request:**
 
 ```bash
 curl -X POST "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/provide_clarification" \
@@ -310,20 +354,49 @@ curl -X POST "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/provide_
   }'
 ```
 
-</details>
+**Response:**
 
-______________________________________________________________________
+**Response Headers:**
 
-<details>
-<summary><strong>⏹️ Cancel/Delete Agent</strong> - Cancel agent execution and remove from storage</summary>
+- `X-Agent-ID` (string): Unique agent identifier
+- `Cache-Control`: `no-cache`
+- `Connection`: `keep-alive`
+- `Content-Type`: `text/event-stream`
 
-## 🔍 DELETE `/agents/{agent_id}`
+**Streaming Response:**
+
+Returns streaming response (SSE format) with continued research after clarification. The agent resumes execution from the point where it requested clarification.
+
+**Error Responses:**
+
+- `404 Not Found`: Agent not found in storage
+  ```json
+  {
+    "detail": "Agent not found"
+  }
+  ```
+- `500 Internal Server Error`: Error during clarification processing
+  ```json
+  {
+    "detail": "Error message"
+  }
+  ```
+
+**Note:** This endpoint can also be accessed via POST `/v1/chat/completions` by using the agent ID as the `model` parameter when the agent is in `waiting_for_clarification` state.
+
+## DELETE `/agents/{agent_id}`
 
 Cancel a running agent's execution and remove it from storage. If the agent is currently running, it will be cancelled first before removal.
 
-**Parameters:**
+**Path Parameters:**
 
-- `agent_id` (string, required): Unique agent identifier
+- `agent_id` (string, required): Unique agent identifier (format: `{agent_name}_{uuid}`)
+
+**Request:**
+
+```bash
+curl -X DELETE "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef"
+```
 
 **Response:**
 
@@ -338,22 +411,30 @@ Cancel a running agent's execution and remove it from storage. If the agent is c
 **Response Fields:**
 
 - `agent_id` (string): The ID of the deleted agent
-- `deleted` (boolean): Whether the agent was successfully deleted
-- `final_state` (string): Final state of the agent after deletion (e.g., "cancelled", "completed", "failed")
+- `deleted` (boolean): Always `true` on successful deletion
+- `final_state` (string): Final state of the agent after deletion. Possible values:
+  - `"cancelled"` - Agent was running and was cancelled
+  - `"completed"` - Agent was already completed
+  - `"failed"` - Agent was in failed state
+  - `"error"` - Agent was in error state
+  - Other states if agent was in a different state
 
 **Behavior:**
 
-- If the agent is currently running, it will be cancelled first
-- The agent's execution task will be stopped
-- The agent state will be set to `CANCELLED` if it was running
-- The agent will be removed from storage after cancellation/deletion
-- Works for agents in any state (running, completed, failed, etc.)
+- If the agent is currently running, `agent.cancel()` is called first
+- The agent's execution task is stopped asynchronously
+- The agent state is preserved in `final_state` before removal
+- The agent is removed from storage after cancellation/deletion
+- Works for agents in any state (running, completed, failed, error, etc.)
 
-**Example:**
+**Error Responses:**
 
-```bash
-curl -X DELETE "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef"
-```
+- `404 Not Found`: Agent not found in storage
+  ```json
+  {
+    "detail": "Agent not found"
+  }
+  ```
 
 **Use Cases:**
 
@@ -361,7 +442,3 @@ curl -X DELETE "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef"
 - Clean up completed agents from storage
 - Cancel an agent that is stuck or taking too long
 - Free up resources by removing inactive agents
-
-</details>
-
-______________________________________________________________________

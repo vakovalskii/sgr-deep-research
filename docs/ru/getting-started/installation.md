@@ -121,7 +121,7 @@ services:
 docker-compose up -d
 ```
 
-API сервер будет доступен по адресу `http://localhost:8010`.
+API сервер будет доступен по адресу `http://localhost:8010`. Интерактивная документация API (Swagger UI) доступна по адресу `http://localhost:8010/docs`.
 
 ### Сборка из исходников
 

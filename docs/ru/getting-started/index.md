@@ -15,21 +15,47 @@
 
 ## Быстрый старт
 
+### Запуск с Docker
+
+Самый быстрый способ начать работу — использовать Docker:
+
+```bash
+# Клонируем репозиторий
+git clone https://github.com/vamplabai/sgr-agent-core.git
+cd sgr-agent-core
+
+# Делаем папки с правами на запись для всех
+sudo mkdir -p logs reports
+sudo chmod 777 logs reports
+
+# Копируем и редактируем файл конфигурации
+cp examples/sgr_deep_research/config.yaml.example examples/sgr_deep_research/config.yaml
+# Отредактируйте examples/sgr_deep_research/config.yaml и установите ваши API ключи
+
+# Запускаем контейнер
+docker run --rm -i \
+  --name sgr-agent \
+  -p 8010:8010 \
+  -v $(pwd)/examples/sgr_deep_research:/app/examples/sgr_deep_research:ro \
+  -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/reports:/app/reports \
+  ghcr.io/vamplabai/sgr-agent-core:latest \
+  --config-file /app/examples/sgr_deep_research/config.yaml \
+  --host 0.0.0.0 \
+  --port 8010
+```
+
+API сервер будет доступен по адресу `http://localhost:8010`. Интерактивная документация API (Swagger UI) доступна по адресу `http://localhost:8010/docs`.
+
 ### Установка
 
-Установите SGR Agent Core через pip:
+Если вы хотите использовать SGR Agent Core как Python библиотеку (фреймворк):
 
 ```bash
 pip install sgr-agent-core
 ```
 
-Или используйте Docker:
-
-```bash
-docker pull ghcr.io/vamplabai/sgr-agent-core:latest
-```
-
-См. [Руководство по установке](installation.md) для подробных инструкций.
+См. [Руководство по установке](installation.md) для подробных инструкций и [Использование как библиотека](../framework/first-steps.md) для начала работы.
 
 ### CLI утилита (`sgrsh`)
 
@@ -56,7 +82,7 @@ sgrsh -a sgr_agent
 - Обрабатывает запросы на уточнение от агентов интерактивно
 - Работает с любым агентом, определённым в вашей конфигурации
 
-### Быстрый пример
+### Использование как библиотека
 
 ```python
 import asyncio
@@ -91,7 +117,8 @@ if __name__ == "__main__":
 
 - **[Установка](installation.md)** — Подробные инструкции по установке через pip и Docker
 - **[Agent Core Framework](../framework/main-concepts.md)** — Поймите основные концепции и архитектуру
-- **[SGR API Service](../sgr-api/SGR-Quick-Start.md)** — Начните работу с REST API сервисом
+- **[Использование как библиотека](../framework/first-steps.md)** — Узнайте, как использовать SGR Agent Core как Python библиотеку
+- **[Быстрый старт API сервера](../sgr-api/SGR-Quick-Start.md)** — Начните работу с REST API сервисом
 
 ## Контакты и сообщество
 

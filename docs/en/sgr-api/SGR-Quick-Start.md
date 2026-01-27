@@ -1,3 +1,5 @@
+This guide will help you quickly get started with running SGR Agent Core as a REST API service.
+
 ## Setup Configuration Files
 
 1. **Create config.yaml from the template:**
@@ -93,6 +95,7 @@ After starting both backend and frontend, you can access:
 
 - **Frontend:** http://localhost:5173
 - **Backend API:** http://localhost:8010
+  - **API Documentation (Swagger UI):** http://localhost:8010/docs
   - Health check: http://localhost:8010/health
   - Agents endpoint: http://localhost:8010/agents
   - API endpoints: http://localhost:8010/v1/\*
@@ -162,6 +165,7 @@ docker run -d \
 After starting the container, you can access:
 
 - **Backend API:** http://localhost:8010
+  - **API Documentation (Swagger UI):** http://localhost:8010/docs
   - Health check: http://localhost:8010/health
   - Agents endpoint: http://localhost:8010/agents
   - API endpoints: http://localhost:8010/v1/\*
@@ -198,6 +202,7 @@ After deployment, you can access:
 
 - **Frontend:** http://localhost:5173 (or custom `FRONTEND_PORT`)
 - **Backend API:** http://localhost:8010 (or custom `BACKEND_PORT`)
+  - **API Documentation (Swagger UI):** http://localhost:8010/docs
   - Health check: http://localhost:8010/health
   - Agents endpoint: http://localhost:8010/agents
   - API endpoints: http://localhost:8010/v1/\*

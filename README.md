@@ -6,8 +6,6 @@ Open-source agentic framework for building intelligent research agents using Sch
 
 The library includes extensible tools for search, reasoning, and clarification, real-time streaming responses, OpenAI-compatible REST API. Works with any OpenAI-compatible LLM, including local models for fully private research.
 
-______________________________________________________________________
-
 ## Why use SGR Agent Core?
 
 - **Schema-Guided Reasoning** — SGR combines structured reasoning with flexible tool selection
@@ -17,8 +15,6 @@ ______________________________________________________________________
 - **Real-time Streaming** — Built-in support for streaming responses via SSE
 - **Production Ready** — Battle-tested with comprehensive test coverage and Docker support
 
-______________________________________________________________________
-
 ## Documentation
 
 > **Get started quickly with our documentation:**
@@ -27,15 +23,51 @@ ______________________________________________________________________
 - **[Framework Quick Start Guide](https://vamplabai.github.io/sgr-agent-core/framework/first-steps/)** - Get up and running in minutes
 - **[DeepSearch Service Documentation](https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Quick-Start/)** - REST API reference with examples
 
-______________________________________________________________________
-
 ## Quick Start
 
+### Running with Docker
+
+The fastest way to get started is using Docker:
+
+```bash
+# Clone the repository
+git clone https://github.com/vamplabai/sgr-agent-core.git
+cd sgr-agent-core
+
+# Create directories with write permissions for all
+sudo mkdir -p logs reports
+sudo chmod 777 logs reports
+
+# Copy and edit the configuration file
+cp examples/sgr_deep_research/config.yaml.example examples/sgr_deep_research/config.yaml
+# Edit examples/sgr_deep_research/config.yaml and set your API keys:
+# - llm.api_key: Your OpenAI API key
+# - search.tavily_api_key: Your Tavily API key (optional)
+
+# Run the container
+docker run --rm -i \
+  --name sgr-agent \
+  -p 8010:8010 \
+  -v $(pwd)/examples/sgr_deep_research:/app/examples/sgr_deep_research:ro \
+  -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/reports:/app/reports \
+  ghcr.io/vamplabai/sgr-agent-core:latest \
+  --config-file /app/examples/sgr_deep_research/config.yaml \
+  --host 0.0.0.0 \
+  --port 8010
+```
+
+The API server will be available at `http://localhost:8010` with OpenAI-compatible API endpoints. Interactive API documentation (Swagger UI) is available at `http://localhost:8010/docs`.
+
 ### Installation
+
+If you want to use SGR Agent Core as a Python library (framework):
 
 ```bash
 pip install sgr-agent-core
 ```
+
+See the [Installation Guide](https://vamplabai.github.io/sgr-agent-core/getting-started/installation/) for detailed instructions and the [Using as Library](https://vamplabai.github.io/sgr-agent-core/framework/first-steps/) guide to get started.
 
 ### Running Research Agents
 
@@ -44,8 +76,8 @@ The project includes example research agent configurations in the `examples/` di
 1. Copy and configure the config file:
 
 ```bash
-cp examples/sgr_deep_research/config.yaml my_config.yaml
-# Edit my_config.yaml and set your API keys:
+cp examples/sgr_deep_research/config.yaml.example examples/sgr_deep_research/config.yaml
+# Edit examples/sgr_deep_research/config.yaml and set your API keys:
 # - llm.api_key: Your OpenAI API key
 # - search.tavily_api_key: Your Tavily API key (optional)
 ```
@@ -57,8 +89,6 @@ sgr --config-file examples/sgr_deep_research/config.yaml
 # or use short option
 sgr -c examples/sgr_deep_research/config.yaml
 ```
-
-The server will start on `http://localhost:8010` with OpenAI-compatible API endpoints.
 
 > **Note:** You can also run the server directly with Python:
 >
@@ -94,8 +124,6 @@ The `sgrsh` command:
 
 For more examples and detailed usage instructions, see the [examples/](examples/) directory.
 
-______________________________________________________________________
-
 ## Benchmarking
 
 ![SimpleQA Benchmark Comparison](https://github.com/vamplabAI/sgr-agent-core/blob/main/docs/assets/images/simpleqa_benchmark_comparison.png)
@@ -108,8 +136,6 @@ ______________________________________________________________________
 - **Not Attempted:** 48 answers
 
 More detailed benchmark results are available [here](https://github.com/vamplabAI/sgr-agent-core/blob/main/benchmark/simpleqa_benchmark_results.md).
-
-______________________________________________________________________
 
 ## Open-Source Development Team
 

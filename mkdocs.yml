@@ -27,7 +27,8 @@ plugins:
             Installation: Установка
             Main Concepts: Основные концепции
             User Guide: Руководство пользователя
-            Quick Start: Быстрый старт
+            Using as Library: Использование как библиотека
+            API Server Quick Start: Быстрый старт API сервера
             Configuration: Конфигурация
             Build your agent: Собери своего агента
             Workflow: Рабочий процесс
@@ -79,13 +80,13 @@ nav:
   - Agent Framework:
     - Main Concepts: framework/main-concepts.md
     - User Guide:
-        - Quick Start: framework/first-steps.md
+        - Using as Library: framework/first-steps.md
         - Configuration: framework/configuration.md
         - Build your agent: framework/agents.md
         - Tools: framework/tools.md
     - QnA: framework/qna.md
-  - SGR API service:
-    - Quick Start: sgr-api/SGR-Quick-Start.md
+  - SGR API Service:
+    - API Server Quick Start: sgr-api/SGR-Quick-Start.md
     - Workflow: sgr-api/SGR-Agent's-Workflow.md
     - Demonstration: sgr-api/SGR-Demonstration.md
     - Integration & Examples: sgr-api/SGR-Integration-&-Examples.md

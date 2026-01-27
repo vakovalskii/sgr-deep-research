@@ -1,4 +1,4 @@
-# Quick Start
+# Using as Library
 
 This guide will help you quickly get started with SGR Agent Core as a Python library.
 
