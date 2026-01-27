@@ -86,6 +86,7 @@ sgrsh -a sgr_agent
 ```
 
 The `sgrsh` command:
+
 - Automatically looks for `config.yaml` in the current directory
 - Supports interactive chat mode for multiple queries
 - Handles clarification requests from agents
