@@ -9,7 +9,7 @@ import yaml
 
 from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.server.app import app
-from sgr_agent_core.server.settings import setup_logging
+from sgr_agent_core.server.settings import ServerConfig, setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +49,12 @@ def load_config(config_file: str, agents_file: str | None = None) -> GlobalConfi
 
 def main():
     """Start FastAPI server."""
+
+    server_config = ServerConfig()
+
     parser = argparse.ArgumentParser(description="SGR Agent Core API server")
     parser.add_argument(
+        "-l",
         "--logging-file",
         default="logging_config.yaml",
         help="Logging configuration file path (default: logging_config.yaml)",
@@ -62,20 +66,23 @@ def main():
         help="SGR core configuration file path (default: config.yaml)",
     )
     parser.add_argument(
+        "-a",
         "--agents-file",
         default=None,
-        help="Optional agents definitions file path",
+        help="Agents definitions file path (optional)",
     )
     parser.add_argument(
+        "-h",
         "--host",
-        default="0.0.0.0",
-        help="Host to listen on (default: 0.0.0.0)",
+        default=server_config.host,
+        help=f"Host to listen on (default: {server_config.host})",
     )
     parser.add_argument(
+        "-p",
         "--port",
         type=int,
-        default=8010,
-        help="Port to listen on (default: 8010)",
+        default=server_config.port,
+        help=f"Port to listen on (default: {server_config.port})",
     )
 
     args = parser.parse_args()

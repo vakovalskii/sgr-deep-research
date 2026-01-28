@@ -160,6 +160,39 @@ class TestRunAgent:
 
         assert result is None
 
+    @pytest.mark.asyncio
+    async def test_run_agent_keyboard_interrupt_during_input(self, monkeypatch):
+        """Test agent cancellation on KeyboardInterrupt during user input."""
+        mock_agent = Mock()
+        mock_agent._context = Mock()
+        mock_agent._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
+        mock_agent.log = [
+            {
+                "step_type": "tool_execution",
+                "tool_name": "clarification_tool",
+                "agent_tool_execution_result": "Question?",
+            }
+        ]
+        mock_agent.provide_clarification = AsyncMock()
+        mock_agent.cancel = AsyncMock()
+
+        async def mock_execute():
+            await asyncio.sleep(0.1)
+            return "Result"
+
+        mock_agent.execute = AsyncMock(side_effect=mock_execute)
+
+        # Mock input to raise KeyboardInterrupt
+        def mock_input_raise_interrupt(_):
+            raise KeyboardInterrupt()
+
+        monkeypatch.setattr("builtins.input", mock_input_raise_interrupt)
+
+        result = await run_agent(mock_agent)
+
+        assert result is None
+        mock_agent.cancel.assert_called_once()
+
 
 class TestMain:
     """Test main CLI function."""

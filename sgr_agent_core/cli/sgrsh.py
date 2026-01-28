@@ -61,41 +61,56 @@ async def run_agent(agent: "BaseAgent") -> str | None:
     # Start execution task
     execution_task = asyncio.create_task(agent.execute())
 
-    # Monitor execution and handle clarifications
-    while not execution_task.done():
-        # Check if agent is waiting for clarification
-        if agent._context.state == AgentStatesEnum.WAITING_FOR_CLARIFICATION:
-            # Get clarification questions from last tool execution
-            clarification_questions = None
-            for log_entry in reversed(agent.log):
-                if log_entry.get("step_type") == "tool_execution":
-                    tool_name = log_entry.get("tool_name")
-                    if tool_name == "clarification_tool":
-                        clarification_questions = log_entry.get("agent_tool_execution_result", "")
-                        break
-
-            if clarification_questions:
-                print("\n" + clarification_questions)
-                print()
-
-            # Get user input
-            user_input = input("Your answer: ").strip()
-            if user_input:
-                await agent.provide_clarification([{"role": "user", "content": user_input}])
-            else:
-                # Empty input - cancel execution
-                await agent.cancel()
-                return None
-
-        # Small delay to avoid busy waiting
-        await asyncio.sleep(0.1)
-
-    # Get final result
     try:
-        result = await execution_task
-        return result
-    except Exception as e:
-        logger.error(f"Agent execution error: {e}")
+        # Monitor execution and handle clarifications
+        while not execution_task.done():
+            # Check if agent is waiting for clarification
+            if agent._context.state == AgentStatesEnum.WAITING_FOR_CLARIFICATION:
+                # Get clarification questions from last tool execution
+                clarification_questions = None
+                for log_entry in reversed(agent.log):
+                    if log_entry.get("step_type") == "tool_execution":
+                        tool_name = log_entry.get("tool_name")
+                        if tool_name == "clarification_tool":
+                            clarification_questions = log_entry.get("agent_tool_execution_result", "")
+                            break
+
+                if clarification_questions:
+                    print("\n" + clarification_questions)
+                    print()
+
+                # Get user input
+                try:
+                    user_input = input("Your answer: ").strip()
+                except KeyboardInterrupt:
+                    # User pressed Ctrl+C during input
+                    print("\n\n⚠️  Interrupted by user")
+                    await agent.cancel()
+                    return None
+
+                if user_input:
+                    await agent.provide_clarification([{"role": "user", "content": user_input}])
+                else:
+                    # Empty input - cancel execution
+                    await agent.cancel()
+                    return None
+
+            # Small delay to avoid busy waiting
+            await asyncio.sleep(0.1)
+
+        # Get final result
+        try:
+            result = await execution_task
+            return result
+        except asyncio.CancelledError:
+            return None
+        except Exception as e:
+            logger.error(f"Agent execution error: {e}")
+            return None
+    except KeyboardInterrupt:
+        # User pressed Ctrl+C during execution
+        print("\n\n⚠️  Interrupted by user")
+        await agent.cancel()
         return None
 
 
@@ -113,34 +128,44 @@ async def chat_loop(agent_def_name: str, config: GlobalConfig):
         sys.exit(1)
 
     print(f"✅ Using agent: {agent_def_name}")
-    print("Type 'quit' or 'exit' to end the session\n")
+    print("Type 'quit' or 'exit' to end the session (or press Ctrl+C)\n")
 
     conversation_history = []
 
-    while True:
-        # Get user input
-        user_input = input("You: ").strip()
-        if user_input.lower() in ("quit", "exit", "q"):
-            break
+    try:
+        while True:
+            # Get user input
+            try:
+                user_input = input("You: ").strip()
+            except KeyboardInterrupt:
+                # User pressed Ctrl+C during input
+                print("\n\n👋 Goodbye!")
+                break
 
-        if not user_input:
-            continue
+            if user_input.lower() in ("quit", "exit", "q"):
+                break
 
-        # Add to conversation history
-        conversation_history.append({"role": "user", "content": user_input})
+            if not user_input:
+                continue
 
-        # Create agent with conversation history
-        agent = await AgentFactory.create(agent_def, task_messages=conversation_history)
+            # Add to conversation history
+            conversation_history.append({"role": "user", "content": user_input})
 
-        # Run agent and handle clarifications
-        result = await run_agent(agent)
+            # Create agent with conversation history
+            agent = await AgentFactory.create(agent_def, task_messages=conversation_history)
 
-        if result:
-            print(f"\nAgent: {result}\n")
-            # Add agent response to history
-            conversation_history.append({"role": "assistant", "content": result})
-        else:
-            print("\nAgent: No response received\n")
+            # Run agent and handle clarifications
+            result = await run_agent(agent)
+
+            if result:
+                print(f"\nAgent: {result}\n")
+                # Add agent response to history
+                conversation_history.append({"role": "assistant", "content": result})
+            else:
+                print("\nAgent: No response received\n")
+    except KeyboardInterrupt:
+        # User pressed Ctrl+C during agent execution
+        print("\n\n👋 Goodbye!")
 
 
 async def main():
@@ -240,4 +265,9 @@ Examples:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        # User pressed Ctrl+C - exit gracefully
+        print("\n\n👋 Goodbye!")
+        sys.exit(0)
