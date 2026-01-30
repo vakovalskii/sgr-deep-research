@@ -25,6 +25,18 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _read_user_input(prompt: str) -> str:
+    """Read user input with robust encoding (avoids UnicodeDecodeError on some
+    terminals)."""
+    try:
+        return input(prompt).strip()
+    except UnicodeDecodeError:
+        sys.stdout.write(prompt)
+        sys.stdout.flush()
+        line = sys.stdin.buffer.readline()
+        return line.decode("utf-8", errors="replace").strip()
+
+
 def find_config_file(config_file: str | None) -> Path | None:
     """Find config.yaml in current directory.
 
@@ -66,24 +78,30 @@ async def run_agent(agent: "BaseAgent") -> str | None:
         while not execution_task.done():
             # Check if agent is waiting for clarification
             if agent._context.state == AgentStatesEnum.WAITING_FOR_CLARIFICATION:
-                # Get clarification questions from last tool execution
-                clarification_questions = None
+                # Get message from last clarification/answer tool execution
+                clarification_tool_names = (
+                    "clarification_tool",
+                    "clarificationtool",
+                    "answer_tool",
+                    "answertool",
+                )
+                message_to_show = None
                 for log_entry in reversed(agent.log):
                     if log_entry.get("step_type") == "tool_execution":
                         tool_name = log_entry.get("tool_name")
-                        if tool_name == "clarification_tool":
-                            clarification_questions = log_entry.get("agent_tool_execution_result", "")
+                        if tool_name in clarification_tool_names:
+                            message_to_show = log_entry.get("agent_tool_execution_result", "")
                             break
 
-                if clarification_questions:
-                    print("\n" + clarification_questions)
+                if message_to_show:
+                    print("\n" + message_to_show)
                     print()
 
                 # Get user input
                 try:
-                    user_input = input("Your answer: ").strip()
-                except KeyboardInterrupt:
-                    # User pressed Ctrl+C during input
+                    user_input = _read_user_input("Your answer: ")
+                except (KeyboardInterrupt, EOFError):
+                    # User pressed Ctrl+C or EOF during input
                     print("\n\n⚠️  Interrupted by user")
                     await agent.cancel()
                     return None
@@ -136,9 +154,9 @@ async def chat_loop(agent_def_name: str, config: GlobalConfig):
         while True:
             # Get user input
             try:
-                user_input = input("You: ").strip()
-            except KeyboardInterrupt:
-                # User pressed Ctrl+C during input
+                user_input = _read_user_input("You: ")
+            except (KeyboardInterrupt, EOFError):
+                # User pressed Ctrl+C or EOF during input
                 print("\n\n👋 Goodbye!")
                 break
 

@@ -104,7 +104,7 @@ For interactive command-line usage, you can use the `sgrsh` utility:
 # Single query mode
 sgrsh "Найди цену биткоина"
 
-# With agent selection
+# With agent selection (e.g. sgr_agent, dialog_agent)
 sgrsh --agent sgr_agent "What is AI?"
 
 # With custom config file
@@ -119,8 +119,8 @@ The `sgrsh` command:
 
 - Automatically looks for `config.yaml` in the current directory
 - Supports interactive chat mode for multiple queries
-- Handles clarification requests from agents
-- Works with any agent defined in your configuration
+- Handles clarification and dialog (intermediate results) requests from agents
+- Works with any agent defined in your configuration (e.g. `sgr_agent`, `dialog_agent`)
 
 For more examples and detailed usage instructions, see the [examples/](examples/) directory.
 

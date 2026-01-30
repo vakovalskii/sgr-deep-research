@@ -5,10 +5,13 @@ This module contains simple tests for all tools:
 - Config reading (if needed)
 """
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from sgr_agent_core.tools import (
     AdaptPlanTool,
+    AnswerTool,
     ClarificationTool,
     CreateReportTool,
     ExtractPageContentTool,
@@ -112,6 +115,32 @@ class TestToolsInitialization:
         )
         assert tool.tool_name == "createreporttool"
         assert tool.title == "Test Report"
+
+    def test_answer_tool_initialization(self):
+        """Test AnswerTool initialization."""
+        tool = AnswerTool(
+            reasoning="Sharing progress",
+            intermediate_result="Found 3 relevant sources so far.",
+            continue_research=True,
+        )
+        assert tool.tool_name == "answertool"
+        assert tool.reasoning == "Sharing progress"
+        assert tool.intermediate_result == "Found 3 relevant sources so far."
+        assert tool.continue_research is True
+
+
+class TestAnswerToolExecution:
+    """Tests for AnswerTool execution."""
+
+    @pytest.mark.asyncio
+    async def test_answer_tool_returns_intermediate_result(self):
+        """Test AnswerTool __call__ returns intermediate_result."""
+        tool = AnswerTool(
+            reasoning="Progress update",
+            intermediate_result="Partial findings: X and Y.",
+        )
+        result = await tool(MagicMock(), MagicMock())
+        assert result == "Partial findings: X and Y."
 
 
 class TestToolsConfigReading:

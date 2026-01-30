@@ -18,6 +18,7 @@ from sgr_agent_core.agent_definition import (
 )
 from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.agents import (
+    DialogAgent,
     SGRAgent,
     SGRToolCallingAgent,
     ToolCallingAgent,
@@ -86,6 +87,7 @@ class TestAgentFactory:
         ):
             task = "Universal test task"
             agent_classes = [
+                DialogAgent,
                 SGRAgent,
                 SGRToolCallingAgent,
                 ToolCallingAgent,

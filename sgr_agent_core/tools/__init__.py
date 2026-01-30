@@ -1,6 +1,7 @@
 from sgr_agent_core.base_tool import BaseTool, MCPBaseTool
 from sgr_agent_core.next_step_tool import NextStepToolsBuilder, NextStepToolStub
 from sgr_agent_core.tools.adapt_plan_tool import AdaptPlanTool
+from sgr_agent_core.tools.answer_tool import AnswerTool
 from sgr_agent_core.tools.clarification_tool import ClarificationTool
 from sgr_agent_core.tools.create_report_tool import CreateReportTool
 from sgr_agent_core.tools.extract_page_content_tool import ExtractPageContentTool
@@ -22,6 +23,7 @@ __all__ = [
     "ExtractPageContentTool",
     "AdaptPlanTool",
     "CreateReportTool",
+    "AnswerTool",
     "FinalAnswerTool",
     "ReasoningTool",
     # Tool lists

@@ -5,7 +5,7 @@
 llm:
   api_key: "your-openai-api-key-here"  # Your OpenAI API key
   base_url: "https://api.openai.com/v1"  # API base URL
-  model: "gpt-4o-mini"  # Model name
+  model: "gpt-4.1-mini"  # Model name
   max_tokens: 8000  # Max output tokens
   temperature: 0.4  # Temperature (0.0-1.0)
   # proxy: "socks5://127.0.0.1:1081"  # Optional proxy (socks5:// or http://)
@@ -51,6 +51,8 @@ tools:
     # base_class defaults to sgr_agent_core.tools.AdaptPlanTool
   reasoning_tool:
     # base_class defaults to sgr_agent_core.tools.ReasoningTool
+  answer_tool:
+    # base_class defaults to sgr_agent_core.tools.AnswerTool
 
 # Agent Definitions
 agents:
@@ -58,7 +60,7 @@ agents:
   sgr_agent:
     base_class: "agents.ResearchSGRAgent"
     llm:
-      model: "gpt-4o-mini"
+      model: "gpt-4.1-mini"
       temperature: 0.4
     tools:
       - "web_search_tool"
@@ -73,7 +75,7 @@ agents:
   tool_calling_agent:
     base_class: "agents.ResearchToolCallingAgent"
     llm:
-      model: "gpt-4o-mini"
+      model: "gpt-4.1-mini"
       temperature: 0.4
     tools:
       - "web_search_tool"
@@ -88,7 +90,7 @@ agents:
   sgr_tool_calling_agent:
     base_class: "agents.ResearchSGRToolCallingAgent"
     llm:
-      model: "gpt-4o-mini"
+      model: "gpt-4.1-mini"
       temperature: 0.4
     tools:
       - "web_search_tool"
@@ -97,5 +99,19 @@ agents:
       - "final_answer_tool"
       - "clarification_tool"
       - "reasoning_tool"
+      - "generate_plan_tool"
+      - "adapt_plan_tool"
+
+  # Dialog Agent for research (intermediate results, long conversations)
+  dialog_agent:
+    base_class: "agents.ResearchDialogAgent"
+    llm:
+      model: "gpt-4.1-mini"
+      temperature: 0.4
+    tools:
+      - "web_search_tool"
+      - "extract_page_content_tool"
+      - "reasoning_tool"
+      - "answer_tool"
       - "generate_plan_tool"
       - "adapt_plan_tool"

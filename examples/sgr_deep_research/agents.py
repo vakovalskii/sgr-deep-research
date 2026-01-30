@@ -11,10 +11,12 @@ from openai import AsyncOpenAI, pydantic_function_tool
 from openai.types.chat import ChatCompletionFunctionToolParam, ChatCompletionMessageParam
 
 from sgr_agent_core.agent_definition import AgentConfig
+from sgr_agent_core.agents.dialog_agent import DialogAgent
 from sgr_agent_core.agents.sgr_agent import SGRAgent
 from sgr_agent_core.agents.sgr_tool_calling_agent import SGRToolCallingAgent
 from sgr_agent_core.agents.tool_calling_agent import ToolCallingAgent
 from sgr_agent_core.tools import (
+    AnswerTool,
     BaseTool,
     ClarificationTool,
     CreateReportTool,
@@ -143,6 +145,48 @@ class ResearchSGRToolCallingAgent(SGRToolCallingAgent):
         if self._context.clarifications_used >= self.config.execution.max_clarifications:
             tools -= {
                 ClarificationTool,
+            }
+        if self._context.searches_used >= self.config.search.max_searches:
+            tools -= {
+                WebSearchTool,
+            }
+        return [pydantic_function_tool(tool, name=tool.tool_name, description="") for tool in tools]
+
+
+class ResearchDialogAgent(DialogAgent):
+    """Dialog research agent: deep research with intermediate results and long conversations."""
+
+    def __init__(
+        self,
+        task_messages: list[ChatCompletionMessageParam],
+        openai_client: AsyncOpenAI,
+        agent_config: AgentConfig,
+        toolkit: list[Type[BaseTool]],
+        def_name: str | None = None,
+        **kwargs: dict,
+    ):
+        research_toolkit = [WebSearchTool, ExtractPageContentTool, CreateReportTool, FinalAnswerTool]
+        merged = [AnswerTool] + research_toolkit + [t for t in toolkit if t not in (AnswerTool, *research_toolkit)]
+        super().__init__(
+            task_messages=task_messages,
+            openai_client=openai_client,
+            agent_config=agent_config,
+            toolkit=merged,
+            def_name=def_name,
+            **kwargs,
+        )
+
+    async def _prepare_tools(self) -> list[ChatCompletionFunctionToolParam]:
+        """Prepare available tools for the current agent state and progress."""
+        tools = set(self.toolkit)
+        if self._context.iteration >= self.config.execution.max_iterations:
+            tools = {
+                ReasoningTool,
+                CreateReportTool,
+            }
+        if self._context.clarifications_used >= self.config.execution.max_clarifications:
+            tools -= {
+                AnswerTool,
             }
         if self._context.searches_used >= self.config.search.max_searches:
             tools -= {

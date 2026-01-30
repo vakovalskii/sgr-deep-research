@@ -9,6 +9,7 @@ SGR Deep Research contains research agent definitions and configuration files fo
 - **SGR Agent** - Schema-Guided Reasoning agent for structured research
 - **Tool Calling Agent** - Function calling agent for research tasks
 - **SGR Tool Calling Agent** - Hybrid SGR + function calling agent
+- **Dialog Agent** - Dialog agent with intermediate results and long conversations
 
 All agents include:
 
