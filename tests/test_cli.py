@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from sgr_agent_core.cli.sgrsh import find_config_file, main, run_agent
+from sgr_agent_core.cli.sgrsh import chat_loop, find_config_file, main, run_agent
 from sgr_agent_core.models import AgentStatesEnum
 
 
@@ -96,21 +96,20 @@ class TestRunAgent:
 
         mock_agent.execute = AsyncMock(side_effect=mock_execute)
 
-        # Mock user input - return answer once
+        # Mock user input - return answer once (patch _read_user_input, not input)
         user_input_called = False
 
-        def mock_input(prompt):
+        def mock_read_user_input(prompt: str) -> str:
             nonlocal user_input_called, clarification_provided
             if not user_input_called:
                 user_input_called = True
-                # Simulate providing clarification
                 asyncio.create_task(mock_agent.provide_clarification([{"role": "user", "content": "User answer"}]))
                 mock_agent._context.state = AgentStatesEnum.COMPLETED
                 clarification_provided = True
                 return "User answer"
             return ""
 
-        monkeypatch.setattr("builtins.input", mock_input)
+        monkeypatch.setattr("sgr_agent_core.cli.sgrsh._read_user_input", mock_read_user_input)
 
         result = await run_agent(mock_agent)
 
@@ -139,8 +138,8 @@ class TestRunAgent:
 
         mock_agent.execute = AsyncMock(side_effect=mock_execute)
 
-        # Mock empty user input
-        monkeypatch.setattr("builtins.input", lambda _: "")
+        # Mock empty user input (patch _read_user_input, not input)
+        monkeypatch.setattr("sgr_agent_core.cli.sgrsh._read_user_input", lambda _: "")
 
         result = await run_agent(mock_agent)
 
@@ -182,16 +181,61 @@ class TestRunAgent:
 
         mock_agent.execute = AsyncMock(side_effect=mock_execute)
 
-        # Mock input to raise KeyboardInterrupt
-        def mock_input_raise_interrupt(_):
+        # Mock _read_user_input to raise KeyboardInterrupt
+        def mock_read_user_input_raise_interrupt(_: str) -> str:
             raise KeyboardInterrupt()
 
-        monkeypatch.setattr("builtins.input", mock_input_raise_interrupt)
+        monkeypatch.setattr("sgr_agent_core.cli.sgrsh._read_user_input", mock_read_user_input_raise_interrupt)
 
         result = await run_agent(mock_agent)
 
         assert result is None
         mock_agent.cancel.assert_called_once()
+
+
+class TestChatLoopMultipleRequests:
+    """Test chat_loop with multiple user requests (conversation history)."""
+
+    @pytest.mark.asyncio
+    async def test_chat_loop_multiple_requests_then_quit(self, monkeypatch):
+        """Test that multiple requests are sent to the agent and history grows."""
+        inputs = iter(["First request", "Second request", "quit"])
+
+        def mock_read_user_input(prompt: str) -> str:
+            return next(inputs)
+
+        create_calls = []
+
+        async def mock_create(agent_def, *, task_messages):
+            create_calls.append(list(task_messages))
+            mock_agent = Mock()
+            # Return different result per call: first request -> first response, etc.
+            if len(create_calls) == 1:
+                mock_agent.execute = AsyncMock(return_value="First response")
+            else:
+                mock_agent.execute = AsyncMock(return_value="Second response")
+            mock_agent._context = Mock()
+            mock_agent._context.state = AgentStatesEnum.COMPLETED
+            mock_agent.log = []
+            return mock_agent
+
+        mock_config = Mock()
+        mock_config.agents = {"test_agent": Mock()}
+
+        with (
+            patch("sgr_agent_core.cli.sgrsh._read_user_input", side_effect=mock_read_user_input),
+            patch("sgr_agent_core.cli.sgrsh.AgentFactory") as mock_factory,
+        ):
+            mock_factory.create = mock_create
+            await chat_loop("test_agent", mock_config)
+
+        assert len(create_calls) == 2
+        assert create_calls[0] == [{"role": "user", "content": "First request"}]
+        assert create_calls[1] == [
+            {"role": "user", "content": "First request"},
+            {"role": "assistant", "content": "First response"},
+            {"role": "user", "content": "Second request"},
+        ]
 
 
 class TestMain:

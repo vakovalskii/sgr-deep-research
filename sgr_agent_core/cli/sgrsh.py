@@ -26,15 +26,16 @@ logger = logging.getLogger(__name__)
 
 
 def _read_user_input(prompt: str) -> str:
-    """Read user input with robust encoding (avoids UnicodeDecodeError on some terminals)."""
+    """Read user input from buffer and decode as UTF-8 to avoid losing input on decode errors.
+
+    Using input() can consume the line and then raise UnicodeDecodeError, so the next
+    readline() would return the following (often empty) line. Always reading from
+    stdin.buffer and decoding with errors='replace' ensures we never lose user input.
+    """
+    sys.stdout.write(prompt)
     sys.stdout.flush()
-    try:
-        return input(prompt).strip()
-    except UnicodeDecodeError:
-        sys.stdout.write(prompt)
-        sys.stdout.flush()
-        line = sys.stdin.buffer.readline()
-        return line.decode("utf-8", errors="replace").strip()
+    line = sys.stdin.buffer.readline()
+    return line.decode("utf-8", errors="replace").strip()
 
 
 def find_config_file(config_file: str | None) -> Path | None:
@@ -99,7 +100,7 @@ async def run_agent(agent: "BaseAgent") -> str | None:
 
                 # Get user input
                 try:
-                    user_input = _read_user_input("Your answer: ")
+                    user_input = _read_user_input("You: ")
                 except (KeyboardInterrupt, EOFError):
                     # User pressed Ctrl+C or EOF during input
                     print("\n\n⚠️  Interrupted by user")
