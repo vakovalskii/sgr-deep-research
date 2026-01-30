@@ -11,9 +11,9 @@ import pytest
 
 from sgr_agent_core.tools import (
     AdaptPlanTool,
-    AnswerTool,
     ClarificationTool,
     CreateReportTool,
+    AnswerTool,
     ExtractPageContentTool,
     FinalAnswerTool,
     GeneratePlanTool,

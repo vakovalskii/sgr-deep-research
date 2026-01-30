@@ -56,7 +56,9 @@ class TestDialogAgentCreation:
                 },
                 execution={},
             )
-            agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "Test task"}])
+            agent = await AgentFactory.create(
+                agent_def, task_messages=[{"role": "user", "content": "Test task"}]
+            )
 
             assert isinstance(agent, DialogAgent)
             assert agent.name == "dialog_agent"
@@ -83,7 +85,9 @@ class TestDialogAgentCreation:
                 },
                 execution={},
             )
-            agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "Test"}])
+            agent = await AgentFactory.create(
+                agent_def, task_messages=[{"role": "user", "content": "Test"}]
+            )
 
             assert AnswerTool in agent.toolkit
             assert len(agent.toolkit) >= 2
@@ -94,8 +98,7 @@ class TestDialogAgentAfterActionPhase:
 
     @pytest.mark.asyncio
     async def test_after_action_phase_waits_for_answer_tool(self):
-        """Test that after AnswerTool execution agent sets
-        WAITING_FOR_CLARIFICATION and waits."""
+        """Test that after AnswerTool execution agent sets WAITING_FOR_CLARIFICATION and waits."""
         import asyncio
 
         with (
@@ -114,7 +117,9 @@ class TestDialogAgentAfterActionPhase:
                 },
                 execution=ExecutionConfig(max_iterations=5),
             )
-            agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "Hello"}])
+            agent = await AgentFactory.create(
+                agent_def, task_messages=[{"role": "user", "content": "Hello"}]
+            )
 
             tool = AnswerTool(
                 reasoning="Sharing progress",

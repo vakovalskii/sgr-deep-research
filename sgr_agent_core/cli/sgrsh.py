@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 def _read_user_input(prompt: str) -> str:
-    """Read user input with robust encoding (avoids UnicodeDecodeError on some
-    terminals)."""
+    """Read user input with robust encoding (avoids UnicodeDecodeError on some terminals)."""
+    sys.stdout.flush()
     try:
         return input(prompt).strip()
     except UnicodeDecodeError:
@@ -177,10 +177,12 @@ async def chat_loop(agent_def_name: str, config: GlobalConfig):
 
             if result:
                 print(f"\nAgent: {result}\n")
+                sys.stdout.flush()
                 # Add agent response to history
                 conversation_history.append({"role": "assistant", "content": result})
             else:
                 print("\nAgent: No response received\n")
+                sys.stdout.flush()
     except KeyboardInterrupt:
         # User pressed Ctrl+C during agent execution
         print("\n\n👋 Goodbye!")

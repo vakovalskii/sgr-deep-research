@@ -5,17 +5,18 @@ from typing import Type
 from openai import AsyncOpenAI
 
 from sgr_agent_core.agent_definition import AgentConfig
-from sgr_agent_core.agents.sgr_tool_calling_agent import SGRToolCallingAgent
+from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.models import AgentStatesEnum
 from sgr_agent_core.tools import AnswerTool, BaseTool
+from sgr_agent_core.agents.sgr_tool_calling_agent import SGRToolCallingAgent
 
 
 class DialogAgent(SGRToolCallingAgent):
     """Agent specialized for dialog interactions with intermediate results.
 
-    Uses AnswerTool to share intermediate results and maintain
-    conversation flow, keeping the agent available for further
-    interactions. Supports long dialogs with full conversation history.
+    Uses AnswerTool to share intermediate results and maintain conversation flow,
+    keeping the agent available for further interactions. Supports long dialogs
+    with full conversation history.
     """
 
     name: str = "dialog_agent"
