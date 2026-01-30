@@ -11,12 +11,10 @@ from openai import AsyncOpenAI, pydantic_function_tool
 from openai.types.chat import ChatCompletionFunctionToolParam, ChatCompletionMessageParam
 
 from sgr_agent_core.agent_definition import AgentConfig
-from sgr_agent_core.agents.dialog_agent import DialogAgent
 from sgr_agent_core.agents.sgr_agent import SGRAgent
 from sgr_agent_core.agents.sgr_tool_calling_agent import SGRToolCallingAgent
 from sgr_agent_core.agents.tool_calling_agent import ToolCallingAgent
 from sgr_agent_core.tools import (
-    AnswerTool,
     BaseTool,
     ClarificationTool,
     CreateReportTool,
