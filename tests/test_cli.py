@@ -198,7 +198,8 @@ class TestChatLoopMultipleRequests:
 
     @pytest.mark.asyncio
     async def test_chat_loop_multiple_requests_then_quit(self, monkeypatch):
-        """Test that multiple requests are sent to the agent and history grows."""
+        """Test that multiple requests are sent to the agent and history
+        grows."""
         inputs = iter(["First request", "Second request", "quit"])
 
         def mock_read_user_input(prompt: str) -> str:

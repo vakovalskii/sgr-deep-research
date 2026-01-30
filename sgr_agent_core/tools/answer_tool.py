@@ -1,4 +1,5 @@
-"""Answer tool for sharing intermediate results and keeping agent available for further interaction."""
+"""Answer tool for sharing intermediate results and keeping agent available for
+further interaction."""
 
 from __future__ import annotations
 
@@ -14,7 +15,8 @@ if TYPE_CHECKING:
 
 
 class AnswerTool(BaseTool):
-    """Share intermediate results and keep agent available for further interaction.
+    """Share intermediate results and keep agent available for further
+    interaction.
 
     Use this tool to share progress updates, partial findings, or intermediate
     results with the user while keeping the agent active for continued conversation.

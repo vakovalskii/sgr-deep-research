@@ -26,11 +26,13 @@ logger = logging.getLogger(__name__)
 
 
 def _read_user_input(prompt: str) -> str:
-    """Read user input from buffer and decode as UTF-8 to avoid losing input on decode errors.
+    """Read user input from buffer and decode as UTF-8 to avoid losing input on
+    decode errors.
 
-    Using input() can consume the line and then raise UnicodeDecodeError, so the next
-    readline() would return the following (often empty) line. Always reading from
-    stdin.buffer and decoding with errors='replace' ensures we never lose user input.
+    Using input() can consume the line and then raise
+    UnicodeDecodeError, so the next readline() would return the
+    following (often empty) line. Always reading from stdin.buffer and
+    decoding with errors='replace' ensures we never lose user input.
     """
     sys.stdout.write(prompt)
     sys.stdout.flush()
