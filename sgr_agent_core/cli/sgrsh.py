@@ -40,28 +40,19 @@ def _read_user_input(prompt: str) -> str:
     return line.decode("utf-8", errors="replace").strip()
 
 
-def find_config_file(config_file: str | None) -> Path | None:
-    """Find config.yaml in current directory.
+    def find_config_file(config_file: str | None) -> Path:
+        """Find config.yaml in current directory.
 
-    Args:
-        config_file: Optional explicit config file path
+        Args:
+            config_file: Optional explicit config file path
 
-    Returns:
-        Path to config file or None if not found
-    """
-    if config_file:
-        path = Path(config_file)
+        Returns:
+            Path to config file or None if not found
+        """
+        config_file = Path(config_file) if config_file else Path.cwd() / "config.yaml"
         if path.exists():
             return path.resolve()
-        return None
-
-    # Look for config.yaml in current directory
-    current_dir = Path.cwd()
-    config_path = current_dir / "config.yaml"
-    if config_path.exists():
-        return config_path.resolve()
-
-    return None
+        raise FileNotFoundError("Config file not found")
 
 
 async def run_agent(agent: "BaseAgent") -> str | None:
