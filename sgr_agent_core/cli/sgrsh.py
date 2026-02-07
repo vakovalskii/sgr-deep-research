@@ -234,8 +234,7 @@ Examples:
 
     # Load configuration
     try:
-        GlobalConfig.from_yaml(str(config_path))
-        config = GlobalConfig()
+        config = GlobalConfig.from_yaml(str(config_path))
     except Exception as e:
         print(f"❌ Failed to load config: {e}")
         sys.exit(1)
