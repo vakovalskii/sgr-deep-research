@@ -56,23 +56,25 @@ def find_config_file(config_file: str | None) -> Path:
 
 
 async def run_agent(agent: "BaseAgent") -> str | None:
-    """Run agent and handle clarifications interactively.
+    """Run one agent to completion; handle clarification prompts while it runs.
+
+    One agent = one turn. This function does not create or switch agents.
+    It only waits for the given agent to finish, and when the agent calls
+    ClarificationTool/AnswerTool, reads user input and feeds it back.
 
     Args:
-        agent: Agent instance to run
+        agent: Agent instance to run (single turn)
 
     Returns:
         Final result or None
     """
-    # Start execution task
     execution_task = asyncio.create_task(agent.execute())
 
     try:
-        # Monitor execution and handle clarifications
+        # Wait for this agent to finish; only react when it asks for clarification
         while not execution_task.done():
-            # Check if agent is waiting for clarification
             if agent._context.state == AgentStatesEnum.WAITING_FOR_CLARIFICATION:
-                # Get message from last clarification/answer tool execution
+                # Pass turn to user: show last message (clarification or answer_tool, e.g. a question) and read reply
                 clarification_tool_names = (
                     "clarification_tool",
                     "clarificationtool",
@@ -107,7 +109,6 @@ async def run_agent(agent: "BaseAgent") -> str | None:
                     await agent.cancel()
                     return None
 
-            # Small delay to avoid busy waiting
             await asyncio.sleep(0.1)
 
         # Get final result
@@ -127,7 +128,12 @@ async def run_agent(agent: "BaseAgent") -> str | None:
 
 
 async def chat_loop(agent_def_name: str, config: GlobalConfig):
-    """Interactive chat loop with agent.
+    """Interactive session: one short-lived agent per user message, shared history.
+
+    Model: 1 agent = 1 turn. Each user message creates a new agent with
+    conversation_history; that agent runs to completion and exits. The result
+    is appended to history; next message gets a fresh agent with full context.
+    No agent reuse or switching mid-session.
 
     Args:
         agent_def_name: Name of agent definition
@@ -142,11 +148,10 @@ async def chat_loop(agent_def_name: str, config: GlobalConfig):
     print(f"✅ Using agent: {agent_def_name}")
     print("Type 'quit' or 'exit' to end the session (or press Ctrl+C)\n")
 
-    conversation_history = []
+    conversation_history: list[dict] = []
 
     try:
         while True:
-            # Get user input
             try:
                 user_input = _read_user_input("You: ")
             except (KeyboardInterrupt, EOFError):
@@ -160,13 +165,8 @@ async def chat_loop(agent_def_name: str, config: GlobalConfig):
             if not user_input:
                 continue
 
-            # Add to conversation history
             conversation_history.append({"role": "user", "content": user_input})
-
-            # Create agent with conversation history
             agent = await AgentFactory.create(agent_def, task_messages=conversation_history)
-
-            # Run agent and handle clarifications
             result = await run_agent(agent)
 
             if result:
