@@ -16,29 +16,69 @@ from sgr_agent_core.tools import AdaptPlanTool, FinalAnswerTool, ReasoningTool
 
 
 class MockStream:
-    """Mock OpenAI stream object."""
+    """Mock OpenAI stream object that emulates OpenAI streaming API.
+
+    This mock properly handles:
+    - Context manager protocol (async with)
+    - Stream iteration (async for event in stream)
+    - Final completion retrieval with parsed_arguments support
+    """
 
     def __init__(self, final_completion_data: dict):
+        """Initialize mock stream with final completion data.
+
+        Args:
+            final_completion_data: Dictionary containing:
+                - content: Optional message content
+                - tool_calls: List of tool call objects (already with parsed_arguments set)
+        """
         self._final_completion_data = final_completion_data
+        self._iterated = False
 
     async def __aenter__(self):
+        """Enter context manager."""
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager."""
         pass
 
     def __aiter__(self):
+        """Return iterator for stream events."""
         return self
 
     async def __anext__(self):
+        """Return next stream event (empty iterator for simplicity).
+
+        In real OpenAI API, this would yield chunk events. For testing,
+        we return empty iterator since the code handles missing chunks
+        gracefully.
+        """
+        if self._iterated:
+            raise StopAsyncIteration
+        self._iterated = True
         raise StopAsyncIteration
 
     async def get_final_completion(self) -> ChatCompletion:
+        """Get final completion with parsed tool call arguments or structured
+        output.
+
+        Supports both formats:
+        - Structured output: message.parsed (for SGRAgent)
+        - Function calling: tool_calls[0].function.parsed_arguments (for SGRToolCallingAgent)
+
+        Returns:
+            ChatCompletion object with appropriate parsed data
+        """
+        tool_calls = self._final_completion_data.get("tool_calls", [])
+
         message = ChatCompletionMessage(
             role="assistant",
             content=self._final_completion_data.get("content"),
-            tool_calls=self._final_completion_data.get("tool_calls"),
+            tool_calls=tool_calls if tool_calls else None,
         )
+
+        # Support structured output format (SGRAgent uses message.parsed)
         if "parsed" in self._final_completion_data:
             setattr(message, "parsed", self._final_completion_data["parsed"])
 
@@ -155,6 +195,15 @@ def create_mock_openai_client_for_tool_calling_agent(action_tool_1: Type, action
 
 
 def create_mock_openai_client_for_sgr_tool_calling_agent(action_tool_1: Type, action_tool_2: Type) -> AsyncOpenAI:
+    """Create a mock OpenAI client for SGRToolCallingAgent tests.
+
+    Args:
+        action_tool_1: First action tool to return (e.g., AdaptPlanTool)
+        action_tool_2: Second action tool to return (e.g., FinalAnswerTool)
+
+    Returns:
+        Mocked AsyncOpenAI client configured for SGRToolCallingAgent execution cycle
+    """
     client = Mock(spec=AsyncOpenAI)
 
     reasoning_tools = [
@@ -196,33 +245,39 @@ def create_mock_openai_client_for_sgr_tool_calling_agent(action_tool_1: Type, ac
     action_count = {"count": 0}
 
     def mock_stream(**kwargs):
-        is_reasoning = (
-            "tool_choice" in kwargs
-            and isinstance(kwargs.get("tool_choice"), dict)
-            and kwargs["tool_choice"].get("function", {}).get("name") == ReasoningTool.tool_name
-        )
+        """Mock stream function that returns appropriate tool based on tool
+        name."""
+        tools_param = kwargs.get("tools", [])
 
-        if is_reasoning:
+        # Validate that tools is a list
+        if not isinstance(tools_param, list):
+            raise TypeError(
+                f"SGRToolCallingAgent._prepare_tools() must return a list, "
+                f"but got {type(tools_param).__name__}. "
+                f"Override _prepare_tools() to return list instead of NextStepToolStub."
+            )
+
+        # Get tool name from first tool in the list
+        tool_name = None
+        if tools_param:
+            first_tool = tools_param[0]
+            if isinstance(first_tool, dict):
+                tool_name = first_tool.get("function", {}).get("name")
+
+        # Return appropriate tool based on name
+        if tool_name == ReasoningTool.tool_name:
             reasoning_count["count"] += 1
             tool = reasoning_tools[reasoning_count["count"] - 1]
-            call_id = f"reasoning_{reasoning_count['count']}"
         else:
-            tools_param = kwargs.get("tools")
-            if tools_param is not None and not isinstance(tools_param, list):
-                raise TypeError(
-                    f"SGRToolCallingAgent._prepare_tools() must return a list, "
-                    f"but got {type(tools_param).__name__}. "
-                    f"Override _prepare_tools() to return list instead of NextStepToolStub."
-                )
+            # Action tool - use counter to select from action_tools list
             action_count["count"] += 1
             tool = action_tools[action_count["count"] - 1]
-            call_id = f"action_{action_count['count']}"
 
+        # call_id is not used by agent, just needed for valid OpenAI API structure
         return MockStream(
             final_completion_data={
                 "content": None,
-                "role": "assistant",
-                "tool_calls": [_create_tool_call(tool, call_id)],
+                "tool_calls": [_create_tool_call(tool, "mock-call-id")],
             }
         )
 

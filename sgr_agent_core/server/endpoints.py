@@ -6,6 +6,7 @@ from fastapi.responses import StreamingResponse
 
 from sgr_agent_core import AgentFactory, AgentStatesEnum, BaseAgent
 from sgr_agent_core.server.models import (
+    AgentCancelResponse,
     AgentDeleteResponse,
     AgentListItem,
     AgentListResponse,
@@ -40,6 +41,42 @@ async def get_agent_state(agent_id: str):
         task_messages=agent.task_messages,
         sources_count=len(agent._context.sources),
         **agent._context.model_dump(),
+    )
+
+
+@router.post("/agents/{agent_id}/cancel", response_model=AgentCancelResponse)
+async def cancel_agent(agent_id: str):
+    """Cancel agent execution.
+
+    If the agent is currently running, it will be cancelled.
+    The agent remains in storage and can be queried later.
+
+    Args:
+        agent_id: The ID of the agent to cancel
+
+    Returns:
+        AgentCancelResponse with cancellation status and current state
+
+    Raises:
+        HTTPException: 404 if agent not found
+    """
+    if agent_id not in agents_storage:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    agent = agents_storage[agent_id]
+
+    # Cancel the agent if it's running
+    await agent.cancel()
+
+    # Get current state after cancellation
+    current_state = agent._context.state.value
+
+    logger.info(f"Agent {agent_id} cancelled with state: {current_state}")
+
+    return AgentCancelResponse(
+        agent_id=agent_id,
+        cancelled=True,
+        state=current_state,
     )
 
 

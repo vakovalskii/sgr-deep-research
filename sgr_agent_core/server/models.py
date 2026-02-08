@@ -126,6 +126,14 @@ class ClarificationRequest(BaseModel):
     messages: list[ChatCompletionMessageParam] = Field(description="Clarification messages in OpenAI format")
 
 
+class AgentCancelResponse(BaseModel):
+    """Response for cancelling an agent."""
+
+    agent_id: str = Field(description="Agent ID that was cancelled")
+    cancelled: bool = Field(description="Whether the agent was successfully cancelled")
+    state: str = Field(description="Current state of the agent after cancellation")
+
+
 class AgentDeleteResponse(BaseModel):
     """Response for deleting (cancelling) an agent."""
 

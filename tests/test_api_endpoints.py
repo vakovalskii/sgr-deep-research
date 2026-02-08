@@ -14,6 +14,7 @@ from sgr_agent_core.models import AgentStatesEnum
 from sgr_agent_core.server.endpoints import (
     _is_agent_id,
     agents_storage,
+    cancel_agent,
     create_chat_completion,
     delete_agent,
     get_agent_state,
@@ -512,6 +513,89 @@ class TestDeleteAgentEndpoint:
 
         assert len(agents_storage) == 1
         assert agent1.id not in agents_storage
+        assert agent2.id in agents_storage
+
+
+class TestCancelAgentEndpoint:
+    """Tests for cancel_agent endpoint."""
+
+    def setup_method(self):
+        """Setup for each test method."""
+        agents_storage.clear()
+
+    @pytest.mark.asyncio
+    async def test_cancel_agent_success(self):
+        """Test successful cancellation of a running agent."""
+        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Test task"}])
+        agents_storage[agent.id] = agent
+
+        # Mock the cancel method
+        async def mock_cancel():
+            agent._context.state = AgentStatesEnum.CANCELLED
+
+        agent.cancel = mock_cancel
+
+        response = await cancel_agent(agent.id)
+
+        assert response.agent_id == agent.id
+        assert response.cancelled is True
+        assert response.state == "cancelled"
+        # Agent should remain in storage (not deleted)
+        assert agent.id in agents_storage
+
+    @pytest.mark.asyncio
+    async def test_cancel_agent_not_found(self):
+        """Test cancellation of non-existent agent."""
+        non_existent_id = "non_existent_agent_id"
+
+        with pytest.raises(HTTPException) as exc_info:
+            await cancel_agent(non_existent_id)
+
+        assert exc_info.value.status_code == 404
+        assert "Agent not found" in str(exc_info.value.detail)
+
+    @pytest.mark.asyncio
+    async def test_cancel_already_completed_agent(self):
+        """Test cancellation of already completed agent."""
+        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Test task"}])
+        agent._context.state = AgentStatesEnum.COMPLETED
+        agents_storage[agent.id] = agent
+
+        # Mock the cancel method (should still work for completed agents)
+        async def mock_cancel():
+            pass  # Already completed, cancel does nothing
+
+        agent.cancel = mock_cancel
+
+        response = await cancel_agent(agent.id)
+
+        assert response.agent_id == agent.id
+        assert response.cancelled is True
+        assert response.state == "completed"
+        # Agent should remain in storage
+        assert agent.id in agents_storage
+
+    @pytest.mark.asyncio
+    async def test_cancel_keeps_agent_in_storage(self):
+        """Test that cancel keeps agent in storage (doesn't delete)."""
+        agent1 = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Task 1"}])
+        agent2 = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Task 2"}])
+
+        agents_storage[agent1.id] = agent1
+        agents_storage[agent2.id] = agent2
+
+        async def mock_cancel():
+            agent1._context.state = AgentStatesEnum.CANCELLED
+
+        agent1.cancel = mock_cancel
+
+        assert len(agents_storage) == 2
+
+        await cancel_agent(agent1.id)
+
+        # Both agents should remain in storage
+        assert len(agents_storage) == 2
+        assert agent1.id in agents_storage
         assert agent2.id in agents_storage
 
 

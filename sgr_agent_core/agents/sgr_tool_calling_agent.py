@@ -41,7 +41,7 @@ class SGRToolCallingAgent(BaseAgent):
         async with self.openai_client.chat.completions.stream(
             messages=await self._prepare_context(),
             tools=[pydantic_function_tool(ReasoningTool, name=ReasoningTool.tool_name)],
-            tool_choice={"type": "function", "function": {"name": ReasoningTool.tool_name}},
+            tool_choice=self.tool_choice,
             **self.config.llm.to_openai_client_kwargs(),
         ) as stream:
             async for event in stream:
@@ -66,7 +66,7 @@ class SGRToolCallingAgent(BaseAgent):
                 ],
             }
         )
-        tool_call_result = await reasoning(self._context)
+        tool_call_result = await reasoning(self._context, self.config)
         self.streaming_generator.add_tool_call(
             f"{self._context.iteration}-reasoning", reasoning.tool_name, tool_call_result
         )
