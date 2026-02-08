@@ -14,6 +14,7 @@ from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.agents import DialogAgent
 from sgr_agent_core.models import AgentStatesEnum
 from sgr_agent_core.tools import AnswerTool
+from sgr_agent_core.tools.answer_tool import PASS_TURN_TO_USER_KEY
 
 
 def mock_global_config():
@@ -115,6 +116,7 @@ class TestDialogAgentAfterActionPhase:
                 execution=ExecutionConfig(max_iterations=5),
             )
             agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "Hello"}])
+            agent._context.custom_context = {PASS_TURN_TO_USER_KEY: True}
 
             tool = AnswerTool(
                 reasoning="Sharing progress",

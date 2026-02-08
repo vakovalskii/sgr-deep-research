@@ -13,6 +13,9 @@ if TYPE_CHECKING:
     from sgr_agent_core.agent_definition import AgentConfig
     from sgr_agent_core.models import AgentContext
 
+# Key in context.custom_context to signal "pass turn to user" (used by DialogAgent)
+PASS_TURN_TO_USER_KEY = "pass_turn_to_user"
+
 
 class AnswerTool(BaseTool):
     """Share intermediate results and keep agent available for further
@@ -38,5 +41,9 @@ class AnswerTool(BaseTool):
     )
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **_) -> str:
-        """Return the intermediate result to share with the user."""
+        """Return the intermediate result and signal agent to pass turn to
+        user."""
+        if context.custom_context is None:
+            context.custom_context = {}
+        context.custom_context[PASS_TURN_TO_USER_KEY] = True
         return self.intermediate_result

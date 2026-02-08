@@ -1,4 +1,7 @@
-"""End-to-end tests for agent execution workflow."""
+"""End-to-end tests for agent execution workflow.
+
+Run explicitly: pytest -m e2e
+"""
 
 from typing import Type
 from unittest.mock import Mock
@@ -13,6 +16,8 @@ from sgr_agent_core.agents import SGRAgent, SGRToolCallingAgent, ToolCallingAgen
 from sgr_agent_core.models import AgentStatesEnum
 from sgr_agent_core.next_step_tool import NextStepToolsBuilder
 from sgr_agent_core.tools import AdaptPlanTool, FinalAnswerTool, ReasoningTool
+
+pytestmark = pytest.mark.e2e
 
 
 class MockStream:

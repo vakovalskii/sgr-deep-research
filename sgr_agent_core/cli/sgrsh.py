@@ -240,15 +240,15 @@ Examples:
         print(f"❌ Failed to load config: {e}")
         sys.exit(1)
 
-    # Get agent name
+    # Get agent name (default: dialog_agent if present, else first in config)
     agent_name = args.agent
     if agent_name is None:
         if not config.agents:
             print("❌ No agents found in config")
             sys.exit(1)
-        agent_name = list(config.agents.keys())[0]
+        agent_name = "dialog_agent" if "dialog_agent" in config.agents else list(config.agents.keys())[0]
         if len(config.agents) > 1:
-            print(f"ℹ️  Using first agent: {agent_name}")
+            print(f"ℹ️  Using agent: {agent_name}")
             print(f"   Available agents: {', '.join(config.agents.keys())}")
 
     # Check if query provided

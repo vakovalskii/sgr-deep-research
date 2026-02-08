@@ -200,17 +200,6 @@ class BaseAgent(AgentRegistryMixin):
         reasoning = await self._reasoning_phase()
         self._context.current_step_reasoning = reasoning
         action_tool = await self._select_action_phase(reasoning)
-        result = await self._action_phase(action_tool)
-        await self._after_action_phase(action_tool, result)
-
-    async def _after_action_phase(self, action_tool: BaseTool, result: str) -> None:
-        """Hook called after action phase; subclasses can override for custom
-        handling.
-
-        Use this to pause execution (e.g. wait for clarification or user
-        response) after specific tools. Default implementation handles
-        ClarificationTool.
-        """
         if isinstance(action_tool, ClarificationTool):
             self.logger.info("\n⏸️  Research paused - please answer questions")
             self._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
