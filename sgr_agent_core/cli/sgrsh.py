@@ -74,26 +74,10 @@ async def run_agent(agent: "BaseAgent") -> str | None:
         # Wait for this agent to finish; only react when it asks for clarification
         while not execution_task.done():
             if agent._context.state == AgentStatesEnum.WAITING_FOR_CLARIFICATION:
-                # Pass turn to user: show last message (clarification or answer_tool, e.g. a question) and read reply
-                clarification_tool_names = (
-                    "clarification_tool",
-                    "clarificationtool",
-                    "answer_tool",
-                    "answertool",
-                )
-                message_to_show = None
-                for log_entry in reversed(agent.log):
-                    if log_entry.get("step_type") == "tool_execution":
-                        tool_name = log_entry.get("tool_name")
-                        if tool_name in clarification_tool_names:
-                            message_to_show = log_entry.get("agent_tool_execution_result", "")
-                            break
-
-                if message_to_show:
-                    print("\n" + message_to_show)
+                if agent._context.execution_result:
+                    print("\n" + agent._context.execution_result)
                     print()
 
-                # Get user input
                 try:
                     user_input = _read_user_input("You: ")
                 except (KeyboardInterrupt, EOFError):

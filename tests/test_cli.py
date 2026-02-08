@@ -68,13 +68,8 @@ class TestRunAgent:
         mock_agent = Mock()
         mock_agent._context = Mock()
         mock_agent._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
-        mock_agent.log = [
-            {
-                "step_type": "tool_execution",
-                "tool_name": "clarification_tool",
-                "agent_tool_execution_result": "Question 1?\nQuestion 2?",
-            }
-        ]
+        mock_agent._context.execution_result = "Question 1?\nQuestion 2?"
+        mock_agent.log = []
         mock_agent.provide_clarification = AsyncMock()
         mock_agent.cancel = AsyncMock()
 
@@ -122,13 +117,8 @@ class TestRunAgent:
         mock_agent = Mock()
         mock_agent._context = Mock()
         mock_agent._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
-        mock_agent.log = [
-            {
-                "step_type": "tool_execution",
-                "tool_name": "clarification_tool",
-                "agent_tool_execution_result": "Question?",
-            }
-        ]
+        mock_agent._context.execution_result = "Question?"
+        mock_agent.log = []
         mock_agent.provide_clarification = AsyncMock()
         mock_agent.cancel = AsyncMock()
 
@@ -165,13 +155,8 @@ class TestRunAgent:
         mock_agent = Mock()
         mock_agent._context = Mock()
         mock_agent._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
-        mock_agent.log = [
-            {
-                "step_type": "tool_execution",
-                "tool_name": "clarification_tool",
-                "agent_tool_execution_result": "Question?",
-            }
-        ]
+        mock_agent._context.execution_result = "Question?"
+        mock_agent.log = []
         mock_agent.provide_clarification = AsyncMock()
         mock_agent.cancel = AsyncMock()
 

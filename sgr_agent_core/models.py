@@ -62,6 +62,10 @@ class AgentContext(BaseModel):
     clarification_received: asyncio.Event = Field(
         default_factory=asyncio.Event, description="Event for clarification synchronization"
     )
+    message_for_user: str | None = Field(
+        default=None,
+        description="Last message to show user when state is WAITING_FOR_CLARIFICATION (set by tools)",
+    )
 
     custom_context: dict | BaseModel | None = Field(
         default=None, description="Custom context for project-specific data"

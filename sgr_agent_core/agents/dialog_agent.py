@@ -58,6 +58,7 @@ class DialogAgent(SGRToolCallingAgent):
         """Pause for user when ClarificationTool or when tool set
         pass_turn_to_user (e.g. AnswerTool)."""
         if isinstance(action_tool, ClarificationTool):
+            self._context.execution_result = result
             self.logger.info("\n⏸️  Research paused - please answer questions")
             self._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
             self.streaming_generator.finish()
@@ -66,6 +67,7 @@ class DialogAgent(SGRToolCallingAgent):
             return
         if self._context.custom_context and self._context.custom_context.get(PASS_TURN_TO_USER_KEY):
             self._context.custom_context[PASS_TURN_TO_USER_KEY] = False
+            self._context.execution_result = result
             self.logger.info("\n💬 Dialog shared - agent waiting for response")
             self._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
             self.streaming_generator.finish(result)
