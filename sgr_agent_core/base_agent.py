@@ -200,6 +200,8 @@ class BaseAgent(AgentRegistryMixin):
         reasoning = await self._reasoning_phase()
         self._context.current_step_reasoning = reasoning
         action_tool = await self._select_action_phase(reasoning)
+        await self._action_phase(action_tool)
+
         if isinstance(action_tool, ClarificationTool):
             self.logger.info("\n⏸️  Research paused - please answer questions")
             self._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
