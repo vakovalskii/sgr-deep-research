@@ -22,11 +22,11 @@ class TestFindConfigFile:
         assert result == config_file.resolve()
 
     def test_find_config_file_explicit_path_not_exists(self, tmp_path):
-        """Test finding config file with explicit non-existent path."""
+        """Test finding config file with explicit non-existent path raises."""
         config_file = tmp_path / "nonexistent.yaml"
 
-        result = find_config_file(str(config_file))
-        assert result is None
+        with pytest.raises(FileNotFoundError, match="Config file not found"):
+            find_config_file(str(config_file))
 
     def test_find_config_file_current_directory(self, tmp_path, monkeypatch):
         """Test finding config.yaml in current directory."""
@@ -38,11 +38,11 @@ class TestFindConfigFile:
         assert result == config_file.resolve()
 
     def test_find_config_file_not_found(self, tmp_path, monkeypatch):
-        """Test when config.yaml not found in current directory."""
+        """Test when config.yaml not found in current directory raises."""
         monkeypatch.chdir(tmp_path)
 
-        result = find_config_file(None)
-        assert result is None
+        with pytest.raises(FileNotFoundError, match="Config file not found"):
+            find_config_file(None)
 
 
 class TestRunAgent:
@@ -268,8 +268,7 @@ agents:
         ):
             mock_config = Mock()
             mock_config.agents = {"test_agent": Mock()}
-            mock_config_class.from_yaml.return_value = None
-            mock_config_class.return_value = mock_config
+            mock_config_class.from_yaml.return_value = mock_config
 
             mock_agent = Mock()
             mock_agent.execute = AsyncMock(return_value="Test result")
@@ -340,8 +339,7 @@ agents:
                 "agent1": Mock(),
                 "agent2": Mock(),
             }
-            mock_config_class.from_yaml.return_value = None
-            mock_config_class.return_value = mock_config
+            mock_config_class.from_yaml.return_value = mock_config
 
             mock_agent = Mock()
             mock_agent.execute = AsyncMock(return_value="Test result")

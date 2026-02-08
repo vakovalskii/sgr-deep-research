@@ -128,6 +128,18 @@ class TestServerConfig:
         assert config.host == "0.0.0.0"
         assert config.port == 8010
 
+    def test_server_config_from_cli_short_aliases(self):
+        """Test that ServerConfig accepts short CLI aliases (-c, -l, -a,
+        -p)."""
+        original_argv = sys.argv
+        try:
+            sys.argv = ["prog", "-c", "my_config.yaml", "-p", "9000"]
+            config = ServerConfig()
+            assert config.config_file == "my_config.yaml"
+            assert config.port == 9000
+        finally:
+            sys.argv = original_argv
+
     def test_server_config_from_environment(self):
         """Test that ServerConfig reads from environment variables."""
         original_argv = sys.argv

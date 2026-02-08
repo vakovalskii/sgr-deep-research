@@ -1,6 +1,5 @@
 """Main entry point for SGR Agent Core API server."""
 
-import argparse
 import logging
 from pathlib import Path
 
@@ -48,50 +47,14 @@ def load_config(config_file: str, agents_file: str | None = None) -> GlobalConfi
 
 
 def main():
-    """Start FastAPI server."""
+    """Start FastAPI server.
 
+    Config from ServerConfig (env + CLI, see settings.py).
+    """
     server_config = ServerConfig()
-
-    parser = argparse.ArgumentParser(description="SGR Agent Core API server")
-    parser.add_argument(
-        "-l",
-        "--logging-file",
-        default="logging_config.yaml",
-        help="Logging configuration file path (default: logging_config.yaml)",
-    )
-    parser.add_argument(
-        "-c",
-        "--config-file",
-        default="config.yaml",
-        help="SGR core configuration file path (default: config.yaml)",
-    )
-    parser.add_argument(
-        "-a",
-        "--agents-file",
-        default=None,
-        help="Agents definitions file path (optional)",
-    )
-    parser.add_argument(
-        "-h",
-        "--host",
-        default=server_config.host,
-        help=f"Host to listen on (default: {server_config.host})",
-    )
-    parser.add_argument(
-        "-p",
-        "--port",
-        type=int,
-        default=server_config.port,
-        help=f"Port to listen on (default: {server_config.port})",
-    )
-
-    args = parser.parse_args()
-
-    setup_logging(args.logging_file)
-
-    load_config(args.config_file, args.agents_file)
-
-    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+    setup_logging(server_config.logging_file)
+    load_config(server_config.config_file, server_config.agents_file)
+    uvicorn.run(app, host=server_config.host, port=server_config.port, log_level="info")
 
 
 if __name__ == "__main__":
