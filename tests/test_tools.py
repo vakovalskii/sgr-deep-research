@@ -6,6 +6,7 @@ This module contains simple tests for all tools:
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 from sgr_agent_core.agent_definition import SearchConfig
