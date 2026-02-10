@@ -23,9 +23,4 @@ class GeneratePlanTool(BaseTool):
     search_strategies: list[str] = Field(description="Information search strategies", min_length=2, max_length=3)
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **_) -> str:
-        return self.model_dump_json(
-            indent=2,
-            exclude={
-                "reasoning",
-            },
-        )
+        return ""

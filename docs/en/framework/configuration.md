@@ -178,6 +178,7 @@ agents:
       max_iterations: 15
       max_clarifications: 5
       max_searches: 6
+      streaming_generator: "openai"  # default; use "open_webui" for Open WebUI UI
       logs_dir: "logs/custom_agent"
       reports_dir: "reports/custom_agent"
 
@@ -218,7 +219,33 @@ agents:
       - "reasoning_tool"
 ```
 
-#### Example 4: With Custom Prompts
+#### Example 4: Streaming generator (openai / open_webui)
+
+Choose the streaming response format via `execution.streaming_generator`. Built-in options are resolved from `StreamingGeneratorRegistry`:
+
+- `openai` (default) — OpenAI SSE format; universal compatibility.
+- `open_webui` — Open WebUI format with `<details>` blocks for tool calls and results (e.g. for UIs that render markdown).
+
+```yaml
+agents:
+  open_webui_agent:
+    base_class: "SGRToolCallingAgent"
+
+    llm:
+      model: "gpt-4o-mini"
+
+    execution:
+      streaming_generator: "open_webui"
+
+    tools:
+      - "web_search_tool"
+      - "final_answer_tool"
+      - "reasoning_tool"
+```
+
+Custom generators can be registered in code; then use their registry name in config.
+
+#### Example 5: With Custom Prompts
 
 An agent with system prompt override:
 
@@ -250,7 +277,7 @@ agents:
       - "final_answer_tool"
 ```
 
-#### Example 5: With Tool Definitions
+#### Example 6: With Tool Definitions
 
 An agent using custom tool definitions:
 

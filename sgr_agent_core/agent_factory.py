@@ -11,7 +11,8 @@ from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.agent_definition import AgentDefinition, LLMConfig
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.base_tool import BaseTool
-from sgr_agent_core.services import AgentRegistry, MCP2ToolConverter, ToolRegistry
+from sgr_agent_core.services import AgentRegistry, MCP2ToolConverter, StreamingGeneratorRegistry, ToolRegistry
+from sgr_agent_core.stream import OpenAIStreamingGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +125,27 @@ class AgentFactory:
         return [cls._resolve_tool(tool_name, config) for tool_name in tool_names]
 
     @classmethod
+    def _resolve_streaming_generator(cls, name: str) -> type[OpenAIStreamingGenerator]:
+        """Resolve streaming generator class from registry by name.
+
+        Args:
+            name: Value from execution.streaming_generator (e.g. 'openai', 'open_webui')
+
+        Returns:
+            Streaming generator class
+
+        Raises:
+            ValueError: If streaming generator not found
+        """
+        generator_class = StreamingGeneratorRegistry.get(name)
+        if generator_class is None:
+            raise ValueError(
+                f"Streaming generator '{name}' not found. "
+                f"Available: {', '.join([c.__name__ for c in StreamingGeneratorRegistry.list_items()])}"
+            )
+        return generator_class
+
+    @classmethod
     async def create(cls, agent_def: AgentDefinition, task_messages: list[ChatCompletionMessageParam]) -> Agent:
         """Create an agent instance from a definition.
 
@@ -182,6 +204,7 @@ class AgentFactory:
                 toolkit=tools,
                 openai_client=cls._create_client(agent_def.llm),
                 agent_config=agent_def,
+                streaming_generator=cls._resolve_streaming_generator(agent_def.execution.streaming_generator),
                 **agent_kwargs,
             )
             logger.info(

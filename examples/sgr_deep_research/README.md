@@ -184,6 +184,7 @@ The system automatically resolves relative imports based on the location of the 
 
 - `max_clarifications`: Maximum clarification requests (default: 3)
 - `max_iterations`: Maximum agent iterations (default: 10)
+- `streaming_generator`: Streaming format — `"openai"` (default, OpenAI SSE) or `"open_webui"` (Open WebUI \<details> blocks for tool display)
 - `logs_dir`: Directory for execution logs (default: "logs")
 - `reports_dir`: Directory for research reports (default: "reports")
 

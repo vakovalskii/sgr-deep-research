@@ -4,7 +4,7 @@ import logging
 import os
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Self, Union
+from typing import Any, Literal, Self, Union
 
 import yaml
 from fastmcp.mcp_config import MCPConfig
@@ -141,6 +141,11 @@ class ExecutionConfig(BaseModel, extra="allow"):
     max_clarifications: int = Field(default=3, ge=0, description="Maximum number of clarifications")
     max_iterations: int = Field(default=10, gt=0, description="Maximum number of iterations")
     mcp_context_limit: int = Field(default=15000, gt=0, description="Maximum context length from MCP server response")
+
+    streaming_generator: Literal["openai", "open_webui"] = Field(
+        default="openai",
+        description="Streaming generator for agent output format",
+    )
 
     logs_dir: str | None = Field(
         default="logs", description="Directory for saving bot logs. Set to None or empty string to disable logging."

@@ -36,13 +36,10 @@ class ReasoningTool(BaseTool):
 
     # Next step planning
     remaining_steps: list[str] = Field(
-        description="1-3 remaining steps (brief, action-oriented)",
-        min_length=1,
+        description="0-3 remaining steps (brief, action-oriented)",
         max_length=3,
     )
     task_completed: bool = Field(description="Is the research task finished?")
 
     async def __call__(self, *args, **kwargs):
-        return self.model_dump_json(
-            indent=2,
-        )
+        return ""

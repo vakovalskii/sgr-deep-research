@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from sgr_agent_core import AgentFactory, AgentRegistry, ToolRegistry, __version__
 from sgr_agent_core.server.endpoints import router
+from sgr_agent_core.services import StreamingGeneratorRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,8 @@ async def lifespan(_: FastAPI):
         logger.info(f"Agent registered: {agent.__name__}")
     for defn in AgentFactory.get_definitions_list():
         logger.info(f"Agent definition loaded: {defn}")
+    for gen in StreamingGeneratorRegistry.list_items():
+        logger.info(f"Streaming generator loaded: {gen.__name__}")
     yield
 
 

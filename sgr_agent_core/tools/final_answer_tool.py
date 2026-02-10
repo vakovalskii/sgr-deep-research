@@ -33,6 +33,4 @@ class FinalAnswerTool(BaseTool):
     async def __call__(self, context: AgentContext, config: AgentConfig, **_) -> str:
         context.state = self.status
         context.execution_result = self.answer
-        return self.model_dump_json(
-            indent=2,
-        )
+        return self.answer

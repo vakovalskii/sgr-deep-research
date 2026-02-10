@@ -38,6 +38,7 @@ class SGRToolCallingAgent(BaseAgent):
         self.tool_choice: Literal["required"] = "required"
 
     async def _reasoning_phase(self) -> ReasoningTool:
+        phase_id = f"{self._context.iteration}-reasoning"
         async with self.openai_client.chat.completions.stream(
             messages=await self._prepare_context(),
             tools=[pydantic_function_tool(ReasoningTool, name=ReasoningTool.tool_name)],
@@ -46,10 +47,10 @@ class SGRToolCallingAgent(BaseAgent):
         ) as stream:
             async for event in stream:
                 if event.type == "chunk":
-                    self.streaming_generator.add_chunk(event.chunk)
-            reasoning: ReasoningTool = (
-                (await stream.get_final_completion()).choices[0].message.tool_calls[0].function.parsed_arguments
-            )
+                    self.streaming_generator.add_chunk(event.chunk, phase_id)
+            final_completion = await stream.get_final_completion()
+        reasoning: ReasoningTool = final_completion.choices[0].message.tool_calls[0].function.parsed_arguments
+        self.streaming_generator.add_tool_call(phase_id, reasoning)
         self.conversation.append(
             {
                 "role": "assistant",
@@ -57,7 +58,7 @@ class SGRToolCallingAgent(BaseAgent):
                 "tool_calls": [
                     {
                         "type": "function",
-                        "id": f"{self._context.iteration}-reasoning",
+                        "id": phase_id,
                         "function": {
                             "name": reasoning.tool_name,
                             "arguments": reasoning.model_dump_json(),
@@ -67,16 +68,13 @@ class SGRToolCallingAgent(BaseAgent):
             }
         )
         tool_call_result = await reasoning(self._context, self.config)
-        self.streaming_generator.add_tool_call(
-            f"{self._context.iteration}-reasoning", reasoning.tool_name, tool_call_result
-        )
-        self.conversation.append(
-            {"role": "tool", "content": tool_call_result, "tool_call_id": f"{self._context.iteration}-reasoning"}
-        )
+        self.streaming_generator.add_tool_result(phase_id, tool_call_result, reasoning.tool_name)
+        self.conversation.append({"role": "tool", "content": tool_call_result, "tool_call_id": phase_id})
         self._log_reasoning(reasoning)
         return reasoning
 
     async def _select_action_phase(self, reasoning: ReasoningTool) -> BaseTool:
+        phase_id = f"{self._context.iteration}-action"
         async with self.openai_client.chat.completions.stream(
             messages=await self._prepare_context(),
             tools=await self._prepare_tools(),
@@ -85,14 +83,11 @@ class SGRToolCallingAgent(BaseAgent):
         ) as stream:
             async for event in stream:
                 if event.type == "chunk":
-                    self.streaming_generator.add_chunk(event.chunk)
-
-        completion = await stream.get_final_completion()
-
+                    self.streaming_generator.add_chunk(event.chunk, phase_id)
+            completion = await stream.get_final_completion()
         try:
             tool = completion.choices[0].message.tool_calls[0].function.parsed_arguments
         except (IndexError, AttributeError, TypeError):
-            # LLM returned a text response instead of a tool call - treat as completion
             final_content = completion.choices[0].message.content or "Task completed successfully"
             tool = FinalAnswerTool(
                 reasoning="Agent decided to complete the task",
@@ -102,6 +97,7 @@ class SGRToolCallingAgent(BaseAgent):
             )
         if not isinstance(tool, BaseTool):
             raise ValueError("Selected tool is not a valid BaseTool instance")
+
         self.conversation.append(
             {
                 "role": "assistant",
@@ -109,7 +105,7 @@ class SGRToolCallingAgent(BaseAgent):
                 "tool_calls": [
                     {
                         "type": "function",
-                        "id": f"{self._context.iteration}-action",
+                        "id": phase_id,
                         "function": {
                             "name": tool.tool_name,
                             "arguments": tool.model_dump_json(),
@@ -118,16 +114,13 @@ class SGRToolCallingAgent(BaseAgent):
                 ],
             }
         )
-        self.streaming_generator.add_tool_call(
-            f"{self._context.iteration}-action", tool.tool_name, tool.model_dump_json()
-        )
+        self.streaming_generator.add_tool_call(phase_id, tool)
         return tool
 
     async def _action_phase(self, tool: BaseTool) -> str:
+        phase_id = f"{self._context.iteration}-action"
         result = await tool(self._context, self.config)
-        self.conversation.append(
-            {"role": "tool", "content": result, "tool_call_id": f"{self._context.iteration}-action"}
-        )
-        self.streaming_generator.add_chunk_from_str(f"{result}\n")
+        self.conversation.append({"role": "tool", "content": result, "tool_call_id": phase_id})
+        self.streaming_generator.add_tool_result(phase_id, result, tool.tool_name)
         self._log_tool_execution(tool, result)
         return result

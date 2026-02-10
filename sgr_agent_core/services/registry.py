@@ -6,6 +6,7 @@ if TYPE_CHECKING:
         BaseAgent,  # noqa: F401
         BaseTool,  # noqa: F401
     )
+    from sgr_agent_core.stream import BaseStreamingGenerator  # noqa: F401
 
 
 logger = logging.getLogger(__name__)
@@ -124,3 +125,8 @@ class AgentRegistry(Registry["BaseAgent"]):
 
 class ToolRegistry(Registry["BaseTool"]):
     pass
+
+
+class StreamingGeneratorRegistry(Registry["BaseStreamingGenerator"]):
+    """Registry for streaming generator classes (openai, open_webui,
+    custom)."""

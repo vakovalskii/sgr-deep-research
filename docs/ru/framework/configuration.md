@@ -139,6 +139,7 @@ agents:
       max_iterations: 15
       max_clarifications: 5
       max_searches: 6
+      streaming_generator: "openai"  # по умолчанию; "open_webui" для Open WebUI
       logs_dir: "logs/custom_agent"
       reports_dir: "reports/custom_agent"
 
@@ -179,7 +180,33 @@ agents:
       - "reasoning_tool"
 ```
 
-#### Пример 4: С кастомными промптами
+#### Пример 4: Streaming generator (openai / open_webui)
+
+Формат потокового ответа задаётся через `execution.streaming_generator`. Значения берутся из `StreamingGeneratorRegistry`:
+
+- `openai` (по умолчанию) — формат OpenAI SSE; универсальная совместимость.
+- `open_webui` — формат Open WebUI с блоками `<details>` для вызовов инструментов и результатов (для UI с markdown).
+
+```yaml
+agents:
+  open_webui_agent:
+    base_class: "SGRToolCallingAgent"
+
+    llm:
+      model: "gpt-4o-mini"
+
+    execution:
+      streaming_generator: "open_webui"
+
+    tools:
+      - "web_search_tool"
+      - "final_answer_tool"
+      - "reasoning_tool"
+```
+
+Собственные генераторы регистрируются в коде; в конфиге указывается их имя из реестра.
+
+#### Пример 5: С кастомными промптами
 
 Агент с переопределением системных промптов:
 

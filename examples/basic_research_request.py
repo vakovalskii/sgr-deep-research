@@ -8,7 +8,7 @@ client = OpenAI(
 
 # Make research request
 response = client.chat.completions.create(
-    model="sgr_agent",
+    model="sgr_tool_calling_agent",
     messages=[{"role": "user", "content": "Research BMW X6 2025 prices in Russia"}],
     stream=True,
     temperature=0.4,
@@ -16,5 +16,13 @@ response = client.chat.completions.create(
 
 # Print streaming response
 for chunk in response:
-    if chunk.choices[0].delta.content:
-        print(chunk.choices[0].delta.content, end="")
+    try:
+        if chunk.choices[0].delta.content:
+            print(chunk.choices[0].delta.content, end="")
+    except (AttributeError, IndexError, TypeError):
+        pass
+    try:
+        if chunk.choices[0].delta.tool_calls[0].function.arguments:
+            print(chunk.choices[0].delta.tool_calls[0].function.arguments, end="")
+    except (AttributeError, IndexError, TypeError):
+        pass

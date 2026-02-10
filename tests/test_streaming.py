@@ -1,34 +1,42 @@
 """Tests for streaming functionality.
 
-This module contains comprehensive tests for the StreamingGenerator and
-OpenAIStreamingGenerator classes used for SSE-like streaming.
+This module contains comprehensive tests for the BaseStreamingGenerator,
+OpenAIStreamingGenerator, OpenWebUIStreamingGenerator, and
+StreamingGeneratorRegistry.
 """
 
 import json
 
 import pytest
 
-from sgr_agent_core.stream import OpenAIStreamingGenerator, StreamingGenerator
+from sgr_agent_core.models import AgentStatesEnum
+from sgr_agent_core.services.registry import StreamingGeneratorRegistry
+from sgr_agent_core.stream import (
+    BaseStreamingGenerator,
+    OpenAIStreamingGenerator,
+    OpenWebUIStreamingGenerator,
+)
+from sgr_agent_core.tools.final_answer_tool import FinalAnswerTool
 
 
-class TestStreamingGenerator:
-    """Tests for base StreamingGenerator class."""
+class TestBaseStreamingGenerator:
+    """Tests for base BaseStreamingGenerator class."""
 
     def test_initialization(self):
-        """Test that StreamingGenerator initializes correctly."""
-        generator = StreamingGenerator()
+        """Test that BaseStreamingGenerator initializes correctly."""
+        generator = BaseStreamingGenerator()
         assert generator.queue is not None
         assert generator.queue.qsize() == 0
 
     def test_add_single_item(self):
         """Test adding a single item to the queue."""
-        generator = StreamingGenerator()
+        generator = BaseStreamingGenerator()
         generator.add("test data")
         assert generator.queue.qsize() == 1
 
     def test_add_multiple_items(self):
         """Test adding multiple items to the queue."""
-        generator = StreamingGenerator()
+        generator = BaseStreamingGenerator()
         generator.add("item 1")
         generator.add("item 2")
         generator.add("item 3")
@@ -36,7 +44,7 @@ class TestStreamingGenerator:
 
     def test_finish_adds_none(self):
         """Test that finish() adds None as termination signal."""
-        generator = StreamingGenerator()
+        generator = BaseStreamingGenerator()
         generator.add("data")
         generator.finish()
 
@@ -46,7 +54,7 @@ class TestStreamingGenerator:
     @pytest.mark.asyncio
     async def test_stream_empty(self):
         """Test streaming with no data (only finish)."""
-        generator = StreamingGenerator()
+        generator = BaseStreamingGenerator()
         generator.finish()
 
         items = []
@@ -58,7 +66,7 @@ class TestStreamingGenerator:
     @pytest.mark.asyncio
     async def test_stream_single_item(self):
         """Test streaming a single item."""
-        generator = StreamingGenerator()
+        generator = BaseStreamingGenerator()
         generator.add("test data")
         generator.finish()
 
@@ -72,7 +80,7 @@ class TestStreamingGenerator:
     @pytest.mark.asyncio
     async def test_stream_multiple_items(self):
         """Test streaming multiple items."""
-        generator = StreamingGenerator()
+        generator = BaseStreamingGenerator()
         test_items = ["item 1", "item 2", "item 3"]
         for item in test_items:
             generator.add(item)
@@ -87,7 +95,7 @@ class TestStreamingGenerator:
     @pytest.mark.asyncio
     async def test_stream_order_preserved(self):
         """Test that streaming preserves item order."""
-        generator = StreamingGenerator()
+        generator = BaseStreamingGenerator()
         expected_order = ["first", "second", "third", "fourth"]
         for item in expected_order:
             generator.add(item)
@@ -102,7 +110,7 @@ class TestStreamingGenerator:
     @pytest.mark.asyncio
     async def test_stream_terminates_on_none(self):
         """Test that stream terminates when None is encountered."""
-        generator = StreamingGenerator()
+        generator = BaseStreamingGenerator()
         generator.add("data 1")
         generator.add("data 2")
         generator.finish()
@@ -118,7 +126,7 @@ class TestStreamingGenerator:
     @pytest.mark.asyncio
     async def test_stream_with_unicode(self):
         """Test streaming with Unicode characters."""
-        generator = StreamingGenerator()
+        generator = BaseStreamingGenerator()
         unicode_data = ["Hello 世界", "Привет мир", "こんにちは 🌍"]
         for item in unicode_data:
             generator.add(item)
@@ -133,7 +141,7 @@ class TestStreamingGenerator:
     @pytest.mark.asyncio
     async def test_stream_with_long_strings(self):
         """Test streaming with very long strings."""
-        generator = StreamingGenerator()
+        generator = BaseStreamingGenerator()
         long_string = "A" * 10000
         generator.add(long_string)
         generator.finish()
@@ -148,7 +156,7 @@ class TestStreamingGenerator:
     @pytest.mark.asyncio
     async def test_stream_with_special_characters(self):
         """Test streaming with special characters."""
-        generator = StreamingGenerator()
+        generator = BaseStreamingGenerator()
         special_chars = ["<>&\"'", "$%^&*()", "{}[]\\|"]
         for item in special_chars:
             generator.add(item)
@@ -161,96 +169,75 @@ class TestStreamingGenerator:
         assert items == special_chars
 
 
+TEST_PHASE_ID = "test-phase"
+
+
 class TestOpenAIStreamingGenerator:
     """Tests for OpenAIStreamingGenerator class."""
 
-    def test_initialization_default_model(self):
-        """Test initialization with default model."""
-        generator = OpenAIStreamingGenerator()
-        assert generator.model == "gpt-4o"
+    def test_initialization_with_agent_id(self):
+        """Test initialization with agent_id."""
+        generator = OpenAIStreamingGenerator(agent_id="test-agent-1")
+        assert generator.agent_id == "test-agent-1"
 
-    def test_initialization_custom_model(self):
-        """Test initialization with custom model."""
-        generator = OpenAIStreamingGenerator(model="gpt-3.5-turbo")
-        assert generator.model == "gpt-3.5-turbo"
-
-    def test_fingerprint_generation(self):
-        """Test that fingerprint is generated correctly."""
-        generator = OpenAIStreamingGenerator(model="test-model")
-        assert generator.fingerprint.startswith("fp_")
-        assert len(generator.fingerprint) > 3
-
-    def test_id_generation(self):
-        """Test that ID is generated correctly."""
-        generator = OpenAIStreamingGenerator()
-        assert generator.id.startswith("chatcmpl-")
-        assert len(generator.id) <= 29
-
-    def test_created_timestamp(self):
-        """Test that created timestamp is set."""
-        import time
-
-        before = int(time.time())
-        generator = OpenAIStreamingGenerator()
-        after = int(time.time())
-
-        assert before <= generator.created <= after
+    def test_initialization_custom_agent_id(self):
+        """Test initialization with custom agent_id."""
+        generator = OpenAIStreamingGenerator(agent_id="custom-agent-id")
+        assert generator.agent_id == "custom-agent-id"
 
     def test_choice_index_default(self):
         """Test that choice_index defaults to 0."""
-        generator = OpenAIStreamingGenerator()
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
         assert generator.choice_index == 0
 
     def test_inherits_from_streaming_generator(self):
         """Test that OpenAIStreamingGenerator inherits from
-        StreamingGenerator."""
-        generator = OpenAIStreamingGenerator()
-        assert isinstance(generator, StreamingGenerator)
+        BaseStreamingGenerator."""
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
+        assert isinstance(generator, BaseStreamingGenerator)
 
     @pytest.mark.asyncio
-    async def test_add_chunk_from_str_format(self):
-        """Test that add_chunk_from_str creates correct format."""
-        generator = OpenAIStreamingGenerator()
-        generator.add_chunk_from_str("Hello")
-        generator.finish()
+    async def test_add_content_delta_format(self):
+        """Test that add_content_delta creates correct format."""
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
+        generator.add_content_delta("Hello", TEST_PHASE_ID)
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
             items.append(item)
 
-        # Should have 3 items: content chunk, final chunk, [DONE]
         assert len(items) >= 2
         assert items[0].startswith("data: ")
 
     @pytest.mark.asyncio
-    async def test_add_chunk_from_str_json_structure(self):
-        """Test that add_chunk_from_str produces valid JSON."""
-        generator = OpenAIStreamingGenerator(model="test-model")
-        generator.add_chunk_from_str("Test content")
-        generator.finish()
+    async def test_add_content_delta_json_structure(self):
+        """Test that add_content_delta produces valid JSON."""
+        generator = OpenAIStreamingGenerator(agent_id="test-agent-id")
+        generator.add_content_delta("Test content", TEST_PHASE_ID)
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
             items.append(item)
 
-        # Parse first chunk
         first_chunk = items[0]
         assert first_chunk.startswith("data: ")
-        json_str = first_chunk[6:].strip()  # Remove "data: "
+        json_str = first_chunk[6:].strip()
         data = json.loads(json_str)
 
         assert data["object"] == "chat.completion.chunk"
-        assert data["model"] == "test-model"
+        assert data["model"] == "test-agent-id"
         assert data["choices"][0]["delta"]["content"] == "Test content"
         assert data["choices"][0]["delta"]["role"] == "assistant"
 
     @pytest.mark.asyncio
-    async def test_add_chunk_from_str_content(self):
+    async def test_add_content_delta_content(self):
         """Test that content is correctly set in chunk."""
-        generator = OpenAIStreamingGenerator()
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
         test_content = "This is test content"
-        generator.add_chunk_from_str(test_content)
-        generator.finish()
+        generator.add_content_delta(test_content, TEST_PHASE_ID)
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
@@ -263,78 +250,31 @@ class TestOpenAIStreamingGenerator:
         assert data["choices"][0]["delta"]["content"] == test_content
 
     @pytest.mark.asyncio
-    async def test_add_chunk_from_str_multiple(self):
+    async def test_add_content_delta_multiple(self):
         """Test adding multiple content chunks."""
-        generator = OpenAIStreamingGenerator()
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
         contents = ["Hello", " world", "!"]
         for content in contents:
-            generator.add_chunk_from_str(content)
-        generator.finish()
+            generator.add_content_delta(content, TEST_PHASE_ID)
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
             items.append(item)
 
-        # Should have 3 content chunks + 2 final chunks
         assert len(items) >= 4
-
-    @pytest.mark.asyncio
-    async def test_add_tool_call_structure(self):
-        """Test that add_tool_call creates correct structure."""
-        generator = OpenAIStreamingGenerator()
-        generator.add_tool_call(tool_call_id="call_123", function_name="test_function", arguments='{"arg": "value"}')
-        generator.finish()
-
-        items = []
-        async for item in generator.stream():
-            items.append(item)
-
-        tool_chunk = items[0]
-        json_str = tool_chunk[6:].strip()
-        data = json.loads(json_str)
-
-        assert "tool_calls" in data["choices"][0]["delta"]
-        tool_call = data["choices"][0]["delta"]["tool_calls"][0]
-        assert tool_call["id"] == "call_123"
-        assert tool_call["type"] == "function"
-        assert tool_call["function"]["name"] == "test_function"
-        assert tool_call["function"]["arguments"] == '{"arg": "value"}'
-
-    @pytest.mark.asyncio
-    async def test_add_tool_call_with_complex_arguments(self):
-        """Test tool call with complex JSON arguments."""
-        generator = OpenAIStreamingGenerator()
-        complex_args = json.dumps(
-            {"query": "test query", "options": {"limit": 10, "filters": ["a", "b"]}, "nested": {"key": "value"}}
-        )
-        generator.add_tool_call("call_456", "complex_tool", complex_args)
-        generator.finish()
-
-        items = []
-        async for item in generator.stream():
-            items.append(item)
-
-        tool_chunk = items[0]
-        json_str = tool_chunk[6:].strip()
-        data = json.loads(json_str)
-
-        args = data["choices"][0]["delta"]["tool_calls"][0]["function"]["arguments"]
-        parsed_args = json.loads(args)
-        assert parsed_args["query"] == "test query"
-        assert parsed_args["options"]["limit"] == 10
 
     @pytest.mark.asyncio
     async def test_finish_creates_final_chunk(self):
         """Test that finish() creates proper final chunk."""
-        generator = OpenAIStreamingGenerator()
-        generator.add_chunk_from_str("content")
-        generator.finish()
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
+        generator.add_content_delta("content", TEST_PHASE_ID)
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
             items.append(item)
 
-        # Second to last should be final chunk with finish_reason
         final_chunk = items[-2]
         json_str = final_chunk[6:].strip()
         data = json.loads(json_str)
@@ -345,8 +285,8 @@ class TestOpenAIStreamingGenerator:
     @pytest.mark.asyncio
     async def test_finish_with_custom_reason(self):
         """Test finish() with custom finish_reason."""
-        generator = OpenAIStreamingGenerator()
-        generator.finish(finish_reason="length")
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
+        generator.finish(TEST_PHASE_ID, finish_reason="length")
 
         items = []
         async for item in generator.stream():
@@ -361,8 +301,8 @@ class TestOpenAIStreamingGenerator:
     @pytest.mark.asyncio
     async def test_finish_includes_usage(self):
         """Test that final chunk includes usage information."""
-        generator = OpenAIStreamingGenerator()
-        generator.finish()
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
@@ -378,70 +318,59 @@ class TestOpenAIStreamingGenerator:
         assert "total_tokens" in data["usage"]
 
     @pytest.mark.asyncio
-    async def test_finish_adds_done_marker(self):
-        """Test that finish() adds [DONE] marker."""
-        generator = OpenAIStreamingGenerator()
-        generator.finish()
+    async def test_add_tool_result_format(self):
+        """Test that add_tool_result produces chunk with role tool and
+        content."""
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
+        generator.add_tool_result(TEST_PHASE_ID, '{"result": "ok"}', tool_name="my_tool")
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
             items.append(item)
 
-        # Last item should be [DONE]
+        first_chunk = items[0]
+        assert first_chunk.startswith("data: ")
+        data = json.loads(first_chunk[6:].strip())
+        assert data["object"] == "chat.completion.chunk"
+        delta = data["choices"][0]["delta"]
+        assert delta["role"] == "tool"
+        assert delta["content"] == '{"result": "ok"}'
+        assert delta["tool_call_id"] == TEST_PHASE_ID
+
+    @pytest.mark.asyncio
+    async def test_finish_adds_done_marker(self):
+        """Test that finish() adds [DONE] marker."""
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
+        generator.finish(TEST_PHASE_ID)
+
+        items = []
+        async for item in generator.stream():
+            items.append(item)
+
         assert items[-1] == "data: [DONE]\n\n"
 
     @pytest.mark.asyncio
     async def test_complete_flow_text_only(self):
         """Test complete flow with text content only."""
-        generator = OpenAIStreamingGenerator(model="gpt-4")
-        generator.add_chunk_from_str("Hello")
-        generator.add_chunk_from_str(" world")
-        generator.finish()
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
+        generator.add_content_delta("Hello", TEST_PHASE_ID)
+        generator.add_content_delta(" world", TEST_PHASE_ID)
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
             items.append(item)
 
-        # Should have: 2 content chunks + final chunk + [DONE]
         assert len(items) == 4
-
-    @pytest.mark.asyncio
-    async def test_complete_flow_with_tool_call(self):
-        """Test complete flow with tool call."""
-        generator = OpenAIStreamingGenerator()
-        generator.add_tool_call("call_123", "search", '{"query": "test"}')
-        generator.finish()
-
-        items = []
-        async for item in generator.stream():
-            items.append(item)
-
-        # Should have: tool chunk + final chunk + [DONE]
-        assert len(items) == 3
-
-    @pytest.mark.asyncio
-    async def test_mixed_content_and_tool_calls(self):
-        """Test flow with both content and tool calls."""
-        generator = OpenAIStreamingGenerator()
-        generator.add_chunk_from_str("Thinking...")
-        generator.add_tool_call("call_1", "tool1", '{"arg": "val"}')
-        generator.add_chunk_from_str("Done")
-        generator.finish()
-
-        items = []
-        async for item in generator.stream():
-            items.append(item)
-
-        # Should have: 3 chunks + final + [DONE] = 5
-        assert len(items) == 5
 
     @pytest.mark.asyncio
     async def test_unicode_in_content(self):
         """Test Unicode characters in content."""
-        generator = OpenAIStreamingGenerator()
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
         unicode_content = "Hello 世界 🌍 Привет"
-        generator.add_chunk_from_str(unicode_content)
-        generator.finish()
+        generator.add_content_delta(unicode_content, TEST_PHASE_ID)
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
@@ -456,10 +385,10 @@ class TestOpenAIStreamingGenerator:
     @pytest.mark.asyncio
     async def test_special_characters_in_content(self):
         """Test special characters in content."""
-        generator = OpenAIStreamingGenerator()
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
         special_content = 'Test with "quotes" and <tags> and $pecial chars'
-        generator.add_chunk_from_str(special_content)
-        generator.finish()
+        generator.add_content_delta(special_content, TEST_PHASE_ID)
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
@@ -474,10 +403,10 @@ class TestOpenAIStreamingGenerator:
     @pytest.mark.asyncio
     async def test_newlines_in_content(self):
         """Test newlines in content."""
-        generator = OpenAIStreamingGenerator()
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
         multiline_content = "Line 1\nLine 2\nLine 3"
-        generator.add_chunk_from_str(multiline_content)
-        generator.finish()
+        generator.add_content_delta(multiline_content, TEST_PHASE_ID)
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
@@ -492,9 +421,9 @@ class TestOpenAIStreamingGenerator:
     @pytest.mark.asyncio
     async def test_empty_content(self):
         """Test adding empty content."""
-        generator = OpenAIStreamingGenerator()
-        generator.add_chunk_from_str("")
-        generator.finish()
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
+        generator.add_content_delta("", TEST_PHASE_ID)
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
@@ -510,67 +439,55 @@ class TestOpenAIStreamingGenerator:
     async def test_sse_format_compliance(self):
         """Test that output follows SSE format (data: prefix, double
         newline)."""
-        generator = OpenAIStreamingGenerator()
-        generator.add_chunk_from_str("test")
-        generator.finish()
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
+        generator.add_content_delta("test", TEST_PHASE_ID)
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
             items.append(item)
 
-        # All items should start with "data: " and end with "\n\n"
         for item in items:
             assert item.startswith("data: ")
             assert item.endswith("\n\n")
 
-    def test_model_preserved_across_chunks(self):
-        """Test that model name is consistent across all chunks."""
-        generator = OpenAIStreamingGenerator(model="custom-model")
-        assert generator.model == "custom-model"
+    def test_agent_id_preserved_across_chunks(self):
+        """Test that agent_id is consistent across generator."""
+        generator = OpenAIStreamingGenerator(agent_id="custom-agent-id")
+        assert generator.agent_id == "custom-agent-id"
 
-    def test_id_consistent_across_session(self):
-        """Test that ID remains consistent within a generator instance."""
-        generator = OpenAIStreamingGenerator()
-        first_id = generator.id
-        generator.add_chunk_from_str("test")
-        second_id = generator.id
+    def test_agent_id_consistent_across_session(self):
+        """Test that agent_id remains consistent within a generator
+        instance."""
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
+        first_id = generator.agent_id
+        generator.add_content_delta("test", TEST_PHASE_ID)
+        second_id = generator.agent_id
 
         assert first_id == second_id
-
-    def test_created_timestamp_consistent(self):
-        """Test that created timestamp remains consistent."""
-        generator = OpenAIStreamingGenerator()
-        first_created = generator.created
-        generator.add_chunk_from_str("test")
-        second_created = generator.created
-
-        assert first_created == second_created
 
     @pytest.mark.asyncio
     async def test_multiple_generators_independent(self):
         """Test that multiple generators are independent."""
         import asyncio
 
-        gen1 = OpenAIStreamingGenerator(model="model1")
-        # Small delay to ensure different timestamp
+        gen1 = OpenAIStreamingGenerator(agent_id="agent-1")
         await asyncio.sleep(0.001)
-        gen2 = OpenAIStreamingGenerator(model="model2")
+        gen2 = OpenAIStreamingGenerator(agent_id="agent-2")
 
-        gen1.add_chunk_from_str("content1")
-        gen2.add_chunk_from_str("content2")
+        gen1.add_content_delta("content1", TEST_PHASE_ID)
+        gen2.add_content_delta("content2", TEST_PHASE_ID)
 
-        # Models should definitely be different
-        assert gen1.model != gen2.model
-        # Queues should be independent
+        assert gen1.agent_id != gen2.agent_id
         assert gen1.queue != gen2.queue
 
     @pytest.mark.asyncio
     async def test_long_content_stream(self):
         """Test streaming very long content."""
-        generator = OpenAIStreamingGenerator()
+        generator = OpenAIStreamingGenerator(agent_id="test-id")
         long_content = "A" * 10000
-        generator.add_chunk_from_str(long_content)
-        generator.finish()
+        generator.add_content_delta(long_content, TEST_PHASE_ID)
+        generator.finish(TEST_PHASE_ID)
 
         items = []
         async for item in generator.stream():
@@ -581,3 +498,151 @@ class TestOpenAIStreamingGenerator:
         data = json.loads(json_str)
 
         assert len(data["choices"][0]["delta"]["content"]) == 10000
+
+
+class TestOpenWebUIStreamingGenerator:
+    """Tests for OpenWebUIStreamingGenerator (details/markdown protocol)."""
+
+    def test_initialization(self):
+        """Test initialization with agent_id."""
+        generator = OpenWebUIStreamingGenerator(agent_id="webui-agent")
+        assert generator.agent_id == "webui-agent"
+        assert isinstance(generator, OpenAIStreamingGenerator)
+
+    @pytest.mark.asyncio
+    async def test_add_chunk_is_noop(self):
+        """Test that add_chunk does not add to queue (no raw chunks in
+        open_webui)."""
+        from openai.types.chat import ChatCompletionChunk
+
+        generator = OpenWebUIStreamingGenerator(agent_id="test-id")
+        chunk = ChatCompletionChunk(
+            id="c",
+            object="chat.completion.chunk",
+            created=0,
+            model="m",
+            choices=[{"index": 0, "delta": {"content": "x"}, "finish_reason": None}],
+        )
+        generator.add_chunk(chunk, "phase-1")
+        generator.finish(TEST_PHASE_ID)
+
+        items = []
+        async for item in generator.stream():
+            items.append(item)
+
+        # Only finish chunk and [DONE]; no content from add_chunk
+        data_lines = [i for i in items if i.startswith("data: ") and "[DONE]" not in i]
+        assert len(data_lines) == 1
+        data = json.loads(data_lines[0][6:].strip())
+        assert data["choices"][0].get("finish_reason") == "stop"
+
+    @pytest.mark.asyncio
+    async def test_add_tool_call_produces_details_markdown(self):
+        """Test that add_tool_call sends <details> with phase, tool name and
+        JSON block."""
+        tool = FinalAnswerTool(
+            reasoning="done",
+            completed_steps=["step1"],
+            answer="Final answer",
+            status=AgentStatesEnum.COMPLETED,
+        )
+        generator = OpenWebUIStreamingGenerator(agent_id="test-id")
+        generator.add_tool_call(TEST_PHASE_ID, tool)
+        generator.finish(TEST_PHASE_ID)
+
+        items = []
+        async for item in generator.stream():
+            items.append(item)
+
+        content_chunk = items[0]
+        data = json.loads(content_chunk[6:].strip())
+        content = data["choices"][0]["delta"]["content"]
+        assert "<details>" in content
+        assert "<summary>" in content
+        assert f"Phase: {TEST_PHASE_ID}" in content
+        assert "Tool Call: finalanswertool" in content or "final_answer" in content
+        assert "```" in content
+        assert "reasoning" in content or "answer" in content
+
+    @pytest.mark.asyncio
+    async def test_add_tool_result_json_wraps_in_code_block(self):
+        """Test that add_tool_result with JSON wraps in json code block."""
+        generator = OpenWebUIStreamingGenerator(agent_id="test-id")
+        generator.add_tool_result(TEST_PHASE_ID, '{"key": "value"}', tool_name="search")
+        generator.finish(TEST_PHASE_ID)
+
+        items = []
+        async for item in generator.stream():
+            items.append(item)
+
+        content_chunk = items[0]
+        data = json.loads(content_chunk[6:].strip())
+        content = data["choices"][0]["delta"]["content"]
+        assert "<details>" in content
+        assert "Tool Result: search" in content
+        assert "``` json" in content or "```json" in content
+        assert '{"key": "value"}' in content
+
+    @pytest.mark.asyncio
+    async def test_add_tool_result_plain_wraps_in_code_block(self):
+        """Test that add_tool_result with non-JSON uses plain code block."""
+        generator = OpenWebUIStreamingGenerator(agent_id="test-id")
+        generator.add_tool_result(TEST_PHASE_ID, "plain text result", tool_name="custom")
+        generator.finish(TEST_PHASE_ID)
+
+        items = []
+        async for item in generator.stream():
+            items.append(item)
+
+        content_chunk = items[0]
+        data = json.loads(content_chunk[6:].strip())
+        content = data["choices"][0]["delta"]["content"]
+        assert "<details>" in content
+        assert "Tool Result: custom" in content
+        assert "plain text result" in content
+
+    @pytest.mark.asyncio
+    async def test_finish_inherited_works(self):
+        """Test that finish() still produces [DONE] and final chunk."""
+        generator = OpenWebUIStreamingGenerator(agent_id="test-id")
+        generator.finish(TEST_PHASE_ID)
+
+        items = []
+        async for item in generator.stream():
+            items.append(item)
+
+        assert items[-1] == "data: [DONE]\n\n"
+        data = json.loads(items[-2][6:].strip())
+        assert data["choices"][0]["finish_reason"] == "stop"
+
+
+class TestStreamingGeneratorRegistry:
+    """Tests for StreamingGeneratorRegistry resolution by name."""
+
+    def test_get_openai_returns_openai_generator_class(self):
+        """Test that Registry.get('openai') returns
+        OpenAIStreamingGenerator."""
+        cls = StreamingGeneratorRegistry.get("openai")
+        assert cls is OpenAIStreamingGenerator
+
+    def test_get_open_webui_returns_open_webui_generator_class(self):
+        """Test that Registry.get('open_webui') returns
+        OpenWebUIStreamingGenerator."""
+        cls = StreamingGeneratorRegistry.get("open_webui")
+        assert cls is OpenWebUIStreamingGenerator
+
+    def test_get_unknown_returns_none(self):
+        """Test that unknown name returns None."""
+        assert StreamingGeneratorRegistry.get("unknown_generator") is None
+
+    def test_get_case_insensitive(self):
+        """Test that get is case-insensitive."""
+        assert StreamingGeneratorRegistry.get("OpenAI") is OpenAIStreamingGenerator
+        assert StreamingGeneratorRegistry.get("OPEN_WEBUI") is OpenWebUIStreamingGenerator
+
+    def test_list_items_includes_builtin_generators(self):
+        """Test that list_items includes at least openai and open_webui."""
+        items = StreamingGeneratorRegistry.list_items()
+        names = {c.name for c in items}
+        assert "openai" in names
+        assert "open_webui" in names

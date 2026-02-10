@@ -39,6 +39,7 @@ class ToolCallingAgent(BaseAgent):
         return None
 
     async def _select_action_phase(self, reasoning=None) -> BaseTool:
+        phase_id = f"{self._context.iteration}-action"
         async with self.openai_client.chat.completions.stream(
             messages=await self._prepare_context(),
             tools=await self._prepare_tools(),
@@ -47,8 +48,9 @@ class ToolCallingAgent(BaseAgent):
         ) as stream:
             async for event in stream:
                 if event.type == "chunk":
-                    self.streaming_generator.add_chunk(event.chunk)
-        tool = (await stream.get_final_completion()).choices[0].message.tool_calls[0].function.parsed_arguments
+                    self.streaming_generator.add_chunk(event.chunk, phase_id)
+            completion = await stream.get_final_completion()
+        tool = completion.choices[0].message.tool_calls[0].function.parsed_arguments
 
         if not isinstance(tool, BaseTool):
             raise ValueError("Selected tool is not a valid BaseTool instance")
@@ -59,7 +61,7 @@ class ToolCallingAgent(BaseAgent):
                 "tool_calls": [
                     {
                         "type": "function",
-                        "id": f"{self._context.iteration}-action",
+                        "id": phase_id,
                         "function": {
                             "name": tool.tool_name,
                             "arguments": tool.model_dump_json(),
@@ -68,16 +70,13 @@ class ToolCallingAgent(BaseAgent):
                 ],
             }
         )
-        self.streaming_generator.add_tool_call(
-            f"{self._context.iteration}-action", tool.tool_name, tool.model_dump_json()
-        )
+        self.streaming_generator.add_tool_call(phase_id, tool)
         return tool
 
     async def _action_phase(self, tool: BaseTool) -> str:
+        phase_id = f"{self._context.iteration}-action"
         result = await tool(self._context, self.config)
-        self.conversation.append(
-            {"role": "tool", "content": result, "tool_call_id": f"{self._context.iteration}-action"}
-        )
-        self.streaming_generator.add_chunk_from_str(f"{result}\n")
+        self.conversation.append({"role": "tool", "content": result, "tool_call_id": phase_id})
+        self.streaming_generator.add_tool_result(phase_id, result, tool.tool_name)
         self._log_tool_execution(tool, result)
         return result

@@ -24,6 +24,7 @@ from sgr_agent_core.agents import (
     ToolCallingAgent,
 )
 from sgr_agent_core.base_agent import BaseAgent
+from sgr_agent_core.stream import OpenAIStreamingGenerator, OpenWebUIStreamingGenerator
 from sgr_agent_core.tools import BaseTool, ReasoningTool
 
 
@@ -139,6 +140,61 @@ class TestAgentFactory:
             assert agent.config.execution.max_clarifications == 5
             assert agent.config.execution.max_iterations == 15
             assert agent.config.execution.max_searches == 10
+
+    @pytest.mark.asyncio
+    async def test_create_agent_with_streaming_generator_open_webui(self):
+        """Test creating agent with streaming_generator open_webui uses
+        OpenWebUIStreamingGenerator."""
+        with (
+            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+            mock_global_config(),
+        ):
+            agent_def = AgentDefinition(
+                name="sgr_tool_calling_agent",
+                base_class=SGRToolCallingAgent,
+                tools=["reasoningtool"],
+                llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
+                prompts={
+                    "system_prompt_str": "Test",
+                    "initial_user_request_str": "Test",
+                    "clarification_response_str": "Test",
+                },
+                execution={"streaming_generator": "open_webui"},
+            )
+            agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "Test"}])
+            assert type(agent.streaming_generator) is OpenWebUIStreamingGenerator
+
+    @pytest.mark.asyncio
+    async def test_create_agent_with_streaming_generator_openai(self):
+        """Test creating agent with streaming_generator openai or default uses
+        OpenAIStreamingGenerator."""
+        with (
+            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+            mock_global_config(),
+        ):
+            for execution in ({"streaming_generator": "openai"}, {}):
+                agent_def = AgentDefinition(
+                    name="sgr_agent",
+                    base_class=SGRAgent,
+                    tools=["reasoningtool"],
+                    llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
+                    prompts={
+                        "system_prompt_str": "Test",
+                        "initial_user_request_str": "Test",
+                        "clarification_response_str": "Test",
+                    },
+                    execution=execution,
+                )
+                agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "Test"}])
+                assert type(agent.streaming_generator) is OpenAIStreamingGenerator
+
+    def test_resolve_streaming_generator_unknown_raises(self):
+        """Test that _resolve_streaming_generator with unknown name raises
+        ValueError with available names."""
+        with pytest.raises(ValueError) as exc_info:
+            AgentFactory._resolve_streaming_generator("unknown_format")
+        assert "Streaming generator 'unknown_format' not found" in str(exc_info.value)
+        assert "Available:" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_agent_creation_preserves_agent_properties(self):
@@ -413,7 +469,7 @@ class TestAgentFactoryClientCreation:
         with patch.object(
             real_client.chat.completions, "stream", return_value=mock_stream_context
         ) as mock_stream_method:
-            # Create agent with real client
+            # Create agent with real client (OpenWebUIStreamingGenerator has add_tool_call)
             agent = ToolCallingAgent(
                 task_messages=[{"role": "user", "content": "Test task"}],
                 openai_client=real_client,
@@ -424,6 +480,7 @@ class TestAgentFactoryClientCreation:
                     llm=llm_config,
                 ),
                 toolkit=[ReasoningTool],
+                streaming_generator=OpenWebUIStreamingGenerator,
             )
 
             await agent._select_action_phase()

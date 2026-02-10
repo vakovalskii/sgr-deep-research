@@ -5,10 +5,10 @@ from typing import TYPE_CHECKING
 from pydantic import Field
 
 from sgr_agent_core.base_tool import BaseTool
+from sgr_agent_core.models import AgentContext, AgentStatesEnum
 
 if TYPE_CHECKING:
     from sgr_agent_core.agent_config import AgentConfig
-    from sgr_agent_core.models import AgentContext
 
 
 class ClarificationTool(BaseTool):
@@ -35,4 +35,6 @@ class ClarificationTool(BaseTool):
     )
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **_) -> str:
-        return "\n".join(self.questions)
+        context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
+        context.execution_result = "\n".join(self.questions)
+        return ""

@@ -209,15 +209,20 @@ Existing agents use the `openai-python` client.
 
 ### Streaming_generator — Streaming Module
 
-The module's purpose is to register events occurring in the system and output results as the agent works.
-Provides streaming responses from the agent in a format compatible with OpenAI API.
+The purpose of the module is to register events occurring in the system and output results as the agent works. It provides streaming responses from the agent in a format compatible with the OpenAI API.
 
-The standard implementation includes an OpenAI-like streaming protocol as a compromise-universal solution for compatibility. Depending on your system's needs, this module should be redesigned for a more convenient/concise format.
+The standard implementation includes an OpenAI-like streaming protocol as a compromise universal solution for compatibility. Depending on your system’s needs, this module may be adapted for a more convenient or concise format.
 
+**Configuration:** Set `execution.streaming_generator` in agent config or GlobalConfig. The value is resolved from `StreamingGeneratorRegistry` by name:
 
-To receive the stream, use an async iterator. Events will be added as they are added to the generator:
+- `openai` (default) — `OpenAIStreamingGenerator`: OpenAI SSE format.
+- `open_webui` — `OpenWebUIStreamingGenerator`: Open WebUI format with `<details>` blocks for tool calls and results.
+
+Custom generators: inherit from `BaseStreamingGenerator`, set the class attribute `name`; they auto-register and can be referenced in config by that name.
+
+To consume the stream (after the agent is running):
 ```python
-async for chunk in agent.streaming_generator:
+async for chunk in agent.streaming_generator.stream():
     print(chunk, end="")
 ```
 

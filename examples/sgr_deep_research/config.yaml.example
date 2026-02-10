@@ -23,6 +23,7 @@ execution:
   max_clarifications: 3  # Max clarification requests
   max_iterations: 10  # Max agent iterations
   mcp_context_limit: 15000  # Max context length from MCP server response
+  streaming_generator: "openai"  # OpenAI SSE format; use "open_webui" for Open WebUI <details> format
   logs_dir: "logs"  # Directory for saving agent execution logs
   reports_dir: "reports"  # Directory for saving research reports
 
