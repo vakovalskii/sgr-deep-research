@@ -75,7 +75,7 @@ class ToolCallingAgent(BaseAgent):
 
     async def _action_phase(self, tool: BaseTool) -> str:
         phase_id = f"{self._context.iteration}-action"
-        result = await tool(self._context, self.config)
+        result = await tool(self._context, self.config, **self.tool_configs.get(tool.tool_name, {}))
         self.conversation.append({"role": "tool", "content": result, "tool_call_id": phase_id})
         self.streaming_generator.add_tool_result(phase_id, result, tool.tool_name)
         self._log_tool_execution(tool, result)

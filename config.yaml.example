@@ -59,11 +59,18 @@ mcp:
 # See examples in agents.yaml.example for agent configuration options
 
 tools:
-  # Core tools (base_class defaults to sgr_agent_core.tools.*)
+  # Global tool config: base_class (optional) and any params passed to the tool at runtime
+  # Agents that use the tool by name get these params as kwargs; per-agent inline config overrides.
   my_custom_tool:
     base_class: path.to.my.tools.CustomTool
   my_other_tool:
     base_class: "name_of_tool_class_in_registry"
+  # Example: search tools with global defaults (can be overridden per-agent in tools list)
+  web_search_tool:
+    max_results: 12
+    max_searches: 6
+  extract_page_content_tool:
+    content_limit: 2000
 
 agents:
   custom_research_agent:
@@ -99,9 +106,11 @@ agents:
         deepwiki:
           url: "https://mcp.deepwiki.com/mcp"
 
-    # Tools this agent can use (must be registered in tool registry)
-    # Recommended: use snake_case format (e.g., "web_search_tool")
-    # PascalCase format (e.g., "WebSearchTool") is supported for backward compatibility
+    # Tools: names, or dicts with "name" and optional kwargs (e.g. search settings per tool)
+    # Example:
+    # - web_search_tool:
+    #    max_results: 15
+    #    max_searches: 6
     tools:
       - "web_search_tool"
       - "extract_page_content_tool"

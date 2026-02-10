@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field
 
+from sgr_agent_core.agent_definition import SearchConfig
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.services import TavilySearchService
+from sgr_agent_core.utils import config_from_kwargs
 
 if TYPE_CHECKING:
     from sgr_agent_core.agent_definition import AgentConfig
@@ -32,15 +34,26 @@ class ExtractPageContentTool(BaseTool):
         - For date/number questions, cross-check extracted values with search snippets
     """
 
+    config_model = SearchConfig
+    base_config_attr = "search"
+
     reasoning: str = Field(description="Why extract these specific pages")
     urls: list[str] = Field(description="List of URLs to extract full content from", min_length=1, max_length=5)
 
-    async def __call__(self, context: AgentContext, config: AgentConfig, **_) -> str:
-        """Extract full content from specified URLs."""
+    async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs: Any) -> str:
+        """Extract full content from specified URLs.
 
+        Search settings (e.g. tavily_api_key, content_limit) are taken
+        from kwargs (tool config) with fallback to config.search.
+        """
+        search_config = config_from_kwargs(
+            SearchConfig,
+            config.search if config else None,
+            dict(kwargs),
+        )
         logger.info(f"📄 Extracting content from {len(self.urls)} URLs")
 
-        self._search_service = TavilySearchService(config.search)
+        self._search_service = TavilySearchService(search_config)
         sources = await self._search_service.extract(urls=self.urls)
 
         # Update existing sources instead of overwriting
@@ -62,7 +75,7 @@ class ExtractPageContentTool(BaseTool):
             if url in context.sources:
                 source = context.sources[url]
                 if source.full_content:
-                    content_preview = source.full_content[: config.search.content_limit]
+                    content_preview = source.full_content[: search_config.content_limit]
                     formatted_result += (
                         f"{str(source)}\n\n**Full Content:**\n"
                         f"{content_preview}\n\n"

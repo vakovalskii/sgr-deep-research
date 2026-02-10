@@ -5,10 +5,10 @@ This module contains simple tests for all tools:
 - Config reading (if needed)
 """
 
-from unittest.mock import MagicMock, patch
-
+from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
+from sgr_agent_core.agent_definition import SearchConfig
 from sgr_agent_core.tools import (
     AdaptPlanTool,
     AnswerTool,
@@ -177,3 +177,60 @@ class TestToolsConfigReading:
         )
         # Tool should be initialized without errors
         assert tool.title == "Test Report"
+
+
+class TestSearchToolsKwargs:
+    """Test that search tools use kwargs (tool config) with fallback to
+    config.search."""
+
+    @pytest.mark.asyncio
+    async def test_web_search_tool_uses_kwargs_over_config_search(self):
+        """WebSearchTool uses max_results from kwargs when provided."""
+        from sgr_agent_core.models import AgentContext
+
+        tool = WebSearchTool(reasoning="r", query="test", max_results=5)
+        context = AgentContext()
+        config = MagicMock()
+        config.search = SearchConfig(tavily_api_key="k", max_results=10)
+        with patch("sgr_agent_core.tools.web_search_tool.TavilySearchService") as mock_svc_class:
+            mock_svc = AsyncMock()
+            mock_svc.search = AsyncMock(return_value=[])
+            mock_svc_class.return_value = mock_svc
+            await tool(context, config, max_results=3)
+            call_args = mock_svc_class.call_args[0][0]
+            assert call_args.max_results == 3
+
+    @pytest.mark.asyncio
+    async def test_web_search_tool_fallback_to_config_search(self):
+        """WebSearchTool uses config.search when kwargs do not set
+        max_results."""
+        from sgr_agent_core.models import AgentContext
+
+        tool = WebSearchTool(reasoning="r", query="test", max_results=5)
+        context = AgentContext()
+        config = MagicMock()
+        config.search = SearchConfig(tavily_api_key="k", max_results=10)
+        with patch("sgr_agent_core.tools.web_search_tool.TavilySearchService") as mock_svc_class:
+            mock_svc = AsyncMock()
+            mock_svc.search = AsyncMock(return_value=[])
+            mock_svc_class.return_value = mock_svc
+            await tool(context, config)
+            call_args = mock_svc_class.call_args[0][0]
+            assert call_args.max_results == 10
+
+    @pytest.mark.asyncio
+    async def test_extract_page_content_tool_uses_content_limit_from_kwargs(self):
+        """ExtractPageContentTool uses content_limit from kwargs."""
+        from sgr_agent_core.models import AgentContext
+
+        tool = ExtractPageContentTool(reasoning="r", urls=["https://example.com"])
+        context = AgentContext()
+        config = MagicMock()
+        config.search = SearchConfig(tavily_api_key="k", content_limit=1000)
+        with patch("sgr_agent_core.tools.extract_page_content_tool.TavilySearchService") as mock_svc_class:
+            mock_svc = AsyncMock()
+            mock_svc.extract = AsyncMock(return_value=[])
+            mock_svc_class.return_value = mock_svc
+            await tool(context, config, content_limit=500)
+            call_args = mock_svc_class.call_args[0][0]
+            assert call_args.content_limit == 500

@@ -11,9 +11,10 @@ from unittest.mock import Mock
 
 import pytest
 
+from sgr_agent_core.agent_definition import AgentConfig, ExecutionConfig, LLMConfig, PromptsConfig, SearchConfig
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.models import AgentContext, AgentStatesEnum
-from sgr_agent_core.tools import BaseTool, ReasoningTool
+from sgr_agent_core.tools import BaseTool, ReasoningTool, WebSearchTool
 from tests.conftest import create_test_agent
 
 
@@ -329,6 +330,60 @@ class TestBaseAgentLogging:
         tool_context = log_data["log"][0]["agent_tool_context"]
         assert isinstance(tool_context["status"], str)
         assert tool_context["status"] == "done"
+
+
+class TestBaseAgentGetToolConfig:
+    """Tests for get_tool_config resolution."""
+
+    def test_get_tool_config_returns_model_when_tool_has_config_model(self):
+        """get_tool_config returns Pydantic model instance for tools with
+        config_model."""
+        agent = create_test_agent(
+            BaseAgent,
+            task_messages=[{"role": "user", "content": "Test"}],
+            toolkit=[WebSearchTool],
+        )
+        agent.tool_configs = {"websearchtool": {"max_searches": 6}}
+        agent.config = AgentConfig(
+            llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
+            prompts=PromptsConfig(system_prompt_str="p", initial_user_request_str="p", clarification_response_str="p"),
+            execution=ExecutionConfig(),
+            search=None,
+        )
+        out = agent.get_tool_config(WebSearchTool)
+        assert isinstance(out, SearchConfig)
+        assert out.max_searches == 6
+
+    def test_get_tool_config_merges_base_from_agent_config(self):
+        """get_tool_config merges base from base_config_attr (e.g.
+        config.search)."""
+        agent = create_test_agent(
+            BaseAgent,
+            task_messages=[{"role": "user", "content": "Test"}],
+            toolkit=[WebSearchTool],
+        )
+        agent.tool_configs = {"websearchtool": {}}
+        agent.config = AgentConfig(
+            llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
+            prompts=PromptsConfig(system_prompt_str="p", initial_user_request_str="p", clarification_response_str="p"),
+            execution=ExecutionConfig(),
+            search=SearchConfig(tavily_api_key="key", max_searches=10),
+        )
+        out = agent.get_tool_config(WebSearchTool)
+        assert isinstance(out, SearchConfig)
+        assert out.max_searches == 10
+        assert out.tavily_api_key == "key"
+
+    def test_get_tool_config_returns_dict_when_tool_has_no_config_model(self):
+        """get_tool_config returns raw dict when tool has no config_model."""
+        agent = create_test_agent(
+            BaseAgent,
+            task_messages=[{"role": "user", "content": "Test"}],
+            toolkit=[ReasoningTool],
+        )
+        agent.tool_configs = {"reasoningtool": {"foo": "bar"}}
+        out = agent.get_tool_config(ReasoningTool)
+        assert out == {"foo": "bar"}
 
 
 class TestBaseAgentAbstractMethods:

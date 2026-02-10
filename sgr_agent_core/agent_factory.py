@@ -1,7 +1,7 @@
 """Agent Factory for dynamic agent creation from definitions."""
 
 import logging
-from typing import Type, TypeVar
+from typing import Any, Type, TypeVar
 
 import httpx
 from openai import AsyncOpenAI
@@ -146,6 +146,42 @@ class AgentFactory:
         return generator_class
 
     @classmethod
+    def _global_tool_kwargs(cls, tool_name: str, config: GlobalConfig) -> dict[str, Any]:
+        """Get kwargs from global tool definition if present."""
+        if tool_name not in config.tools:
+            return {}
+        tool_def = config.tools[tool_name]
+        return tool_def.tool_kwargs()
+
+    @classmethod
+    def _resolve_tools_with_configs(
+        cls, tools_spec: list[Any], config: GlobalConfig
+    ) -> tuple[list[type[BaseTool]], dict[str, dict[str, Any]]]:
+        """Resolve tools from spec (str, type, or dict with 'name' + kwargs).
+
+        Global tool config (from config.tools section) is merged with
+        per-agent inline kwargs; inline takes precedence.
+        """
+        toolkit: list[type[BaseTool]] = []
+        tool_configs: dict[str, dict[str, Any]] = {}
+        for item in tools_spec:
+            if isinstance(item, dict):
+                name = item["name"]
+                inline_kwargs = {k: v for k, v in item.items() if k not in ("name", "type", "base_class")}
+                tool_class = cls._resolve_tool(name, config)
+                toolkit.append(tool_class)
+                global_kwargs = cls._global_tool_kwargs(name, config)
+                tool_configs[tool_class.tool_name] = {**global_kwargs, **inline_kwargs}
+            else:
+                tool_class = cls._resolve_tool(item, config)
+                toolkit.append(tool_class)
+                # Only string names can be looked up in global config
+                name_for_global = item if isinstance(item, str) else None
+                global_kwargs = cls._global_tool_kwargs(name_for_global, config) if name_for_global else {}
+                tool_configs[tool_class.tool_name] = global_kwargs
+        return toolkit, tool_configs
+
+    @classmethod
     async def create(cls, agent_def: AgentDefinition, task_messages: list[ChatCompletionMessageParam]) -> Agent:
         """Create an agent instance from a definition.
 
@@ -187,8 +223,8 @@ class AgentFactory:
             logger.error(error_msg)
             raise ValueError(error_msg)
         mcp_tools: list = await MCP2ToolConverter.build_tools_from_mcp(agent_def.mcp)
-        config = GlobalConfig()
-        tools = cls._resolve_tools(agent_def.tools, config)
+        global_config = GlobalConfig()
+        tools, tool_configs = cls._resolve_tools_with_configs(agent_def.tools, global_config)
         tools.extend(mcp_tools)
 
         try:
@@ -202,6 +238,7 @@ class AgentFactory:
                 task_messages=task_messages,
                 def_name=agent_def.name,
                 toolkit=tools,
+                tool_configs=tool_configs,
                 openai_client=cls._create_client(agent_def.llm),
                 agent_config=agent_def,
                 streaming_generator=cls._resolve_streaming_generator(agent_def.execution.streaming_generator),

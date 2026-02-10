@@ -4,9 +4,17 @@ This module contains tests for AgentDefinition and ToolDefinition,
 including ImportString validation for tools.
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
 
-from sgr_agent_core.agent_definition import ToolDefinition
+from sgr_agent_core.agent_definition import (
+    AgentDefinition,
+    ExecutionConfig,
+    LLMConfig,
+    PromptsConfig,
+    ToolDefinition,
+)
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.tools import ReasoningTool
 
@@ -120,3 +128,38 @@ class TestToolDefinition:
         # String without dots should not trigger ImportString validation
         tool_def = ToolDefinition(name="test_tool", base_class="ReasoningTool")
         assert tool_def.base_class == "ReasoningTool"
+
+
+class TestAgentDefinitionTools:
+    """Tests for AgentDefinition.tools field (list of str, type, or dict with
+    name)."""
+
+    def test_tools_dict_must_have_name_key(self):
+        """Test that tools list with dict item without 'name' key raises
+        ValueError."""
+        mock_config = Mock()
+        mock_config.llm = LLMConfig(api_key="key", base_url="https://api.openai.com/v1")
+        mock_config.prompts = PromptsConfig(
+            system_prompt_str="p", initial_user_request_str="p", clarification_response_str="p"
+        )
+        mock_config.execution = ExecutionConfig()
+        mock_config.search = None
+        mock_mcp = Mock()
+        mock_mcp.model_copy.return_value = mock_mcp
+        mock_mcp.model_dump.return_value = {}
+        mock_config.mcp = mock_mcp
+        with (
+            patch("sgr_agent_core.agent_config.GlobalConfig", return_value=mock_config),
+            pytest.raises(ValueError, match="Tool dict must have 'name' key"),
+        ):
+            AgentDefinition(
+                name="test_agent",
+                base_class="sgr_agent_core.agents.SGRAgent",
+                tools=[{"max_results": 10}],  # missing 'name'
+                llm={"api_key": "key", "base_url": "https://api.openai.com/v1"},
+                prompts={
+                    "system_prompt_str": "p",
+                    "initial_user_request_str": "p",
+                    "clarification_response_str": "p",
+                },
+            )

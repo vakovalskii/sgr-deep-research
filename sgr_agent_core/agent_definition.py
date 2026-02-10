@@ -10,6 +10,8 @@ import yaml
 from fastmcp.mcp_config import MCPConfig
 from pydantic import BaseModel, Field, FilePath, ImportString, computed_field, field_validator, model_validator
 
+# Element of AgentDefinition.tools: name (str), class (type), or dict with "name" + kwargs
+ToolItem = Union[str, type[Any], dict[str, Any]]
 logger = logging.getLogger(__name__)
 
 
@@ -180,7 +182,26 @@ class AgentDefinition(AgentConfig):
     name: str = Field(description="Unique agent name/ID")
     # ToDo: not sure how to type this properly and avoid circular imports
     base_class: type[Any] | ImportString | str = Field(description="Agent class name")
-    tools: list[type[Any] | str] = Field(default_factory=list, description="List of tool names to include")
+    tools: list[ToolItem] = Field(
+        default_factory=list,
+        description="List of tool names, classes, or dicts with 'name' and optional kwargs for the tool",
+    )
+
+    @field_validator("tools", mode="before")
+    @classmethod
+    def tools_dict_must_have_name(cls, v: Any) -> Any:
+        """Ensure each dict item in tools has a 'name' key."""
+        if not isinstance(v, list):
+            return v
+        result = []
+        for item in v:
+            if isinstance(item, dict):
+                if "name" not in item:
+                    raise ValueError("Tool dict must have 'name' key")
+                result.append(item)
+            else:
+                result.append(item)
+        return result
 
     @field_validator("base_class", mode="before")
     def base_class_import_points_to_file(cls, v: Any) -> Any:
@@ -218,8 +239,7 @@ class AgentDefinition(AgentConfig):
     def necessary_fields_validator(self) -> Self:
         if self.llm.api_key is None:
             raise ValueError(f"LLM API key is not provided for agent '{self.name}'")
-        if self.search and self.search.tavily_api_key is None:
-            raise ValueError(f"Search API key is not provided for agent '{self.name}'")
+        # Search API key can be provided via config.search or per-tool in tools array (kwargs)
         if not self.tools:
             raise ValueError(f"Tools are not provided for agent '{self.name}'")
         return self
@@ -234,7 +254,9 @@ class AgentDefinition(AgentConfig):
 
     def __str__(self) -> str:
         base_class_name = self.base_class.__name__ if isinstance(self.base_class, type) else self.base_class
-        tool_names = [t.__name__ if isinstance(t, type) else t for t in self.tools]
+        tool_names = [
+            t.get("name", t) if isinstance(t, dict) else (t.__name__ if isinstance(t, type) else t) for t in self.tools
+        ]
         return (
             f"AgentDefinition(name='{self.name}', "
             f"base_class={base_class_name}, "
@@ -250,18 +272,22 @@ class AgentDefinition(AgentConfig):
             raise FileNotFoundError(f"Agent definition file not found: {yaml_path}") from e
 
 
-class ToolDefinition(BaseModel):
+class ToolDefinition(BaseModel, extra="allow"):
     """Definition of a custom tool.
 
     Tools can be defined with:
     - base_class: Import string or class name (optional, defaults to sgr_agent_core.tools.{ToolName})
-    - Any additional parameters for the tool
+    - Any additional parameters for the tool (passed as kwargs at runtime; e.g. max_results, max_searches)
     """
 
     name: str = Field(description="Unique tool name/ID")
     base_class: Union[type[Any], ImportString, str, None] = Field(
         default=None, description="Tool class name (optional, defaults to sgr_agent_core.tools.{name})"
     )
+
+    def tool_kwargs(self) -> dict[str, Any]:
+        """Return extra fields as kwargs for the tool (global tool config)."""
+        return {k: v for k, v in self.model_dump().items() if k not in ("name", "base_class")}
 
     @field_validator("base_class", mode="before")
     def base_class_import_points_to_file(cls, v: Any) -> Any:

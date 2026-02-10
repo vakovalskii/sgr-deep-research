@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field
 
+from sgr_agent_core.agent_definition import AgentConfig, SearchConfig
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.models import SearchResult
 from sgr_agent_core.services.tavily_search import TavilySearchService
+from sgr_agent_core.utils import config_from_kwargs
 
 if TYPE_CHECKING:
-    from sgr_agent_core.agent_definition import AgentConfig
     from sgr_agent_core.models import AgentContext
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,9 @@ class WebSearchTool(BaseTool):
         - If the snippet directly answers the question, you may not need to extract the full page
     """
 
+    config_model = SearchConfig
+    base_config_attr = "search"
+
     reasoning: str = Field(description="Why this search is needed and what to expect")
     query: str = Field(description="Search query in same language as user request")
     max_results: int = Field(
@@ -52,15 +56,24 @@ class WebSearchTool(BaseTool):
         le=10,
     )
 
-    async def __call__(self, context: AgentContext, config: AgentConfig, **_) -> str:
-        """Execute web search using TavilySearchService."""
+    async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs: Any) -> str:
+        """Execute web search using TavilySearchService.
 
+        Search settings are taken from kwargs (tool config) with
+        fallback to config.search.
+        """
+        search_config = config_from_kwargs(
+            SearchConfig,
+            config.search if config else None,
+            dict(kwargs),
+        )
         logger.info(f"🔍 Search query: '{self.query}'")
-        self._search_service = TavilySearchService(config.search)
+        self._search_service = TavilySearchService(search_config)
 
+        max_results_limit = search_config.max_results
         sources = await self._search_service.search(
             query=self.query,
-            max_results=min(self.max_results, config.search.max_results),
+            max_results=min(self.max_results, max_results_limit),
             include_raw_content=False,
         )
 

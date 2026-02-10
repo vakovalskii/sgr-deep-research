@@ -116,9 +116,10 @@ TOOL GENERATION DEBUG
                 messages=messages + [{"role": "user", "content": instantiator.generate_format_prompt()}],
                 **self.config.llm.to_openai_client_kwargs(),
             ) as stream:
+                phase_id = f"{self._context.iteration}-generate"
                 async for event in stream:
                     if event.type == "chunk":
-                        self.streaming_generator.add_chunk(event.chunk)
+                        self.streaming_generator.add_chunk(event.chunk, phase_id)
 
                 completion = await stream.get_final_completion()
                 content = completion.choices[0].message.content
@@ -159,11 +160,7 @@ TOOL GENERATION DEBUG
         self._log_reasoning(reasoning)
 
         # Add to streaming
-        self.streaming_generator.add_tool_call(
-            f"{self._context.iteration}-reasoning",
-            reasoning.tool_name,
-            reasoning.model_dump_json(exclude={"function_name_choice"}),
-        )
+        self.streaming_generator.add_tool_call(f"{self._context.iteration}-reasoning", reasoning)
 
         return reasoning
 
@@ -212,18 +209,15 @@ TOOL GENERATION DEBUG
                 ],
             }
         )
-        self.streaming_generator.add_tool_call(
-            f"{self._context.iteration}-action", tool.tool_name, tool.model_dump_json()
-        )
+        self.streaming_generator.add_tool_call(f"{self._context.iteration}-action", tool)
 
         return tool
 
     async def _action_phase(self, tool: BaseTool) -> str:
         """Execute selected tool."""
-        result = await tool(self._context, self.config)
-        self.conversation.append(
-            {"role": "tool", "content": result, "tool_call_id": f"{self._context.iteration}-action"}
-        )
-        self.streaming_generator.add_chunk_from_str(f"{result}\n")
+        phase_id = f"{self._context.iteration}-action"
+        result = await tool(self._context, self.config, **self.tool_configs.get(tool.tool_name, {}))
+        self.conversation.append({"role": "tool", "content": result, "tool_call_id": phase_id})
+        self.streaming_generator.add_tool_result(phase_id, result, tool.tool_name)
         self._log_tool_execution(tool, result)
         return result

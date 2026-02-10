@@ -5,10 +5,11 @@ import os
 import traceback
 import uuid
 from datetime import datetime
-from typing import Type
+from typing import Any, Type
 
 from openai import AsyncOpenAI, pydantic_function_tool
 from openai.types.chat import ChatCompletionFunctionToolParam, ChatCompletionMessageParam
+from pydantic import BaseModel
 
 from sgr_agent_core.agent_definition import AgentConfig
 from sgr_agent_core.models import AgentContext, AgentStatesEnum
@@ -20,6 +21,7 @@ from sgr_agent_core.tools import (
     ClarificationTool,
     ReasoningTool,
 )
+from sgr_agent_core.utils import config_from_kwargs
 
 
 class AgentRegistryMixin:
@@ -42,6 +44,7 @@ class BaseAgent(AgentRegistryMixin):
         toolkit: list[Type[BaseTool]],
         def_name: str | None = None,
         streaming_generator: type[BaseStreamingGenerator] = OpenAIStreamingGenerator,
+        tool_configs: dict[str, dict] | None = None,
         **kwargs: dict,
     ):
         self.id = f"{def_name or self.name}_{uuid.uuid4()}"
@@ -52,6 +55,7 @@ class BaseAgent(AgentRegistryMixin):
         self.creation_time = datetime.now()
         self.task_messages = task_messages
         self.toolkit = toolkit
+        self.tool_configs = tool_configs or {}
 
         self._context = AgentContext()
         self.conversation = []
@@ -59,6 +63,22 @@ class BaseAgent(AgentRegistryMixin):
         self.log = []
 
         self._execute_task: asyncio.Task | None = None
+
+    def get_tool_config(self, tool_class: Type[BaseTool]) -> BaseModel | dict[str, Any]:
+        """Return resolved config for a tool as a Pydantic model or raw dict.
+
+        If the tool defines config_model (and optionally
+        base_config_attr), merges agent-level base config with
+        tool_configs and returns a validated instance. Otherwise returns
+        the raw dict from tool_configs.
+        """
+        raw = self.tool_configs.get(tool_class.tool_name, {})
+        config_model = getattr(tool_class, "config_model", None)
+        if config_model is None:
+            return raw
+        base_attr = getattr(tool_class, "base_config_attr", None)
+        base = getattr(self.config, base_attr, None) if base_attr and self.config else None
+        return config_from_kwargs(config_model, base, raw)
 
     async def provide_clarification(self, messages: list[ChatCompletionMessageParam]):
         """Receive clarification from an external source (e.g. user input) in

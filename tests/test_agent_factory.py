@@ -15,6 +15,7 @@ from sgr_agent_core.agent_definition import (
     ExecutionConfig,
     LLMConfig,
     PromptsConfig,
+    ToolDefinition,
 )
 from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.agents import (
@@ -39,6 +40,7 @@ def mock_global_config():
     )
     mock_config.execution = ExecutionConfig()
     mock_config.search = None
+    mock_config.tools = {}
     # Create a mock MCP config that has model_copy and model_dump methods
     mock_mcp = Mock()
     mock_mcp.model_copy.return_value = mock_mcp
@@ -660,6 +662,118 @@ class TestAgentFactoryRegistryIntegration:
                 hasattr(tool, "tool_name") and tool.tool_name == "reasoningtool" for tool in agent.toolkit
             )
             assert len(agent.toolkit) >= 1
+
+    @pytest.mark.asyncio
+    async def test_create_agent_with_tools_dict_config_passes_tool_configs(self):
+        """Test that tools as list of dicts (name + kwargs) populate
+        agent.tool_configs."""
+        with (
+            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+            mock_global_config(),
+        ):
+            agent_def = AgentDefinition(
+                name="sgr_agent",
+                base_class=SGRAgent,
+                tools=[{"name": "reasoningtool", "custom_key": "custom_value"}],
+                llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
+                prompts={
+                    "system_prompt_str": "Test system prompt",
+                    "initial_user_request_str": "Test initial request",
+                    "clarification_response_str": "Test clarification response",
+                },
+                execution={},
+            )
+            agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "Test task"}])
+
+            assert isinstance(agent, SGRAgent)
+            assert agent.tool_configs.get("reasoningtool") == {"custom_key": "custom_value"}
+
+    @pytest.mark.asyncio
+    async def test_global_tool_config_merged_into_tool_configs(self):
+        """Test that global tool definition params (config.tools) are passed as
+        tool kwargs."""
+        mock_config = Mock()
+        mock_config.llm = LLMConfig(api_key="test-key", base_url="https://api.openai.com/v1")
+        mock_config.prompts = PromptsConfig(
+            system_prompt_str="p", initial_user_request_str="p", clarification_response_str="p"
+        )
+        mock_config.execution = ExecutionConfig()
+        mock_config.search = None
+        mock_config.tools = {
+            "reasoningtool": ToolDefinition(
+                name="reasoningtool",
+                base_class=ReasoningTool,
+                max_results=5,
+                global_param="from_global",
+            ),
+        }
+        mock_mcp = Mock()
+        mock_mcp.model_copy.return_value = mock_mcp
+        mock_mcp.model_dump.return_value = {}
+        mock_config.mcp = mock_mcp
+        with (
+            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+            patch("sgr_agent_core.agent_config.GlobalConfig", return_value=mock_config),
+            patch("sgr_agent_core.agent_factory.GlobalConfig", return_value=mock_config),
+        ):
+            agent_def = AgentDefinition(
+                name="sgr_agent",
+                base_class=SGRAgent,
+                tools=["reasoningtool"],
+                llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
+                prompts={
+                    "system_prompt_str": "p",
+                    "initial_user_request_str": "p",
+                    "clarification_response_str": "p",
+                },
+                execution={},
+            )
+            agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "Test"}])
+            assert agent.tool_configs.get("reasoningtool") == {
+                "max_results": 5,
+                "global_param": "from_global",
+            }
+
+    @pytest.mark.asyncio
+    async def test_inline_tool_kwargs_override_global(self):
+        """Test that inline tool dict kwargs override global tool config."""
+        mock_config = Mock()
+        mock_config.llm = LLMConfig(api_key="test-key", base_url="https://api.openai.com/v1")
+        mock_config.prompts = PromptsConfig(
+            system_prompt_str="p", initial_user_request_str="p", clarification_response_str="p"
+        )
+        mock_config.execution = ExecutionConfig()
+        mock_config.search = None
+        mock_config.tools = {
+            "reasoningtool": ToolDefinition(
+                name="reasoningtool",
+                base_class=ReasoningTool,
+                max_results=5,
+            ),
+        }
+        mock_mcp = Mock()
+        mock_mcp.model_copy.return_value = mock_mcp
+        mock_mcp.model_dump.return_value = {}
+        mock_config.mcp = mock_mcp
+        with (
+            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+            patch("sgr_agent_core.agent_config.GlobalConfig", return_value=mock_config),
+            patch("sgr_agent_core.agent_factory.GlobalConfig", return_value=mock_config),
+        ):
+            agent_def = AgentDefinition(
+                name="sgr_agent",
+                base_class=SGRAgent,
+                tools=[{"name": "reasoningtool", "max_results": 20}],
+                llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
+                prompts={
+                    "system_prompt_str": "p",
+                    "initial_user_request_str": "p",
+                    "clarification_response_str": "p",
+                },
+                execution={},
+            )
+            agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "Test"}])
+            assert agent.tool_configs.get("reasoningtool") == {"max_results": 20}
 
 
 class TestAgentFactoryErrorHandling:

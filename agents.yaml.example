@@ -44,10 +44,10 @@ agents:
         deepwiki:
           url: "https://mcp.deepwiki.com/mcp"
 
-    # Tools this agent can use (names from tools section in config)
+    # Tools: list of names, or dicts with "name" and optional kwargs (passed to tool at runtime)
     tools:
       - "web_search_tool"
-      - "extract_page_content_tool"
+      - {"name": "extract_page_content_tool", "content_limit": 2000}
       - "create_report_tool"
       - "clarification_tool"
       - "generate_plan_tool"

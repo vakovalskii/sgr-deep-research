@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from sgr_agent_core.agent_definition import AgentConfig
     from sgr_agent_core.models import AgentContext
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -30,6 +29,10 @@ class BaseTool(BaseModel, ToolRegistryMixin):
 
     tool_name: ClassVar[str] = None
     description: ClassVar[str] = None
+    # Optional: Pydantic model for this tool's config; agent.get_tool_config(tool_class) returns it
+    config_model: ClassVar[type[BaseModel] | None] = None
+    # If set, agent config attribute to merge as base (e.g. "search") when resolving tool config
+    base_config_attr: ClassVar[str | None] = None
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs) -> str:
         """The result should be a string or dumped JSON."""
