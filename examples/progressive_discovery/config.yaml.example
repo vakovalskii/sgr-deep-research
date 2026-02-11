@@ -1,0 +1,53 @@
+# Progressive Discovery Agent Configuration
+#
+# This agent starts with minimal system tools and dynamically discovers
+# additional tools as needed via SearchToolsTool (BM25 + regex matching).
+#
+# Useful when you have many MCP servers with dozens of tools — keeps
+# the LLM context small and focused.
+
+llm:
+  model: "gpt-4o"
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-..."
+  temperature: 0.1
+  max_tokens: 16000
+
+execution:
+  max_iterations: 15
+  max_clarifications: 2
+
+prompts:
+  system_prompt_path: "examples/progressive_discovery/prompts/system_prompt.txt"
+
+# MCP servers provide additional tools that will be discoverable
+# (not loaded into context until agent searches for them)
+#
+# mcp:
+#   servers:
+#     - name: "jira"
+#       command: "npx"
+#       args: ["-y", "@anthropic/jira-mcp-server"]
+#       env:
+#         JIRA_URL: "https://your-org.atlassian.net"
+#         JIRA_TOKEN: "your-token"
+#
+#     - name: "github"
+#       command: "npx"
+#       args: ["-y", "@anthropic/github-mcp-server"]
+#       env:
+#         GITHUB_TOKEN: "your-token"
+
+agents:
+  progressive_discovery:
+    base_class: "examples.progressive_discovery.progressive_discovery_agent.ProgressiveDiscoveryAgent"
+    tools:
+      - "sgr_agent_core.tools.reasoning_tool.ReasoningTool"
+      - "sgr_agent_core.tools.clarification_tool.ClarificationTool"
+      - "sgr_agent_core.tools.generate_plan_tool.GeneratePlanTool"
+      - "sgr_agent_core.tools.adapt_plan_tool.AdaptPlanTool"
+      - "sgr_agent_core.tools.create_report_tool.CreateReportTool"
+      - "sgr_agent_core.tools.final_answer_tool.FinalAnswerTool"
+      # Add any non-system tools here — they will be discoverable, not loaded by default
+      # - "sgr_agent_core.tools.web_search_tool.WebSearchTool"
+      # - "sgr_agent_core.tools.extract_page_content_tool.ExtractPageContentTool"

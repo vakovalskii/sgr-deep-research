@@ -1,0 +1,80 @@
+from __future__ import annotations
+
+from typing import Type
+
+from openai import AsyncOpenAI, pydantic_function_tool
+
+from sgr_agent_core.agent_definition import AgentConfig
+from sgr_agent_core.agents.sgr_tool_calling_agent import SGRToolCallingAgent
+from sgr_agent_core.base_tool import BaseTool
+from sgr_agent_core.services.prompt_loader import PromptLoader
+
+from .tools.search_tools_tool import SearchToolsTool
+
+
+class ProgressiveDiscoveryAgent(SGRToolCallingAgent):
+    """Agent that starts with minimal system tools and dynamically discovers
+    additional tools via SearchToolsTool.
+
+    On init, splits the toolkit into:
+    - system tools (isSystemTool=True) -> self.toolkit (always available)
+    - non-system tools -> stored in context.custom_context["all_tools"]
+
+    SearchToolsTool is automatically added if not already present.
+    Discovered tools accumulate in context.custom_context["discovered_tools"].
+    """
+
+    name: str = "progressive_discovery_agent"
+
+    def __init__(
+        self,
+        task_messages: list,
+        openai_client: AsyncOpenAI,
+        agent_config: AgentConfig,
+        toolkit: list[Type[BaseTool]],
+        def_name: str | None = None,
+        **kwargs: dict,
+    ):
+        system_tools = [t for t in toolkit if getattr(t, "isSystemTool", False)]
+        non_system_tools = [t for t in toolkit if not getattr(t, "isSystemTool", False)]
+
+        if SearchToolsTool not in system_tools:
+            system_tools.append(SearchToolsTool)
+
+        super().__init__(
+            task_messages=task_messages,
+            openai_client=openai_client,
+            agent_config=agent_config,
+            toolkit=system_tools,
+            def_name=def_name,
+            **kwargs,
+        )
+
+        if self._context.custom_context is None:
+            self._context.custom_context = {}
+        self._context.custom_context["all_tools"] = non_system_tools
+        self._context.custom_context["discovered_tools"] = []
+
+    def _get_active_tools(self) -> list[Type[BaseTool]]:
+        """Return system tools + discovered tools."""
+        discovered = []
+        if isinstance(self._context.custom_context, dict):
+            discovered = self._context.custom_context.get("discovered_tools", [])
+        return list(self.toolkit) + list(discovered)
+
+    async def _prepare_tools(self) -> list[dict]:
+        """Override to return only active tools (system + discovered)."""
+        active_tools = self._get_active_tools()
+        if self._context.iteration >= self.config.execution.max_iterations:
+            raise RuntimeError("Max iterations reached")
+        return [pydantic_function_tool(tool, name=tool.tool_name) for tool in active_tools]
+
+    async def _prepare_context(self) -> list[dict]:
+        """Override to pass only active tools to system prompt."""
+        active_tools = self._get_active_tools()
+        return [
+            {"role": "system", "content": PromptLoader.get_system_prompt(active_tools, self.config.prompts)},
+            *self.task_messages,
+            {"role": "user", "content": PromptLoader.get_initial_user_request(self.task_messages, self.config.prompts)},
+            *self.conversation,
+        ]
