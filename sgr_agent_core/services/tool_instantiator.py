@@ -391,7 +391,7 @@ class ToolInstantiator:
         except ValidationError as e:
             for err in e.errors():
                 self.errors.append(
-                    f"pydantic validation error - type: {err['type']} - " f"field: {err['loc']} - {err['msg']}"
+                    f"pydantic validation error - type: {err['type']} - field: {err['loc']} - {err['msg']}"
                 )
             raise ValueError("Failed to build model") from e
         except JSONDecodeError as e:
