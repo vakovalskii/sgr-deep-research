@@ -53,9 +53,6 @@ class DummyDatabaseTool(BaseTool):
         return "db result"
 
 
-# --- Phase 4.1: ToolFilterService ---
-
-
 class TestToolFilterService:
     """Tests for ToolFilterService."""
 
@@ -101,9 +98,6 @@ class TestToolFilterService:
         assert "1. dummysearchtool:" in summary
         assert "2. dummyextracttool:" in summary
         assert "Search the web" in summary
-
-
-# --- Phase 4.2: SearchToolsTool ---
 
 
 class TestSearchToolsTool:
@@ -163,9 +157,6 @@ class TestSearchToolsTool:
         result = await tool(context, config=None)
 
         assert "No additional tools" in result
-
-
-# --- Phase 4.3: ProgressiveDiscoveryAgent ---
 
 
 class TestProgressiveDiscoveryAgent:
@@ -262,7 +253,86 @@ class TestProgressiveDiscoveryAgent:
         assert DummySearchTool.tool_name not in system_msg
 
 
-# --- Phase 4.4: Core isSystemTool ---
+class TestSystemToolsNeverFiltered:
+    """Tests that isSystemTool tools are always available and never subject to
+    filtering."""
+
+    def test_system_tools_not_in_all_tools(self):
+        """System tools must never end up in all_tools (the filterable
+        pool)."""
+        agent = create_test_agent(
+            ProgressiveDiscoveryAgent,
+            toolkit=[ReasoningTool, FinalAnswerTool, ClarificationTool, DummySearchTool, DummyDatabaseTool],
+        )
+
+        all_tools = agent._context.custom_context["all_tools"]
+        for tool in [ReasoningTool, FinalAnswerTool, ClarificationTool, SearchToolsTool]:
+            assert tool not in all_tools, f"System tool {tool.__name__} should not be in filterable pool"
+
+    def test_non_system_tools_only_in_all_tools(self):
+        """Only non-system tools should be in the filterable pool."""
+        agent = create_test_agent(
+            ProgressiveDiscoveryAgent,
+            toolkit=[ReasoningTool, FinalAnswerTool, DummySearchTool, DummyExtractTool, DummyDatabaseTool],
+        )
+
+        all_tools = agent._context.custom_context["all_tools"]
+        assert set(all_tools) == {DummySearchTool, DummyExtractTool, DummyDatabaseTool}
+
+    def test_system_tools_persist_after_search_with_no_results(self):
+        """System tools must remain active even when search finds nothing."""
+        agent = create_test_agent(
+            ProgressiveDiscoveryAgent,
+            toolkit=[ReasoningTool, FinalAnswerTool, DummySearchTool],
+        )
+
+        active = agent._get_active_tools()
+        assert ReasoningTool in active
+        assert FinalAnswerTool in active
+        assert SearchToolsTool in active
+
+    @pytest.mark.asyncio
+    async def test_system_tools_persist_after_discovery(self):
+        """System tools must remain in active toolkit after discovering new
+        tools."""
+        agent = create_test_agent(
+            ProgressiveDiscoveryAgent,
+            toolkit=[ReasoningTool, FinalAnswerTool, DummySearchTool, DummyExtractTool],
+        )
+
+        # Simulate discovery
+        tool = SearchToolsTool(query="search the web")
+        await tool(agent._context, config=None)
+
+        active = agent._get_active_tools()
+        # System tools still there
+        assert ReasoningTool in active
+        assert FinalAnswerTool in active
+        assert SearchToolsTool in active
+        # Discovered tool also there
+        assert DummySearchTool in active
+
+    @pytest.mark.asyncio
+    async def test_prepare_tools_always_includes_system_tools(self):
+        """_prepare_tools must always include system tools regardless of
+        discovered state."""
+        agent = create_test_agent(
+            ProgressiveDiscoveryAgent,
+            toolkit=[ReasoningTool, FinalAnswerTool, GeneratePlanTool, DummySearchTool, DummyDatabaseTool],
+        )
+
+        tools = await agent._prepare_tools()
+        tool_names = {t["function"]["name"] for t in tools}
+
+        # All system tools present
+        assert ReasoningTool.tool_name in tool_names
+        assert FinalAnswerTool.tool_name in tool_names
+        assert GeneratePlanTool.tool_name in tool_names
+        assert SearchToolsTool.tool_name in tool_names
+
+        # Non-system tools absent (not yet discovered)
+        assert DummySearchTool.tool_name not in tool_names
+        assert DummyDatabaseTool.tool_name not in tool_names
 
 
 class TestIsSystemTool:
