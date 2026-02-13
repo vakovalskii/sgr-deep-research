@@ -40,8 +40,10 @@ class BaseTool(BaseModel, ToolRegistryMixin):
         raise NotImplementedError("Execute method must be implemented by subclass")
 
     def __init_subclass__(cls, **kwargs) -> None:
-        cls.tool_name = cls.tool_name or cls.__name__.lower()
-        cls.description = cls.description or cls.__doc__ or ""
+        if "tool_name" not in cls.__dict__:
+            cls.tool_name = cls.__name__.lower()
+        if "description" not in cls.__dict__:
+            cls.description = cls.__doc__ or ""
         super().__init_subclass__(**kwargs)
 
 
