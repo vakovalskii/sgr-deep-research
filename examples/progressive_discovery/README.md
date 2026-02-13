@@ -17,7 +17,7 @@ User query → Agent reasons → needs web search → calls SearchToolsTool("sea
 
 ### How it works
 
-1. **Init**: Toolkit is split into system tools (`isSystemTool=True`) and discoverable tools
+1. **Init**: Toolkit is split into system tools (subclasses of `SystemBaseTool`) and discoverable tools
 2. **Runtime**: Only system tools + already discovered tools are sent to LLM
 3. **Discovery**: Agent calls `SearchToolsTool` with a natural language query
 4. **Matching**: `ToolFilterService` uses BM25 ranking + regex keyword overlap to find relevant tools

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
-from sgr_agent_core.base_tool import BaseTool
+from sgr_agent_core.base_tool import SystemBaseTool
 
 from ..services.tool_filter_service import ToolFilterService
 
@@ -13,15 +13,13 @@ if TYPE_CHECKING:
     from sgr_agent_core.models import AgentContext
 
 
-class SearchToolsTool(BaseTool):
+class SearchToolsTool(SystemBaseTool):
     """Search for available tools by capability description.
 
     Use this tool when you need a capability that is not in your current
     toolkit. Describe what you need in natural language and matching
     tools will be added to your active toolkit for subsequent use.
     """
-
-    isSystemTool = True
 
     query: str = Field(description="Natural language description of the capability you need (e.g. 'search the web')")
 

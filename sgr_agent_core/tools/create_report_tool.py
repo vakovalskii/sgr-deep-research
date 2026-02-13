@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
-from sgr_agent_core.base_tool import BaseTool
+from sgr_agent_core.base_tool import SystemBaseTool
 
 if TYPE_CHECKING:
     from sgr_agent_core.agent_definition import AgentConfig
@@ -18,15 +18,13 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class CreateReportTool(BaseTool):
+class CreateReportTool(SystemBaseTool):
     """Create a comprehensive detailed report with citations as a final step of
     research.
 
     CRITICAL: Every factual claim in content MUST have inline citations [1], [2], [3].
     Citations must be integrated directly into sentences, not just listed at the end.
     """
-
-    isSystemTool = True
 
     reasoning: str = Field(description="Why ready to create report now")
     title: str = Field(description="Report title")

@@ -4,17 +4,15 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
-from sgr_agent_core.base_tool import BaseTool
+from sgr_agent_core.base_tool import SystemBaseTool
 
 if TYPE_CHECKING:
     from sgr_agent_core.agent_config import AgentConfig
     from sgr_agent_core.models import AgentContext
 
 
-class AdaptPlanTool(BaseTool):
+class AdaptPlanTool(SystemBaseTool):
     """Adapt a research plan based on new findings."""
-
-    isSystemTool = True
 
     reasoning: str = Field(description="Why plan needs adaptation based on new data")
     original_goal: str = Field(description="Original research goal")

@@ -6,7 +6,7 @@ from openai import AsyncOpenAI, pydantic_function_tool
 
 from sgr_agent_core.agent_definition import AgentConfig
 from sgr_agent_core.agents.sgr_tool_calling_agent import SGRToolCallingAgent
-from sgr_agent_core.base_tool import BaseTool
+from sgr_agent_core.base_tool import BaseTool, SystemBaseTool
 from sgr_agent_core.services.prompt_loader import PromptLoader
 
 from .tools.search_tools_tool import SearchToolsTool
@@ -17,7 +17,7 @@ class ProgressiveDiscoveryAgent(SGRToolCallingAgent):
     additional tools via SearchToolsTool.
 
     On init, splits the toolkit into:
-    - system tools (isSystemTool=True) -> self.toolkit (always available)
+    - system tools (subclasses of SystemBaseTool) -> self.toolkit (always available)
     - non-system tools -> stored in context.custom_context["all_tools"]
 
     SearchToolsTool is automatically added if not already present.
@@ -35,8 +35,8 @@ class ProgressiveDiscoveryAgent(SGRToolCallingAgent):
         def_name: str | None = None,
         **kwargs: dict,
     ):
-        system_tools = [t for t in toolkit if getattr(t, "isSystemTool", False)]
-        non_system_tools = [t for t in toolkit if not getattr(t, "isSystemTool", False)]
+        system_tools = [t for t in toolkit if issubclass(t, SystemBaseTool)]
+        non_system_tools = [t for t in toolkit if not issubclass(t, SystemBaseTool)]
 
         if SearchToolsTool not in system_tools:
             system_tools.append(SearchToolsTool)

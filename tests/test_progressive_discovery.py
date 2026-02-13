@@ -1,7 +1,7 @@
 """Tests for Progressive Tool Discovery example.
 
 Covers ToolFilterService, SearchToolsTool, ProgressiveDiscoveryAgent,
-and isSystemTool in core BaseTool.
+and SystemBaseTool.
 """
 
 import pytest
@@ -11,7 +11,7 @@ from examples.progressive_discovery.progressive_discovery_agent import Progressi
 from examples.progressive_discovery.services.tool_filter_service import ToolFilterService
 from examples.progressive_discovery.tools.search_tools_tool import SearchToolsTool
 from sgr_agent_core import PromptsConfig
-from sgr_agent_core.base_tool import BaseTool
+from sgr_agent_core.base_tool import BaseTool, SystemBaseTool
 from sgr_agent_core.models import AgentContext
 from sgr_agent_core.tools import (
     AdaptPlanTool,
@@ -336,19 +336,24 @@ class TestSystemToolsNeverFiltered:
 
 
 class TestIsSystemTool:
-    """Tests for isSystemTool ClassVar on BaseTool."""
+    """Tests for isSystemTool ClassVar on BaseTool and SystemBaseTool."""
 
     def test_base_tool_default_is_false(self):
         """BaseTool.isSystemTool should default to False."""
         assert BaseTool.isSystemTool is False
 
-    def test_subclass_can_set_true(self):
-        """Subclass should be able to set isSystemTool = True."""
+    def test_system_base_tool_is_true(self):
+        """SystemBaseTool.isSystemTool should be True."""
+        assert SystemBaseTool.isSystemTool is True
 
-        class MySystemTool(BaseTool):
-            isSystemTool = True
+    def test_subclass_of_system_base_tool_inherits_true(self):
+        """Subclass of SystemBaseTool should inherit isSystemTool = True."""
+
+        class MySystemTool(SystemBaseTool):
+            pass
 
         assert MySystemTool.isSystemTool is True
+        assert issubclass(MySystemTool, SystemBaseTool)
 
     def test_subclass_inherits_false(self):
         """Subclass without override should inherit False."""
@@ -357,9 +362,10 @@ class TestIsSystemTool:
             pass
 
         assert MyRegularTool.isSystemTool is False
+        assert not issubclass(MyRegularTool, SystemBaseTool)
 
     def test_core_system_tools_marked(self):
-        """All core system tools should have isSystemTool = True."""
+        """All core system tools should inherit from SystemBaseTool."""
         system_tools = [
             ReasoningTool,
             ClarificationTool,
@@ -369,4 +375,5 @@ class TestIsSystemTool:
             CreateReportTool,
         ]
         for tool in system_tools:
+            assert issubclass(tool, SystemBaseTool), f"{tool.__name__} should inherit from SystemBaseTool"
             assert tool.isSystemTool is True, f"{tool.__name__} should have isSystemTool=True"

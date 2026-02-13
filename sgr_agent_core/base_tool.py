@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class ToolRegistryMixin:
     def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
-        if cls.__name__ not in ("BaseTool", "MCPBaseTool"):
+        if cls.__name__ not in ("BaseTool", "MCPBaseTool", "SystemBaseTool"):
             ToolRegistry.register(cls, name=cls.tool_name)
 
 
@@ -43,6 +43,13 @@ class BaseTool(BaseModel, ToolRegistryMixin):
         cls.tool_name = cls.tool_name or cls.__name__.lower()
         cls.description = cls.description or cls.__doc__ or ""
         super().__init_subclass__(**kwargs)
+
+
+class SystemBaseTool(BaseTool):
+    """Base class for system tools that are always available and never
+    filtered."""
+
+    isSystemTool: ClassVar[bool] = True
 
 
 class MCPBaseTool(BaseTool):

@@ -4,20 +4,18 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
-from sgr_agent_core.base_tool import BaseTool
+from sgr_agent_core.base_tool import SystemBaseTool
 
 if TYPE_CHECKING:
     from sgr_agent_core.agent_definition import AgentConfig
     from sgr_agent_core.models import AgentContext
 
 
-class GeneratePlanTool(BaseTool):
+class GeneratePlanTool(SystemBaseTool):
     """Generate a research plan.
 
     Useful to split complex request into manageable steps.
     """
-
-    isSystemTool = True
 
     reasoning: str = Field(description="Justification for research approach")
     research_goal: str = Field(description="Primary research objective")
