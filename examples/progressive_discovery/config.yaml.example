@@ -24,30 +24,35 @@ prompts:
 # (not loaded into context until agent searches for them)
 #
 # mcp:
-#   servers:
-#     - name: "jira"
-#       command: "npx"
-#       args: ["-y", "@anthropic/jira-mcp-server"]
-#       env:
-#         JIRA_URL: "https://your-org.atlassian.net"
-#         JIRA_TOKEN: "your-token"
-#
-#     - name: "github"
-#       command: "npx"
-#       args: ["-y", "@anthropic/github-mcp-server"]
-#       env:
-#         GITHUB_TOKEN: "your-token"
+#   mcpServers:
+#     jira:
+#       url: "https://your-jira-mcp-server.com/mcp"
+#     github:
+#       url: "https://your-github-mcp-server.com/mcp"
+
+# Tool Definitions
+tools:
+  # Core system tools (base_class defaults to sgr_agent_core.tools.*)
+  reasoning_tool:
+  clarification_tool:
+  generate_plan_tool:
+  adapt_plan_tool:
+  create_report_tool:
+  final_answer_tool:
+  # Non-system tools — will be discoverable, not loaded into context by default
+  web_search_tool:
+  extract_page_content_tool:
 
 agents:
   progressive_discovery:
     base_class: "examples.progressive_discovery.progressive_discovery_agent.ProgressiveDiscoveryAgent"
     tools:
-      - "sgr_agent_core.tools.reasoning_tool.ReasoningTool"
-      - "sgr_agent_core.tools.clarification_tool.ClarificationTool"
-      - "sgr_agent_core.tools.generate_plan_tool.GeneratePlanTool"
-      - "sgr_agent_core.tools.adapt_plan_tool.AdaptPlanTool"
-      - "sgr_agent_core.tools.create_report_tool.CreateReportTool"
-      - "sgr_agent_core.tools.final_answer_tool.FinalAnswerTool"
-      # Add any non-system tools here — they will be discoverable, not loaded by default
-      # - "sgr_agent_core.tools.web_search_tool.WebSearchTool"
-      # - "sgr_agent_core.tools.extract_page_content_tool.ExtractPageContentTool"
+      - "reasoning_tool"
+      - "clarification_tool"
+      - "generate_plan_tool"
+      - "adapt_plan_tool"
+      - "create_report_tool"
+      - "final_answer_tool"
+      # Non-system tools — discoverable via SearchToolsTool
+      - "web_search_tool"
+      - "extract_page_content_tool"
