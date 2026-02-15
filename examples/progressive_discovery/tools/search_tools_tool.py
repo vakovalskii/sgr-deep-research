@@ -6,6 +6,7 @@ from pydantic import Field
 
 from sgr_agent_core.base_tool import SystemBaseTool
 
+from ..models import ProgressiveDiscoveryContext
 from ..services.tool_filter_service import ToolFilterService
 
 if TYPE_CHECKING:
@@ -25,24 +26,21 @@ class SearchToolsTool(SystemBaseTool):
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs) -> str:
         custom = context.custom_context
-        if not isinstance(custom, dict):
-            return "Error: custom_context is not initialized as dict"
+        if not isinstance(custom, ProgressiveDiscoveryContext):
+            return "Error: custom_context is not initialized as ProgressiveDiscoveryContext"
 
-        all_tools = custom.get("all_tools", [])
-        if not all_tools:
+        if not custom.all_tools:
             return "No additional tools available for discovery."
 
-        discovered = custom.setdefault("discovered_tools", [])
+        matched = ToolFilterService.filter_tools(self.query, custom.all_tools)
 
-        matched = ToolFilterService.filter_tools(self.query, all_tools)
-
-        already_discovered_names = {t.tool_name for t in discovered}
+        already_discovered_names = {t.tool_name for t in custom.discovered_tools}
         new_tools = [t for t in matched if t.tool_name not in already_discovered_names]
 
         if not new_tools:
             return f"No new tools found for query '{self.query}'. Already discovered: {already_discovered_names}"
 
-        discovered.extend(new_tools)
+        custom.discovered_tools.extend(new_tools)
 
         summary = ToolFilterService.get_tool_summaries(new_tools)
         return (
