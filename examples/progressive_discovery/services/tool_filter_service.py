@@ -56,9 +56,7 @@ class ToolFilterService:
         for i, tool in enumerate(tools):
             bm25_score = scores[i]
 
-            tool_name = (tool.tool_name or tool.__name__).lower()
-            tool_description = (tool.description or "").lower()
-            tool_words = set(re.findall(r"\b\w+\b", f"{tool_name} {tool_description}"))
+            tool_words = set(re.findall(r"\b\w+\b", tool_documents[i]))
             has_regex_match = bool(query_words & tool_words)
 
             if bm25_score > bm25_threshold or has_regex_match:
