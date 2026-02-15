@@ -17,9 +17,6 @@ execution:
   max_iterations: 15
   max_clarifications: 2
 
-prompts:
-  system_prompt_path: "examples/progressive_discovery/prompts/system_prompt.txt"
-
 # MCP servers provide additional tools that will be discoverable
 # (not loaded into context until agent searches for them)
 #
