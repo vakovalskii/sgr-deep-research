@@ -37,6 +37,7 @@ from sgr_agent_core.services import (
     MCP2ToolConverter,
     PerplexitySearchService,
     PromptLoader,
+    TavilySearchService,
     ToolRegistry,
 )
 from sgr_agent_core.tools import *  # noqa: F403
@@ -61,6 +62,7 @@ __all__ = [
     "BraveSearchService",
     "MCP2ToolConverter",
     "PerplexitySearchService",
+    "TavilySearchService",
     "PromptLoader",
     "ToolRegistry",
     # Configuration
@@ -74,11 +76,6 @@ __all__ = [
     # Next step tools
     "NextStepToolStub",
     "NextStepToolsBuilder",
-    # Models
-    "AgentStatesEnum",
-    "AgentContext",
-    "SearchResult",
-    "SourceData",
     # Factory
     "AgentFactory",
 ]
