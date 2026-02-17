@@ -10,6 +10,14 @@ logger = logging.getLogger(__name__)
 
 
 class TavilySearchService(BaseSearchService):
+    """Search service using Tavily Search API.
+
+    Uses AsyncTavilyClient for HTTP requests.
+    Auth: API key passed to client constructor.
+    Offset is handled by over-fetch+slice (no native offset support).
+    Also provides extract() for full page content retrieval.
+    """
+
     def __init__(self, search_config: SearchConfig):
         super().__init__(search_config)
         self._client = AsyncTavilyClient(
