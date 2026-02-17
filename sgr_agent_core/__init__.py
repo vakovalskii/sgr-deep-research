@@ -30,7 +30,15 @@ from sgr_agent_core.models import (
     SourceData,
 )
 from sgr_agent_core.next_step_tool import NextStepToolsBuilder, NextStepToolStub
-from sgr_agent_core.services import AgentRegistry, MCP2ToolConverter, PromptLoader, ToolRegistry
+from sgr_agent_core.services import (
+    AgentRegistry,
+    BaseSearchService,
+    BraveSearchService,
+    MCP2ToolConverter,
+    PerplexitySearchService,
+    PromptLoader,
+    ToolRegistry,
+)
 from sgr_agent_core.tools import *  # noqa: F403
 
 __all__ = [
@@ -49,9 +57,12 @@ __all__ = [
     "SourceData",
     # Services
     "AgentRegistry",
-    "ToolRegistry",
-    "PromptLoader",
+    "BaseSearchService",
+    "BraveSearchService",
     "MCP2ToolConverter",
+    "PerplexitySearchService",
+    "PromptLoader",
+    "ToolRegistry",
     # Configuration
     "AgentConfig",
     "AgentDefinition",

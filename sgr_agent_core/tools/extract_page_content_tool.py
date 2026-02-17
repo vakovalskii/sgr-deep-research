@@ -20,11 +20,12 @@ logger.setLevel(logging.INFO)
 
 class ExtractPageContentTool(BaseTool):
     """Extract full detailed content from specific web pages.
-     Use for: Getting complete page content from URLs found in web search Returns:
-     Full page content in readable format (via Tavily Extract API)
-     Best for: Deep analysis of specific pages, extracting structured data
 
-    Usage: Call after WebSearchTool to get detailed information from promising URLs
+    Use for: Getting complete page content from URLs found in web search.
+    Returns: Full page content in readable format (via Tavily Extract API).
+    Best for: Deep analysis of specific pages, extracting structured data.
+
+    Usage: Call after WebSearchTool to get detailed information from promising URLs.
 
     CRITICAL WARNINGS:
         - Extracted pages may show data from DIFFERENT years/time periods than asked
@@ -51,7 +52,12 @@ class ExtractPageContentTool(BaseTool):
             config.search if config else None,
             dict(kwargs),
         )
-        logger.info(f"📄 Extracting content from {len(self.urls)} URLs")
+        if not search_config.tavily_api_key:
+            return (
+                "Error: tavily_api_key is required for ExtractPageContentTool."
+                " Tavily is the only provider that supports content extraction."
+            )
+        logger.info(f"Extracting content from {len(self.urls)} URLs")
 
         self._search_service = TavilySearchService(search_config)
         sources = await self._search_service.extract(urls=self.urls)

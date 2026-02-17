@@ -57,17 +57,28 @@ tools:
     base_class: path.to.my.tools.CustomTool
   my_other_tool:
     base_class: "name_of_tool_class_in_registry"
-  # Search tools: configure Tavily API key and search limits per tool
+  # Search tools: configure search provider and API keys per tool
   # (can be overridden per-agent in tools list)
   web_search_tool:
+    engine: "tavily"  # Search engine: "tavily" (default), "brave", or "perplexity"
     tavily_api_key: "your-tavily-api-key-here"  # Tavily API key (get at tavily.com)
     tavily_api_base_url: "https://api.tavily.com"  # Tavily API URL
     max_results: 12
     max_searches: 6
   extract_page_content_tool:
-    tavily_api_key: "your-tavily-api-key-here"  # Same Tavily API key
+    tavily_api_key: "your-tavily-api-key-here"  # Same Tavily API key (Tavily-only feature)
     tavily_api_base_url: "https://api.tavily.com"
     content_limit: 2000
+  # Standalone search tools (for multi-engine setups where LLM picks the engine)
+  brave_search_tool:
+    brave_api_key: "your-brave-api-key-here"  # Brave Search API key
+    brave_api_base_url: "https://api.search.brave.com/res/v1/web/search"
+  perplexity_search_tool:
+    perplexity_api_key: "your-perplexity-api-key-here"  # Perplexity API key
+    perplexity_api_base_url: "https://api.perplexity.ai/search"
+  tavily_search_tool:
+    tavily_api_key: "your-tavily-api-key-here"
+    tavily_api_base_url: "https://api.tavily.com"
 
 agents:
   custom_research_agent:
