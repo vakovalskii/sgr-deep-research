@@ -72,6 +72,21 @@ class SearchConfig(BaseModel, extra="allow"):
     max_results: int = Field(default=10, ge=1, description="Maximum number of search results")
     content_limit: int = Field(default=3500, gt=0, description="Content character limit per source")
 
+    engine: Literal["tavily", "brave", "perplexity"] = Field(
+        default="tavily",
+        description="Search engine provider to use",
+    )
+    brave_api_key: str | None = Field(default=None, description="Brave Search API key")
+    brave_api_base_url: str = Field(
+        default="https://api.search.brave.com/res/v1/web/search",
+        description="Brave Search API base URL",
+    )
+    perplexity_api_key: str | None = Field(default=None, description="Perplexity API key")
+    perplexity_api_base_url: str = Field(
+        default="https://api.perplexity.ai/search",
+        description="Perplexity Search API base URL",
+    )
+
 
 class PromptsConfig(BaseModel, extra="allow"):
     system_prompt_file: FilePath | None = Field(
