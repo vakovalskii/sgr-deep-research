@@ -27,19 +27,6 @@ execution:
 #     github:
 #       url: "https://your-github-mcp-server.com/mcp"
 
-# Tool Definitions
-tools:
-  # Core system tools (base_class defaults to sgr_agent_core.tools.*)
-  reasoning_tool:
-  clarification_tool:
-  generate_plan_tool:
-  adapt_plan_tool:
-  create_report_tool:
-  final_answer_tool:
-  # Non-system tools — will be discoverable, not loaded into context by default
-  web_search_tool:
-  extract_page_content_tool:
-
 agents:
   progressive_discovery:
     base_class: "examples.progressive_discovery.progressive_discovery_agent.ProgressiveDiscoveryAgent"
