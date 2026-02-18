@@ -19,10 +19,10 @@ class ProgressiveDiscoveryAgent(SGRToolCallingAgent):
 
     On init, splits the toolkit into:
     - system tools (subclasses of SystemBaseTool) -> self.toolkit (always available)
-    - non-system tools -> stored in context.custom_context.all_tools
+    - non-system tools -> stored in context.all_tools
 
     SearchToolsTool is automatically added if not already present.
-    Discovered tools accumulate in context.custom_context.discovered_tools.
+    Discovered tools accumulate in context.discovered_tools.
     """
 
     name: str = "progressive_discovery_agent"
@@ -51,13 +51,13 @@ class ProgressiveDiscoveryAgent(SGRToolCallingAgent):
             **kwargs,
         )
 
-        self._context.custom_context = ProgressiveDiscoveryContext(
+        self._context = ProgressiveDiscoveryContext(
             all_tools=non_system_tools,
         )
 
     def _get_active_tools(self) -> list[Type[BaseTool]]:
         """Return system tools + discovered tools."""
-        return list(self.toolkit) + list(self._context.custom_context.discovered_tools)
+        return list(self.toolkit) + list(self._context.discovered_tools)
 
     async def _prepare_tools(self) -> list[dict]:
         """Override to return only active tools (system + discovered)."""

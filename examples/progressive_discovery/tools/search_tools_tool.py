@@ -25,22 +25,21 @@ class SearchToolsTool(SystemBaseTool):
     query: str = Field(description="Natural language description of the capability you need (e.g. 'search the web')")
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs) -> str:
-        custom = context.custom_context
-        if not isinstance(custom, ProgressiveDiscoveryContext):
-            return "Error: custom_context is not initialized as ProgressiveDiscoveryContext"
+        if not isinstance(context, ProgressiveDiscoveryContext):
+            return "Error: context is not initialized as ProgressiveDiscoveryContext"
 
-        if not custom.all_tools:
+        if not context.all_tools:
             return "No additional tools available for discovery."
 
-        matched = ToolFilterService.filter_tools(self.query, custom.all_tools)
+        matched = ToolFilterService.filter_tools(self.query, context.all_tools)
 
-        already_discovered_names = {t.tool_name for t in custom.discovered_tools}
+        already_discovered_names = {t.tool_name for t in context.discovered_tools}
         new_tools = [t for t in matched if t.tool_name not in already_discovered_names]
 
         if not new_tools:
             return f"No new tools found for query '{self.query}'. Already discovered: {already_discovered_names}"
 
-        custom.discovered_tools.extend(new_tools)
+        context.discovered_tools.extend(new_tools)
 
         summary = ToolFilterService.get_tool_summaries(new_tools)
         return (

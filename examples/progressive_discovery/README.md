@@ -44,8 +44,10 @@ sgr --config-file config.yaml
 ```
 ProgressiveDiscoveryAgent
 ├── self.toolkit = [ReasoningTool, SearchToolsTool, ...]  (system tools)
-├── context.custom_context["all_tools"] = [WebSearchTool, ...]  (discoverable)
-└── context.custom_context["discovered_tools"] = []  (accumulates at runtime)
+├── context.all_tools = [WebSearchTool, ...]  (discoverable)
+└── context.discovered_tools = []  (accumulates at runtime)
 ```
+
+`context` is a `ProgressiveDiscoveryContext(AgentContext)` — extends the base context with discovery-specific fields.
 
 `_get_active_tools()` returns `system_tools + discovered_tools` — used by both `_prepare_tools()` and `_prepare_context()`.

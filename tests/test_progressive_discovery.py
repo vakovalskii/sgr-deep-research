@@ -111,36 +111,33 @@ class TestSearchToolsTool:
     @pytest.mark.asyncio
     async def test_finds_tools_and_adds_to_discovered(self):
         """Should find matching tools and add them to discovered_tools."""
-        context = AgentContext()
-        context.custom_context = ProgressiveDiscoveryContext(
+        context = ProgressiveDiscoveryContext(
             all_tools=[DummySearchTool, DummyExtractTool],
         )
         tool = SearchToolsTool(query="search the web")
         result = await tool(context, config=None)
 
-        assert DummySearchTool in context.custom_context.discovered_tools
+        assert DummySearchTool in context.discovered_tools
         assert "Found" in result
 
     @pytest.mark.asyncio
     async def test_deduplication_on_repeated_call(self):
         """Should not add already discovered tools again."""
-        context = AgentContext()
-        context.custom_context = ProgressiveDiscoveryContext(
+        context = ProgressiveDiscoveryContext(
             all_tools=[DummySearchTool],
             discovered_tools=[DummySearchTool],
         )
         tool = SearchToolsTool(query="search the web")
         result = await tool(context, config=None)
 
-        assert context.custom_context.discovered_tools.count(DummySearchTool) == 1
+        assert context.discovered_tools.count(DummySearchTool) == 1
         assert "No new tools found" in result
 
     @pytest.mark.asyncio
     async def test_error_on_invalid_context(self):
-        """Should return error if custom_context is not
+        """Should return error if context is not
         ProgressiveDiscoveryContext."""
         context = AgentContext()
-        context.custom_context = None
         tool = SearchToolsTool(query="search")
         result = await tool(context, config=None)
 
@@ -149,8 +146,7 @@ class TestSearchToolsTool:
     @pytest.mark.asyncio
     async def test_no_tools_available(self):
         """Should return message when no tools available for discovery."""
-        context = AgentContext()
-        context.custom_context = ProgressiveDiscoveryContext()
+        context = ProgressiveDiscoveryContext()
         tool = SearchToolsTool(query="anything")
         result = await tool(context, config=None)
 
@@ -159,6 +155,15 @@ class TestSearchToolsTool:
 
 class TestProgressiveDiscoveryAgent:
     """Tests for ProgressiveDiscoveryAgent."""
+
+    def test_context_is_progressive_discovery_context(self):
+        """Agent context must be ProgressiveDiscoveryContext, not base
+        AgentContext."""
+        agent = create_test_agent(
+            ProgressiveDiscoveryAgent,
+            toolkit=[ReasoningTool, FinalAnswerTool, DummySearchTool],
+        )
+        assert isinstance(agent._context, ProgressiveDiscoveryContext)
 
     def test_init_splits_toolkit(self):
         """Init should separate system and non-system tools."""
@@ -172,9 +177,9 @@ class TestProgressiveDiscoveryAgent:
         assert FinalAnswerTool in agent.toolkit
         assert SearchToolsTool in agent.toolkit
 
-        # Non-system tools in custom_context
-        assert DummySearchTool in agent._context.custom_context.all_tools
-        assert DummyExtractTool in agent._context.custom_context.all_tools
+        # Non-system tools in context
+        assert DummySearchTool in agent._context.all_tools
+        assert DummyExtractTool in agent._context.all_tools
 
         # Non-system tools NOT in toolkit
         assert DummySearchTool not in agent.toolkit
@@ -201,7 +206,7 @@ class TestProgressiveDiscoveryAgent:
         assert ReasoningTool in active
 
         # After discovery
-        agent._context.custom_context.discovered_tools.append(DummySearchTool)
+        agent._context.discovered_tools.append(DummySearchTool)
         active = agent._get_active_tools()
         assert DummySearchTool in active
 
@@ -263,9 +268,7 @@ class TestSystemToolsNeverFiltered:
         )
 
         for tool in [ReasoningTool, FinalAnswerTool, ClarificationTool, SearchToolsTool]:
-            assert (
-                tool not in agent._context.custom_context.all_tools
-            ), f"System tool {tool.__name__} should not be in filterable pool"
+            assert tool not in agent._context.all_tools, f"System tool {tool.__name__} should not be in filterable pool"
 
     def test_non_system_tools_only_in_all_tools(self):
         """Only non-system tools should be in the filterable pool."""
@@ -274,7 +277,7 @@ class TestSystemToolsNeverFiltered:
             toolkit=[ReasoningTool, FinalAnswerTool, DummySearchTool, DummyExtractTool, DummyDatabaseTool],
         )
 
-        assert set(agent._context.custom_context.all_tools) == {DummySearchTool, DummyExtractTool, DummyDatabaseTool}
+        assert set(agent._context.all_tools) == {DummySearchTool, DummyExtractTool, DummyDatabaseTool}
 
     def test_system_tools_persist_after_search_with_no_results(self):
         """System tools must remain active even when search finds nothing."""
