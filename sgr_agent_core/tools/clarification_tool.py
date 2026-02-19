@@ -4,14 +4,14 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
-from sgr_agent_core.base_tool import BaseTool
+from sgr_agent_core.base_tool import SystemBaseTool
 from sgr_agent_core.models import AgentContext, AgentStatesEnum
 
 if TYPE_CHECKING:
     from sgr_agent_core.agent_config import AgentConfig
 
 
-class ClarificationTool(BaseTool):
+class ClarificationTool(SystemBaseTool):
     """Ask clarifying questions when facing an ambiguous request.
 
     Keep all fields concise - brief reasoning, short terms, and clear questions.

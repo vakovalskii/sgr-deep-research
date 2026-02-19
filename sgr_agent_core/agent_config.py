@@ -70,7 +70,7 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
         # Check for agents that will be overridden
         overridden = set(cls._instance.agents.keys()) & set(custom_agents.keys())
         if overridden:
-            logger.warning(f"Loaded agents will override existing agents: " f"{', '.join(sorted(overridden))}")
+            logger.warning(f"Loaded agents will override existing agents: {', '.join(sorted(overridden))}")
 
         cls._instance.agents.update(custom_agents)
 
@@ -90,7 +90,7 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
         # Check for tools that will be overridden
         overridden_tools = set(cls._instance.tools.keys()) & set(custom_tools.keys())
         if overridden_tools:
-            logger.warning(f"Loaded tools will override existing tools: " f"{', '.join(sorted(overridden_tools))}")
+            logger.warning(f"Loaded tools will override existing tools: {', '.join(sorted(overridden_tools))}")
 
         cls._instance.tools.update(custom_tools)
         return cls._instance

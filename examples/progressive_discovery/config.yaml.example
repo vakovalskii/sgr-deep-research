@@ -1,0 +1,42 @@
+# Progressive Discovery Agent Configuration
+#
+# This agent starts with minimal system tools and dynamically discovers
+# additional tools as needed via SearchToolsTool (BM25 + regex matching).
+#
+# Useful when you have many MCP servers with dozens of tools — keeps
+# the LLM context small and focused.
+
+llm:
+  model: "gpt-4o"
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-..."
+  temperature: 0.1
+  max_tokens: 16000
+
+execution:
+  max_iterations: 15
+  max_clarifications: 2
+
+# MCP servers provide additional tools that will be discoverable
+# (not loaded into context until agent searches for them)
+#
+# mcp:
+#   mcpServers:
+#     jira:
+#       url: "https://your-jira-mcp-server.com/mcp"
+#     github:
+#       url: "https://your-github-mcp-server.com/mcp"
+
+agents:
+  progressive_discovery:
+    base_class: "examples.progressive_discovery.progressive_discovery_agent.ProgressiveDiscoveryAgent"
+    tools:
+      - "reasoning_tool"
+      - "clarification_tool"
+      - "generate_plan_tool"
+      - "adapt_plan_tool"
+      - "create_report_tool"
+      - "final_answer_tool"
+      # Non-system tools — discoverable via SearchToolsTool
+      - "web_search_tool"
+      - "extract_page_content_tool"

@@ -46,6 +46,8 @@ dependencies = [
     "uvicorn>=0.35.0",
     "fastmcp>=2.12.4",
     "jambo>=0.1.3.post2",
+    # Tools filtering
+    "rank-bm25>=0.2.2",
 ]
 
 [project.urls]

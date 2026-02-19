@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
-from sgr_agent_core.base_tool import BaseTool
+from sgr_agent_core.base_tool import SystemBaseTool
 from sgr_agent_core.models import AgentStatesEnum
 
 if TYPE_CHECKING:
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class FinalAnswerTool(BaseTool):
+class FinalAnswerTool(SystemBaseTool):
     """Finalize a task and complete agent execution after all steps are
     completed.
 

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from sgr_agent_core.base_tool import BaseTool
+from sgr_agent_core.base_tool import SystemBaseTool
 
 
-class ReasoningTool(BaseTool):
+class ReasoningTool(SystemBaseTool):
     """Agent core logic determines the next reasoning step with adaptive
     planning by schema-guided-reasoning capabilities. Keep all text fields
     concise and focused.
