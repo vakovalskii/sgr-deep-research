@@ -8,8 +8,7 @@ from pydantic import Field
 
 from sgr_agent_core.agent_definition import AgentConfig, SearchConfig
 from sgr_agent_core.base_tool import BaseTool
-from sgr_agent_core.models import SearchResult
-from sgr_agent_core.services.base_search import BaseSearchService
+from sgr_agent_core.models import SearchResult, SourceData
 from sgr_agent_core.utils import config_from_kwargs
 
 if TYPE_CHECKING:
@@ -18,6 +17,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# Engine name -> tool class with _search() staticmethod.
+# Populated explicitly at module level in each provider tool file.
+_search_registry: dict[str, type] = {}
+
 
 class _BaseSearchTool(BaseTool):
     """Base class for all search tools.
@@ -25,6 +28,9 @@ class _BaseSearchTool(BaseTool):
     Provides shared fields (reasoning, query, max_results, offset) and
     common __call__ logic. Concrete tools override _default_engine and
     docstring.
+
+    Provider-specific API logic lives in concrete tools as @staticmethod
+    _search() methods, dispatched via _search_registry by engine name.
     """
 
     _default_engine: ClassVar[str | None] = None
@@ -58,6 +64,13 @@ class _BaseSearchTool(BaseTool):
         ),
     )
 
+    @staticmethod
+    def _rearrange_sources(sources: list[SourceData], starting_number: int = 1) -> list[SourceData]:
+        """Renumber sources sequentially starting from given number."""
+        for i, source in enumerate(sources, starting_number):
+            source.number = i
+        return sources
+
     async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs: Any) -> str:
         """Execute web search using the configured search engine.
 
@@ -75,21 +88,24 @@ class _BaseSearchTool(BaseTool):
         )
         logger.info(f"Search query: '{self.query}' (engine={search_config.engine})")
 
-        service = BaseSearchService.create(search_config)
+        provider_cls = _search_registry.get(search_config.engine)
+        if provider_cls is None:
+            raise ValueError(f"Unsupported search engine: {search_config.engine}")
 
         max_results_limit = search_config.max_results
         effective_limit = min(self.max_results, max_results_limit)
 
-        # Each service handles offset internally:
+        # Each provider handles offset internally:
         # Brave uses native API offset, Tavily/Perplexity use over-fetch+slice
-        sources = await service.search(
+        sources = await provider_cls._search(
+            config=search_config,
             query=self.query,
             max_results=effective_limit,
             offset=self.offset,
             include_raw_content=False,
         )
 
-        sources = BaseSearchService.rearrange_sources(sources, starting_number=len(context.sources) + 1)
+        sources = self._rearrange_sources(sources, starting_number=len(context.sources) + 1)
 
         for source in sources:
             context.sources[source.url] = source

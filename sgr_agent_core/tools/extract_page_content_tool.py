@@ -7,7 +7,7 @@ from pydantic import Field
 
 from sgr_agent_core.agent_definition import SearchConfig
 from sgr_agent_core.base_tool import BaseTool
-from sgr_agent_core.services import TavilySearchService
+from sgr_agent_core.tools.tavily_search_tool import TavilySearchTool
 from sgr_agent_core.utils import config_from_kwargs
 
 if TYPE_CHECKING:
@@ -59,8 +59,7 @@ class ExtractPageContentTool(BaseTool):
             )
         logger.info(f"Extracting content from {len(self.urls)} URLs")
 
-        self._search_service = TavilySearchService(search_config)
-        sources = await self._search_service.extract(urls=self.urls)
+        sources = await TavilySearchTool._extract(search_config, urls=self.urls)
 
         # Update existing sources instead of overwriting
         for source in sources:

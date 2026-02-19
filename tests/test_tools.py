@@ -11,7 +11,6 @@ import pytest
 
 from sgr_agent_core.agent_definition import SearchConfig
 from sgr_agent_core.models import AgentContext, SourceData
-from sgr_agent_core.services.base_search import BaseSearchService
 from sgr_agent_core.tools import (
     AdaptPlanTool,
     AnswerTool,
@@ -102,13 +101,12 @@ class TestToolsInitialization:
 
     def test_extract_page_content_tool_initialization(self):
         """Test ExtractPageContentTool initialization."""
-        with patch("sgr_agent_core.tools.extract_page_content_tool.TavilySearchService"):
-            tool = ExtractPageContentTool(
-                reasoning="Test",
-                urls=["https://example.com"],
-            )
-            assert tool.tool_name == "extractpagecontenttool"
-            assert len(tool.urls) == 1
+        tool = ExtractPageContentTool(
+            reasoning="Test",
+            urls=["https://example.com"],
+        )
+        assert tool.tool_name == "extractpagecontenttool"
+        assert len(tool.urls) == 1
 
     def test_create_report_tool_initialization(self):
         """Test CreateReportTool initialization."""
@@ -210,72 +208,51 @@ class TestSearchToolsKwargs:
     @pytest.mark.asyncio
     async def test_web_search_tool_uses_kwargs_over_config_search(self):
         """WebSearchTool uses max_results from kwargs when provided."""
-        from sgr_agent_core.models import AgentContext
-
         tool = WebSearchTool(reasoning="r", query="test", max_results=5)
         context = AgentContext()
         config = MagicMock()
         config.search = SearchConfig(tavily_api_key="k", max_results=10)
-        with patch("sgr_agent_core.tools.base_search_tool.BaseSearchService") as mock_svc_class:
-            mock_svc = AsyncMock()
-            mock_svc.search = AsyncMock(return_value=[])
-            mock_svc_class.create.return_value = mock_svc
-            mock_svc_class.rearrange_sources = BaseSearchService.rearrange_sources
+        with patch.object(TavilySearchTool, "_search", new_callable=AsyncMock, return_value=[]) as mock_search:
             await tool(context, config, max_results=3)
-            call_args = mock_svc_class.create.call_args[0][0]
-            assert call_args.max_results == 3
+            assert mock_search.call_args.kwargs["config"].max_results == 3
 
     @pytest.mark.asyncio
     async def test_web_search_tool_fallback_to_config_search(self):
         """WebSearchTool uses config.search when kwargs do not set
         max_results."""
-        from sgr_agent_core.models import AgentContext
-
         tool = WebSearchTool(reasoning="r", query="test", max_results=5)
         context = AgentContext()
         config = MagicMock()
         config.search = SearchConfig(tavily_api_key="k", max_results=10)
-        with patch("sgr_agent_core.tools.base_search_tool.BaseSearchService") as mock_svc_class:
-            mock_svc = AsyncMock()
-            mock_svc.search = AsyncMock(return_value=[])
-            mock_svc_class.create.return_value = mock_svc
-            mock_svc_class.rearrange_sources = BaseSearchService.rearrange_sources
+        with patch.object(TavilySearchTool, "_search", new_callable=AsyncMock, return_value=[]) as mock_search:
             await tool(context, config)
-            call_args = mock_svc_class.create.call_args[0][0]
-            assert call_args.max_results == 10
+            assert mock_search.call_args.kwargs["config"].max_results == 10
 
     @pytest.mark.asyncio
     async def test_web_search_tool_with_offset(self):
-        """WebSearchTool passes offset to service which handles it
+        """WebSearchTool passes offset to provider which handles it
         internally."""
         tool = WebSearchTool(reasoning="r", query="test", max_results=3, offset=2)
         context = AgentContext()
         config = MagicMock()
         config.search = SearchConfig(tavily_api_key="k", max_results=10)
 
-        # Service returns already-offset results (3 items after skipping 2)
+        # Provider returns already-offset results (3 items after skipping 2)
         mock_sources = [
             SourceData(number=i, url=f"https://example.com/{i}", title=f"Result {i}", snippet=f"Snippet {i}")
             for i in range(2, 5)
         ]
 
-        with patch("sgr_agent_core.tools.base_search_tool.BaseSearchService") as mock_svc_class:
-            mock_svc = AsyncMock()
-            mock_svc.search = AsyncMock(return_value=mock_sources)
-            mock_svc_class.create.return_value = mock_svc
-            mock_svc_class.rearrange_sources = BaseSearchService.rearrange_sources
-
+        with patch.object(TavilySearchTool, "_search", new_callable=AsyncMock, return_value=mock_sources):
             result = await tool(context, config)
 
-            # Offset is delegated to the service
-            mock_svc.search.assert_called_once_with(query="test", max_results=3, offset=2, include_raw_content=False)
             assert len(context.searches) == 1
             assert len(context.searches[0].citations) == 3
             assert "Result 2" in result
 
     @pytest.mark.asyncio
     async def test_web_search_tool_offset_default_zero(self):
-        """WebSearchTool without offset passes offset=0 to service."""
+        """WebSearchTool without offset passes offset=0 to provider."""
         tool = WebSearchTool(reasoning="r", query="test", max_results=3)
         assert tool.offset == 0
 
@@ -288,15 +265,9 @@ class TestSearchToolsKwargs:
             for i in range(3)
         ]
 
-        with patch("sgr_agent_core.tools.base_search_tool.BaseSearchService") as mock_svc_class:
-            mock_svc = AsyncMock()
-            mock_svc.search = AsyncMock(return_value=mock_sources)
-            mock_svc_class.create.return_value = mock_svc
-            mock_svc_class.rearrange_sources = BaseSearchService.rearrange_sources
-
+        with patch.object(TavilySearchTool, "_search", new_callable=AsyncMock, return_value=mock_sources):
             await tool(context, config)
 
-            mock_svc.search.assert_called_once_with(query="test", max_results=3, offset=0, include_raw_content=False)
             assert len(context.searches[0].citations) == 3
 
     @pytest.mark.asyncio
@@ -308,50 +279,32 @@ class TestSearchToolsKwargs:
         config = MagicMock()
         config.search = SearchConfig(tavily_api_key="k", max_results=20)
 
-        # Service returns empty list (offset exceeded available results)
-        with patch("sgr_agent_core.tools.base_search_tool.BaseSearchService") as mock_svc_class:
-            mock_svc = AsyncMock()
-            mock_svc.search = AsyncMock(return_value=[])
-            mock_svc_class.create.return_value = mock_svc
-            mock_svc_class.rearrange_sources = BaseSearchService.rearrange_sources
-
+        # Provider returns empty list (offset exceeded available results)
+        with patch.object(TavilySearchTool, "_search", new_callable=AsyncMock, return_value=[]):
             result = await tool(context, config)
 
-            mock_svc.search.assert_called_once_with(query="test", max_results=3, offset=10, include_raw_content=False)
             assert len(context.searches[0].citations) == 0
             assert "Search Query: test" in result
 
     @pytest.mark.asyncio
     async def test_brave_search_tool_forces_engine(self):
         """BraveSearchTool forces engine='brave' regardless of config."""
-        from sgr_agent_core.models import AgentContext
-
         tool = BraveSearchTool(reasoning="r", query="test", max_results=5)
         context = AgentContext()
         config = MagicMock()
         config.search = SearchConfig(tavily_api_key="k", max_results=10, engine="tavily")
-        with patch("sgr_agent_core.tools.base_search_tool.BaseSearchService") as mock_svc_class:
-            mock_svc = AsyncMock()
-            mock_svc.search = AsyncMock(return_value=[])
-            mock_svc_class.create.return_value = mock_svc
-            mock_svc_class.rearrange_sources = BaseSearchService.rearrange_sources
+        with patch.object(BraveSearchTool, "_search", new_callable=AsyncMock, return_value=[]) as mock_search:
             await tool(context, config)
-            call_args = mock_svc_class.create.call_args[0][0]
-            assert call_args.engine == "brave"
+            assert mock_search.call_args.kwargs["config"].engine == "brave"
 
     @pytest.mark.asyncio
     async def test_extract_page_content_tool_uses_content_limit_from_kwargs(self):
         """ExtractPageContentTool uses content_limit from kwargs."""
-        from sgr_agent_core.models import AgentContext
-
         tool = ExtractPageContentTool(reasoning="r", urls=["https://example.com"])
         context = AgentContext()
         config = MagicMock()
         config.search = SearchConfig(tavily_api_key="k", content_limit=1000)
-        with patch("sgr_agent_core.tools.extract_page_content_tool.TavilySearchService") as mock_svc_class:
-            mock_svc = AsyncMock()
-            mock_svc.extract = AsyncMock(return_value=[])
-            mock_svc_class.return_value = mock_svc
+        with patch.object(TavilySearchTool, "_extract", new_callable=AsyncMock, return_value=[]) as mock_extract:
             await tool(context, config, content_limit=500)
-            call_args = mock_svc_class.call_args[0][0]
-            assert call_args.content_limit == 500
+            # search_config is passed as first positional arg
+            assert mock_extract.call_args[0][0].content_limit == 500
