@@ -7,7 +7,8 @@ import httpx
 
 from sgr_agent_core.agent_definition import SearchConfig
 from sgr_agent_core.models import SourceData
-from sgr_agent_core.tools.base_search_tool import _BaseSearchTool, _search_registry
+from sgr_agent_core.services.registry import SearchProviderRegistry
+from sgr_agent_core.tools.base_search_tool import _BaseSearchTool
 
 logger = logging.getLogger(__name__)
 
@@ -100,4 +101,4 @@ class PerplexitySearchTool(_BaseSearchTool):
         return sources
 
 
-_search_registry["perplexity"] = PerplexitySearchTool
+SearchProviderRegistry.register(PerplexitySearchTool, name="perplexity")

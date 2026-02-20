@@ -34,6 +34,7 @@ from sgr_agent_core.services import (
     AgentRegistry,
     MCP2ToolConverter,
     PromptLoader,
+    SearchProviderRegistry,
     ToolRegistry,
 )
 from sgr_agent_core.tools import *  # noqa: F403
@@ -57,6 +58,7 @@ __all__ = [
     "AgentRegistry",
     "MCP2ToolConverter",
     "PromptLoader",
+    "SearchProviderRegistry",
     "ToolRegistry",
     # Configuration
     "AgentConfig",

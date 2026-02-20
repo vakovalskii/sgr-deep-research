@@ -130,3 +130,7 @@ class ToolRegistry(Registry["BaseTool"]):
 class StreamingGeneratorRegistry(Registry["BaseStreamingGenerator"]):
     """Registry for streaming generator classes (openai, open_webui,
     custom)."""
+
+
+class SearchProviderRegistry(Registry["BaseTool"]):
+    """Registry for search engine providers (tavily, brave, perplexity)."""

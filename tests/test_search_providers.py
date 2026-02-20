@@ -13,14 +13,16 @@ class TestSearchToolRegistry:
     """Tests for _BaseSearchTool registry and shared helpers."""
 
     def test_registry_contains_all_engines(self):
-        from sgr_agent_core.tools.base_search_tool import _search_registry
+        from sgr_agent_core.services.registry import SearchProviderRegistry
 
         # Ensure concrete tools are imported so registry is populated
         from sgr_agent_core.tools.brave_search_tool import BraveSearchTool  # noqa: F401
         from sgr_agent_core.tools.perplexity_search_tool import PerplexitySearchTool  # noqa: F401
         from sgr_agent_core.tools.tavily_search_tool import TavilySearchTool  # noqa: F401
 
-        assert set(_search_registry) == {"tavily", "brave", "perplexity"}
+        assert SearchProviderRegistry.get("tavily") is not None
+        assert SearchProviderRegistry.get("brave") is not None
+        assert SearchProviderRegistry.get("perplexity") is not None
 
     def test_rearrange_sources(self):
         from sgr_agent_core.tools.base_search_tool import _BaseSearchTool

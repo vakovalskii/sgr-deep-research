@@ -9,6 +9,7 @@ from pydantic import Field
 from sgr_agent_core.agent_definition import AgentConfig, SearchConfig
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.models import SearchResult, SourceData
+from sgr_agent_core.services.registry import SearchProviderRegistry
 from sgr_agent_core.utils import config_from_kwargs
 
 if TYPE_CHECKING:
@@ -16,10 +17,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-# Engine name -> tool class with _search() staticmethod.
-# Populated explicitly at module level in each provider tool file.
-_search_registry: dict[str, type] = {}
 
 
 class _BaseSearchTool(BaseTool):
@@ -30,19 +27,11 @@ class _BaseSearchTool(BaseTool):
     docstring.
 
     Provider-specific API logic lives in concrete tools as @staticmethod
-    _search() methods, dispatched via _search_registry by engine name.
+    _search() methods, dispatched via SearchProviderRegistry by engine
+    name.
     """
 
     _default_engine: ClassVar[str | None] = None
-
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        # Reset tool_name and description so each concrete subclass gets its
-        # own values instead of inheriting "_basesearchtool" / base docstring via MRO
-        if "tool_name" not in cls.__dict__:
-            cls.tool_name = cls.__name__.lower()
-        if "description" not in cls.__dict__:
-            cls.description = cls.__doc__ or ""
-        super().__init_subclass__(**kwargs)
 
     config_model = SearchConfig
     base_config_attr = "search"
@@ -88,7 +77,7 @@ class _BaseSearchTool(BaseTool):
         )
         logger.info(f"Search query: '{self.query}' (engine={search_config.engine})")
 
-        provider_cls = _search_registry.get(search_config.engine)
+        provider_cls = SearchProviderRegistry.get(search_config.engine)
         if provider_cls is None:
             raise ValueError(f"Unsupported search engine: {search_config.engine}")
 
