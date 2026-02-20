@@ -4,10 +4,11 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from pydantic import Field
+from tavily import AsyncTavilyClient
 
 from sgr_agent_core.agent_definition import SearchConfig
 from sgr_agent_core.base_tool import BaseTool
-from sgr_agent_core.tools.tavily_search_tool import TavilySearchTool
+from sgr_agent_core.models import SourceData
 from sgr_agent_core.utils import config_from_kwargs
 
 if TYPE_CHECKING:
@@ -41,6 +42,35 @@ class ExtractPageContentTool(BaseTool):
     reasoning: str = Field(description="Why extract these specific pages")
     urls: list[str] = Field(description="List of URLs to extract full content from", min_length=1, max_length=5)
 
+    @staticmethod
+    async def _extract(config: SearchConfig, urls: list[str]) -> list[SourceData]:
+        """Extract full content from URLs via Tavily Extract API."""
+        logger.info(f"Tavily extract: {len(urls)} URLs")
+
+        client = AsyncTavilyClient(api_key=config.tavily_api_key, api_base_url=config.tavily_api_base_url)
+        response = await client.extract(urls=urls)
+
+        sources = []
+        for i, result in enumerate(response.get("results", [])):
+            if not result.get("url"):
+                continue
+
+            source = SourceData(
+                number=i,
+                title=result.get("url", "").split("/")[-1] or "Extracted Content",
+                url=result.get("url", ""),
+                snippet="",
+                full_content=result.get("raw_content", ""),
+                char_count=len(result.get("raw_content", "")),
+            )
+            sources.append(source)
+
+        failed_urls = response.get("failed_results", [])
+        if failed_urls:
+            logger.warning(f"Failed to extract {len(failed_urls)} URLs: {failed_urls}")
+
+        return sources
+
     async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs: Any) -> str:
         """Extract full content from specified URLs.
 
@@ -59,7 +89,7 @@ class ExtractPageContentTool(BaseTool):
             )
         logger.info(f"Extracting content from {len(self.urls)} URLs")
 
-        sources = await TavilySearchTool._extract(search_config, urls=self.urls)
+        sources = await self._extract(search_config, urls=self.urls)
 
         # Update existing sources instead of overwriting
         for source in sources:

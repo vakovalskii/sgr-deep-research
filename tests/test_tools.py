@@ -304,7 +304,7 @@ class TestSearchToolsKwargs:
         context = AgentContext()
         config = MagicMock()
         config.search = SearchConfig(tavily_api_key="k", content_limit=1000)
-        with patch.object(TavilySearchTool, "_extract", new_callable=AsyncMock, return_value=[]) as mock_extract:
+        with patch.object(ExtractPageContentTool, "_extract", new_callable=AsyncMock, return_value=[]) as mock_extract:
             await tool(context, config, content_limit=500)
             # search_config is passed as first positional arg
             assert mock_extract.call_args[0][0].content_limit == 500

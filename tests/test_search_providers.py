@@ -174,7 +174,7 @@ class TestTavilySearchProvider:
 
     @pytest.mark.asyncio
     async def test_extract_calls_tavily_api(self):
-        from sgr_agent_core.tools.tavily_search_tool import TavilySearchTool
+        from sgr_agent_core.tools.extract_page_content_tool import ExtractPageContentTool
 
         config = SearchConfig(tavily_api_key="test-key")
 
@@ -188,8 +188,8 @@ class TestTavilySearchProvider:
             }
         )
 
-        with patch("sgr_agent_core.tools.tavily_search_tool.AsyncTavilyClient", return_value=mock_client):
-            sources = await TavilySearchTool._extract(config, urls=["https://example.com/page"])
+        with patch("sgr_agent_core.tools.extract_page_content_tool.AsyncTavilyClient", return_value=mock_client):
+            sources = await ExtractPageContentTool._extract(config, urls=["https://example.com/page"])
 
             assert len(sources) == 1
             assert sources[0].url == "https://example.com/page"

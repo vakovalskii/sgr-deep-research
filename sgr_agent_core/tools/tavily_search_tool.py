@@ -52,35 +52,6 @@ class TavilySearchTool(_BaseSearchTool):
         return sources[:max_results]
 
     @staticmethod
-    async def _extract(config: SearchConfig, urls: list[str]) -> list[SourceData]:
-        """Extract full content from URLs via Tavily Extract API."""
-        logger.info(f"Tavily extract: {len(urls)} URLs")
-
-        client = AsyncTavilyClient(api_key=config.tavily_api_key, api_base_url=config.tavily_api_base_url)
-        response = await client.extract(urls=urls)
-
-        sources = []
-        for i, result in enumerate(response.get("results", [])):
-            if not result.get("url"):
-                continue
-
-            source = SourceData(
-                number=i,
-                title=result.get("url", "").split("/")[-1] or "Extracted Content",
-                url=result.get("url", ""),
-                snippet="",
-                full_content=result.get("raw_content", ""),
-                char_count=len(result.get("raw_content", "")),
-            )
-            sources.append(source)
-
-        failed_urls = response.get("failed_results", [])
-        if failed_urls:
-            logger.warning(f"Failed to extract {len(failed_urls)} URLs: {failed_urls}")
-
-        return sources
-
-    @staticmethod
     def _convert_to_source_data(response: dict) -> list[SourceData]:
         """Convert Tavily response to SourceData list."""
         sources = []
