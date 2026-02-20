@@ -2,7 +2,12 @@ from sgr_agent_core.tools.base_search_tool import _BaseSearchTool
 
 
 class WebSearchTool(_BaseSearchTool):
-    """Search the web for real-time information about any topic.
+    """Primary user-facing search tool (not legacy). Engine is selected via
+    SearchConfig.engine — switch providers by changing one config line.
+    Standalone tools (TavilySearchTool, BraveSearchTool, PerplexitySearchTool)
+    are an alternative for multi-engine setups where the LLM picks the engine.
+
+    Search the web for real-time information about any topic.
     Use this tool when you need up-to-date information that might not be available in your training data,
     or when you need to verify current facts.
     The search results will include relevant snippets and URLs from web pages.
