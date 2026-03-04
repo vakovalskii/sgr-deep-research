@@ -216,7 +216,6 @@ alwaysApply: true
 - `ChatCompletionRequest`: OpenAI-compatible request model
 - `MessagesList`: Root model for message lists with base64 truncation
 - `AgentStateResponse`: Agent state response model
-- `ClarificationRequest`: Clarification request model
 - `HealthResponse`: Health check response
 
 ### FastAPI Application (`sgr_agent_core/server/app.py`)
