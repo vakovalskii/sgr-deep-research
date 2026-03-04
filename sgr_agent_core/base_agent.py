@@ -80,9 +80,22 @@ class BaseAgent(AgentRegistryMixin):
         base = getattr(self.config, base_attr, None) if base_attr and self.config else None
         return config_from_kwargs(config_model, base, raw)
 
-    async def provide_clarification(self, messages: list[ChatCompletionMessageParam]):
-        """Receive clarification from an external source (e.g. user input) in
-        OpenAI messages format."""
+    async def provide_clarification(
+        self,
+        messages: list[ChatCompletionMessageParam],
+        replace_conversation: bool = False,
+    ) -> None:
+        """Receive clarification from an external source in OpenAI messages
+        format.
+
+        Args:
+            messages: Clarification messages in OpenAI ChatCompletionMessageParam format.
+            replace_conversation: When True, clear the conversation
+                before applying messages (continuing stateful conversation / stateless mode).
+                Use this for stateless clients that re-send the full history on every turn.
+        """
+        if replace_conversation:
+            self.conversation = []
         self.conversation.extend(messages)
         self.conversation.append(
             {"role": "user", "content": PromptLoader.get_clarification_template(messages, self.config.prompts)}
@@ -262,8 +275,10 @@ class BaseAgent(AgentRegistryMixin):
         This method contains the main agent execution logic. It is
         called by execute() which wraps it in an asyncio task.
         """
-        print("start messages: ", self.task_messages)
         self.logger.info(f"🚀 User provided {len(self.task_messages)} messages.")
+        init_message = f"Agent {self.id} started\n"
+        self.conversation.append({"role": "system", "content": init_message})
+        self.streaming_generator.add_content_delta(init_message, "0-start")
         try:
             while self._context.state not in AgentStatesEnum.FINISH_STATES.value:
                 self._context.iteration += 1

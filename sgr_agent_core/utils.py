@@ -1,8 +1,20 @@
 """Internal utilities for config merging and tool helpers."""
 
+import re
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
+
+_AGENT_ID_PATTERN = r"\w+_[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}"
+
+_AGENT_ID_RE = re.compile(r"^" + _AGENT_ID_PATTERN + r"$", re.IGNORECASE)
+_AGENT_ID_SEARCH_RE = re.compile(r"\b(" + _AGENT_ID_PATTERN + r")\b", re.IGNORECASE)
+
+
+def is_agent_id(value: str) -> bool:
+    """Return True if value matches the agent ID format (name_uuid)."""
+    return bool(_AGENT_ID_RE.match(value))
+
 
 T = TypeVar("T", bound=BaseModel)
 

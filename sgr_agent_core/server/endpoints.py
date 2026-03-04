@@ -12,9 +12,10 @@ from sgr_agent_core.server.models import (
     AgentListResponse,
     AgentStateResponse,
     ChatCompletionRequest,
-    ClarificationRequest,
     HealthResponse,
+    MessagesRequest,
 )
+from sgr_agent_core.utils import is_agent_id
 
 logger = logging.getLogger(__name__)
 
@@ -150,15 +151,17 @@ async def get_available_models():
 
 
 @router.post("/agents/{agent_id}/provide_clarification")
-async def provide_clarification(agent_id: str, request: ClarificationRequest):
+async def provide_clarification(
+    request: MessagesRequest,
+    agent_id: str,
+) -> StreamingResponse:
+    messages = list(request.messages.root)
+    agent = agents_storage.get(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
     try:
-        agent = agents_storage.get(agent_id)
-        if not agent:
-            raise HTTPException(status_code=404, detail="Agent not found")
-
-        logger.info(f"Providing clarification to agent {agent.id}: {len(request.messages)} messages")
-
-        await agent.provide_clarification(request.messages)
+        await agent.provide_clarification(messages, replace_conversation=request.agent_id_from_messages is not None)
         return StreamingResponse(
             agent.streaming_generator.stream(),
             media_type="text/event-stream",
@@ -168,16 +171,9 @@ async def provide_clarification(agent_id: str, request: ClarificationRequest):
                 "X-Agent-ID": str(agent.id),
             },
         )
-
     except Exception as e:
         logger.error(f"Error completion: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-def _is_agent_id(model_str: str) -> bool:
-    """Check if the model string is an agent ID (contains underscore and UUID-
-    like format)."""
-    return "_" in model_str and len(model_str) > 20
 
 
 @router.post("/v1/chat/completions")
@@ -185,18 +181,14 @@ async def create_chat_completion(request: ChatCompletionRequest):
     if not request.stream:
         raise HTTPException(status_code=501, detail="Only streaming responses are supported. Set 'stream=true'")
 
-    # Check if this is a clarification request for an existing agent
+    agent_id = request.agent_id_from_messages or (request.model if is_agent_id(request.model) else None)
     if (
-        request.model
-        and isinstance(request.model, str)
-        and _is_agent_id(request.model)
-        and request.model in agents_storage
-        and agents_storage[request.model]._context.state == AgentStatesEnum.WAITING_FOR_CLARIFICATION
+        agent_id is not None
+        and agent_id in agents_storage
+        and agents_storage[agent_id]._context.state == AgentStatesEnum.WAITING_FOR_CLARIFICATION
     ):
-        return await provide_clarification(
-            agent_id=request.model,
-            request=ClarificationRequest(messages=request.messages.root),
-        )
+        response = await provide_clarification(request, agent_id=agent_id)
+        return response
 
     try:
         agent_def = next(filter(lambda ad: ad.name == request.model, AgentFactory.get_definitions_list()), None)
@@ -210,7 +202,7 @@ async def create_chat_completion(request: ChatCompletionRequest):
         logger.info(f"Created agent '{request.model}' with {len(request.messages)} messages")
 
         agents_storage[agent.id] = agent
-        asyncio.create_task(agent.execute())  # Starts execution, task stored in agent._execute_task
+        asyncio.create_task(agent.execute())
         return StreamingResponse(
             agent.streaming_generator.stream(),
             media_type="text/event-stream",

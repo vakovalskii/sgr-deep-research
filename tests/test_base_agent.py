@@ -5,6 +5,7 @@ including initialization, logging, clarification handling, and execution
 flow.
 """
 
+import asyncio
 import uuid
 from datetime import datetime
 from unittest.mock import Mock
@@ -495,6 +496,44 @@ class TestBaseAgentCancellation:
 
         # Wait for completion
         await execute_task
+
+    @pytest.mark.asyncio
+    async def test_execute_adds_agent_started_to_conversation_and_stream(self):
+        """Test that at execute start, 'agent {id} started' is in conversation
+        and stream."""
+        agent = create_test_agent(BaseAgent, task_messages=[{"role": "user", "content": "Test"}])
+        agent_id = agent.id
+
+        async def quick_execution_step():
+            agent._context.state = AgentStatesEnum.COMPLETED
+
+        agent._execution_step = quick_execution_step
+
+        # Consume stream in background to avoid blocking
+        streamed = []
+
+        async def consume():
+            async for chunk in agent.streaming_generator.stream():
+                streamed.append(chunk)
+
+        consume_task = asyncio.create_task(consume())
+        await agent.execute()
+        await asyncio.sleep(0.05)
+
+        expected = f"Agent {agent_id} started\n"
+        assert any(
+            m.get("content") == expected for m in agent.conversation if m.get("role") == "system"
+        ), "Conversation should contain agent started system message"
+        # SSE chunks are JSON-serialized, so the newline appears as \\n in the raw string
+        assert any(
+            f"Agent {agent_id} started" in chunk for chunk in streamed
+        ), "Stream should contain agent started message"
+
+        consume_task.cancel()
+        try:
+            await consume_task
+        except asyncio.CancelledError:
+            pass
 
     @pytest.mark.asyncio
     async def test_cancel_sets_cancelled_state(self):

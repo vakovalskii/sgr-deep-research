@@ -117,9 +117,18 @@ Create a chat completion for research tasks. This is the main endpoint for inter
 - `max_tokens` (integer, optional, default: 1500): Maximum number of tokens for generation
 - `temperature` (float, optional, default: 0): Generation temperature (0.0-1.0). Lower values make output more deterministic
 
-**Special Behavior - Clarification Requests:**
+**Special Behavior - Resuming an Agent in Clarification State:**
 
-If `model` contains an agent ID (format: `{agent_name}_{uuid}`) and the agent is in `waiting_for_clarification` state, this endpoint will automatically route to the clarification handler instead of creating a new agent.
+This endpoint supports two ways to resume an agent that is waiting for clarification:
+
+| Mode | Trigger | Conversation handling |
+|---|---|---|
+| **Stateless (full-context)** | Agent ID found anywhere inside `messages` text | Agent's conversation is **replaced entirely** with the incoming `messages` |
+| **Stateful (delta)** | Agent ID passed as the `model` field value | Incoming `messages` are **appended** to the existing conversation |
+
+Use the **stateless mode** when integrating with a standard OpenAI-compatible chat UI that re-sends the full message history on every request. The agent detects its own ID in the message content, overwrites its conversation snapshot, and resumes execution.
+
+Use the **stateful mode** when your client tracks context itself and only sends new messages as a delta. Pass the agent ID (format: `{agent_name}_{uuid}`) as the `model` field value.
 
 **Response:**
 
@@ -321,7 +330,10 @@ curl http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/state
 
 ## POST `/agents/{agent_id}/provide_clarification`
 
-Provide clarification to an agent that is waiting for input. Resumes agent execution after receiving clarification messages.
+Provide clarification to an agent that is waiting for input. Resumes agent execution after receiving clarification messages. This endpoint operates in **stateful (delta) mode**: the provided messages are *appended* to the agent's existing conversation history.
+
+!!! tip "Alternative via `/v1/chat/completions`"
+    If you are using a standard OpenAI-compatible client that re-sends the full message history on each turn, prefer the **stateless mode** of `POST /v1/chat/completions`: embed the agent ID anywhere in the message text (the format `agent {agent_id} started` is already included by the agent itself at startup) and send the full context as `messages`. The server will detect the ID, replace the agent's conversation with the incoming snapshot, and resume execution.
 
 **Path Parameters:**
 
@@ -342,7 +354,7 @@ Provide clarification to an agent that is waiting for input. Resumes agent execu
 
 **Request Parameters:**
 
-- `messages` (array, required): Clarification messages in OpenAI format (ChatCompletionMessageParam). Can contain multiple messages for complex clarifications.
+- `messages` (array, required): New clarification messages in OpenAI format (ChatCompletionMessageParam). These are appended to the existing conversation — send only the new user replies, not the full history.
 
 **Request:**
 
@@ -365,7 +377,7 @@ curl -X POST "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/provide_
 
 **Streaming Response:**
 
-Returns streaming response (SSE format) with continued research after clarification. The agent resumes execution from the point where it requested clarification.
+Returns a streaming SSE response with continued research after clarification. The agent resumes execution from the point where it requested clarification.
 
 **Error Responses:**
 
@@ -375,14 +387,18 @@ Returns streaming response (SSE format) with continued research after clarificat
     "detail": "Agent not found"
   }
   ```
+- `400 Bad Request`: Agent is not in `waiting_for_clarification` state
+  ```json
+  {
+    "detail": "Agent is not waiting for clarification"
+  }
+  ```
 - `500 Internal Server Error`: Error during clarification processing
   ```json
   {
     "detail": "Error message"
   }
   ```
-
-**Note:** This endpoint can also be accessed via POST `/v1/chat/completions` by using the agent ID as the `model` parameter when the agent is in `waiting_for_clarification` state.
 
 ## DELETE `/agents/{agent_id}`
 

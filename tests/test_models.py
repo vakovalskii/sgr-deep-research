@@ -10,12 +10,7 @@ from datetime import datetime
 import pytest
 from pydantic import ValidationError
 
-from sgr_agent_core.models import (
-    AgentContext,
-    AgentStatesEnum,
-    SearchResult,
-    SourceData,
-)
+from sgr_agent_core.models import AgentContext, AgentStatesEnum, SearchResult, SourceData
 
 
 class TestSourceData:
@@ -184,6 +179,58 @@ class TestResearchContext:
         assert context.searches_used == 0
         assert context.clarifications_used == 0
         assert isinstance(context.clarification_received, asyncio.Event)
+
+
+class TestChatCompletionRequestAgentId:
+    """Tests for ChatCompletionRequest.agent_id_from_messages computed
+    field."""
+
+    def test_agent_id_extracted_from_plain_text_messages(self):
+        """Agent ID should be detected when present in plain text content."""
+        from sgr_agent_core.server.models import ChatCompletionRequest
+
+        agent_id = "sgr_agent_12345678-1234-1234-1234-123456789012"
+        request = ChatCompletionRequest(
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant"},
+                {"role": "user", "content": f"Continue agent {agent_id}"},
+            ]
+        )
+
+        assert request.agent_id_from_messages == agent_id
+
+    def test_agent_id_extracted_from_multimodal_text_part(self):
+        """Agent ID should be detected when present in multimodal text part."""
+        from sgr_agent_core.server.models import ChatCompletionRequest
+
+        agent_id = "sgr_agent_aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        request = ChatCompletionRequest(
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": f"Resume agent {agent_id}"},
+                        {"type": "image_url", "image_url": {"url": "data:image/png;base64,abc123"}},
+                    ],
+                }
+            ]
+        )
+
+        assert request.agent_id_from_messages == agent_id
+
+    def test_agent_id_is_none_when_absent(self):
+        """agent_id_from_messages should be None when no matching pattern is
+        present."""
+        from sgr_agent_core.server.models import ChatCompletionRequest
+
+        request = ChatCompletionRequest(
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant"},
+                {"role": "user", "content": "Just a regular message"},
+            ]
+        )
+
+        assert request.agent_id_from_messages is None
 
     def test_research_context_state_change(self):
         """Test changing research context state."""
