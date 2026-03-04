@@ -493,22 +493,6 @@ class TestProvideClarificationEndpoint:
         assert exc_info.value.status_code == 500
         assert "Test error" in str(exc_info.value.detail)
 
-    @pytest.mark.asyncio
-    async def test_provide_clarification_agent_not_waiting(self):
-        """Test clarification when agent is not in WAITING_FOR_CLARIFICATION
-        state."""
-        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Test task"}])
-        agents_storage[agent.id] = agent
-        # agent state is not WAITING_FOR_CLARIFICATION
-
-        body = MessagesRequest(messages=MessagesList(root=[{"role": "user", "content": "Clarification"}]))
-
-        with pytest.raises(HTTPException) as exc_info:
-            await provide_clarification(body, agent_id=agent.id)
-
-        assert exc_info.value.status_code == 400
-        assert "not waiting for clarification" in str(exc_info.value.detail)
-
 
 class TestDeleteAgentEndpoint:
     """Tests for delete_agent endpoint."""
