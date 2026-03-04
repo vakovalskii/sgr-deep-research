@@ -61,7 +61,9 @@ class DialogAgent(SGRToolCallingAgent):
             self._context.execution_result = result
             self.logger.info("\n⏸️  Research paused - please answer questions")
             self._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
-            self.streaming_generator.finish()
+            self.streaming_generator.finish(
+                phase_id="{self._context.iteration}-final", content=self._context.execution_result
+            )
             self._context.clarification_received.clear()
             await self._context.clarification_received.wait()
             return
@@ -70,6 +72,8 @@ class DialogAgent(SGRToolCallingAgent):
             self._context.execution_result = result
             self.logger.info("\n💬 Dialog shared - agent waiting for response")
             self._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
-            self.streaming_generator.finish(result)
+            self.streaming_generator.finish(
+                phase_id="{self._context.iteration}-final", content=self._context.execution_result
+            )
             self._context.clarification_received.clear()
             await self._context.clarification_received.wait()
