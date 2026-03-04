@@ -1,4 +1,5 @@
 import asyncio
+import html
 import json
 import time
 from typing import Any, AsyncGenerator
@@ -159,8 +160,9 @@ class OpenWebUIStreamingGenerator(OpenAIStreamingGenerator):
         """Wraps content in a Markdown code block."""
         if not content:  # otherwise confusing placeholder will show
             return "{}"
+        safe = html.escape(content, quote=False).replace("`", "\\`")
         lang_suffix = f" {language}" if language else ""
-        return f"```{lang_suffix}\n{content}\n```"
+        return f"```{lang_suffix}\n{safe}\n```"
 
     def add_tool_call(self, phase_id: str, tool: BaseTool) -> None:
         """Formats tool/reasoning and sends in <details>."""
