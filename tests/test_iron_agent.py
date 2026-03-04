@@ -13,6 +13,78 @@ from tests.conftest import create_test_agent
 class TestIronAgent:
     """Tests for IronAgent."""
 
+    def test_default_ReasoningTool(self):  # noqa: N802
+        """IronAgent.ReasoningTool defaults to ReasoningTool."""
+        agent = create_test_agent(IronAgent)
+        assert agent.ReasoningTool is ReasoningTool
+
+    def test_custom_ReasoningTool_is_stored(self):  # noqa: N802
+        """IronAgent stores custom ReasoningTool passed via
+        reasoning_tool_cls."""
+        from unittest.mock import Mock
+
+        from openai import AsyncOpenAI
+        from pydantic import Field as PydanticField
+
+        from sgr_agent_core.agent_definition import AgentConfig, ExecutionConfig, LLMConfig, PromptsConfig
+
+        class CustomReasoningTool(ReasoningTool):
+            confidence: float = PydanticField(default=0.5)
+
+        agent_config = AgentConfig(
+            llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
+            prompts=PromptsConfig(
+                system_prompt_str="p",
+                initial_user_request_str="p",
+                clarification_response_str="p",
+            ),
+            execution=ExecutionConfig(),
+        )
+        agent = IronAgent(
+            task_messages=[{"role": "user", "content": "Test"}],
+            openai_client=Mock(spec=AsyncOpenAI),
+            agent_config=agent_config,
+            toolkit=[],
+            reasoning_tool_cls=CustomReasoningTool,
+        )
+        assert agent.ReasoningTool is CustomReasoningTool
+
+    @pytest.mark.asyncio
+    async def test_prepare_tools_uses_custom_ReasoningTool(self):  # noqa: N802
+        """_prepare_tools passes self.ReasoningTool as base_reasoning_cls to
+        build_NextStepToolSelector."""
+        from unittest.mock import Mock
+
+        from openai import AsyncOpenAI
+        from pydantic import Field as PydanticField
+
+        from sgr_agent_core.agent_definition import AgentConfig, ExecutionConfig, LLMConfig, PromptsConfig
+
+        class CustomReasoningTool(ReasoningTool):
+            confidence: float = PydanticField(default=0.5)
+
+        agent_config = AgentConfig(
+            llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
+            prompts=PromptsConfig(
+                system_prompt_str="p",
+                initial_user_request_str="p",
+                clarification_response_str="p",
+            ),
+            execution=ExecutionConfig(),
+        )
+        agent = IronAgent(
+            task_messages=[{"role": "user", "content": "Test"}],
+            openai_client=Mock(spec=AsyncOpenAI),
+            agent_config=agent_config,
+            toolkit=[WebSearchTool],
+            reasoning_tool_cls=CustomReasoningTool,
+        )
+
+        tool_selector = await agent._prepare_tools()
+
+        assert issubclass(tool_selector, CustomReasoningTool)
+        assert "confidence" in tool_selector.model_fields
+
     def test_initialization(self):
         """Test IronAgent initialization."""
         agent = create_test_agent(

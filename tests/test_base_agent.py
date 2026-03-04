@@ -556,6 +556,102 @@ class TestBaseAgentCancellation:
             pass
 
 
+class TestReasoningToolCls:
+    """Tests for configurable self.ReasoningTool on SGR agents."""
+
+    def test_sgr_agent_default_ReasoningTool(self):  # noqa: N802
+        """SGRAgent.ReasoningTool defaults to ReasoningTool."""
+        from sgr_agent_core.agents import SGRAgent
+
+        agent = create_test_agent(SGRAgent)
+        assert agent.ReasoningTool is ReasoningTool
+
+    def test_sgr_tool_calling_agent_default_ReasoningTool(self):  # noqa: N802
+        """SGRToolCallingAgent.ReasoningTool defaults to ReasoningTool."""
+        from sgr_agent_core.agents import SGRToolCallingAgent
+
+        agent = create_test_agent(SGRToolCallingAgent)
+        assert agent.ReasoningTool is ReasoningTool
+
+    def test_next_step_tools_builder_uses_custom_base_reasoning_cls(self):
+        """build_NextStepTools uses custom base_reasoning_cls as model base."""
+        from pydantic import Field as PydanticField
+
+        from sgr_agent_core.next_step_tool import NextStepToolsBuilder
+
+        class CustomReasoningTool(ReasoningTool):
+            custom_field: str = PydanticField(default="custom_value")
+
+        model = NextStepToolsBuilder.build_NextStepTools(
+            [WebSearchTool],
+            base_reasoning_cls=CustomReasoningTool,
+        )
+        assert issubclass(model, CustomReasoningTool)
+        assert "custom_field" in model.model_fields
+
+    def test_sgr_agent_custom_ReasoningTool_is_stored(self):  # noqa: N802
+        """SGRAgent stores custom ReasoningTool."""
+        from unittest.mock import Mock
+
+        from openai import AsyncOpenAI
+        from pydantic import Field as PydanticField
+
+        from sgr_agent_core.agent_definition import AgentConfig, ExecutionConfig, LLMConfig, PromptsConfig
+        from sgr_agent_core.agents import SGRAgent
+
+        class CustomReasoningTool(ReasoningTool):
+            extra: str = PydanticField(default="x")
+
+        agent_config = AgentConfig(
+            llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
+            prompts=PromptsConfig(
+                system_prompt_str="p",
+                initial_user_request_str="p",
+                clarification_response_str="p",
+            ),
+            execution=ExecutionConfig(),
+        )
+        agent = SGRAgent(
+            task_messages=[{"role": "user", "content": "Test"}],
+            openai_client=Mock(spec=AsyncOpenAI),
+            agent_config=agent_config,
+            toolkit=[],
+            reasoning_tool_cls=CustomReasoningTool,
+        )
+        assert agent.ReasoningTool is CustomReasoningTool
+
+    def test_sgr_tool_calling_agent_custom_ReasoningTool_is_stored(self):  # noqa: N802
+        """SGRToolCallingAgent stores custom ReasoningTool."""
+        from unittest.mock import Mock
+
+        from openai import AsyncOpenAI
+        from pydantic import Field as PydanticField
+
+        from sgr_agent_core.agent_definition import AgentConfig, ExecutionConfig, LLMConfig, PromptsConfig
+        from sgr_agent_core.agents import SGRToolCallingAgent
+
+        class CustomReasoningTool(ReasoningTool):
+            extra: str = PydanticField(default="x")
+
+        agent_config = AgentConfig(
+            llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
+            prompts=PromptsConfig(
+                system_prompt_str="p",
+                initial_user_request_str="p",
+                clarification_response_str="p",
+            ),
+            execution=ExecutionConfig(),
+        )
+        agent = SGRToolCallingAgent(
+            task_messages=[{"role": "user", "content": "Test"}],
+            openai_client=Mock(spec=AsyncOpenAI),
+            agent_config=agent_config,
+            toolkit=[],
+            reasoning_tool_cls=CustomReasoningTool,
+        )
+        assert agent.ReasoningTool is CustomReasoningTool
+
+
 class TestBaseAgentSaveLog:
     """Tests for agent log saving functionality."""
 

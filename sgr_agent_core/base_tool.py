@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING, ClassVar, Self
+from typing import TYPE_CHECKING, ClassVar, Self, TypeVar
 
 from fastmcp import Client
 from pydantic import BaseModel
@@ -52,6 +52,9 @@ class SystemBaseTool(BaseTool):
     filtered."""
 
     isSystemTool: ClassVar[bool] = True
+
+
+ReasoningToolStubType = TypeVar("ReasoningToolStubType", bound=SystemBaseTool)
 
 
 class MCPBaseTool(BaseTool):

@@ -8,7 +8,7 @@ from typing import Annotated, Literal, Type, TypeVar
 
 from pydantic import BaseModel, Field, create_model
 
-from sgr_agent_core.base_tool import BaseTool
+from sgr_agent_core.base_tool import BaseTool, SystemBaseTool
 from sgr_agent_core.tools.reasoning_tool import ReasoningTool
 
 logger = logging.getLogger(__name__)
@@ -16,19 +16,24 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseTool)
 
 
-class NextStepToolStub(ReasoningTool, ABC):
-    """SGR Core - Determines the next reasoning step with adaptive planning, choosing appropriate tool
-    (!) Stub class for correct autocomplete. Use NextStepToolsBuilder"""
+class NextStepToolStub(SystemBaseTool, ABC):
+    """SGR Core - Determines the next reasoning step with adaptive planning, choosing appropriate tool.
+
+    (!) Stub class for correct autocomplete. Use NextStepToolsBuilder.
+    The actual base reasoning class is injected at build time.
+    """
 
     function: T = Field(description="Select the appropriate tool for the next step")
 
 
-class ToolNameSelectorStub(ReasoningTool, ABC):
-    """Stub class for tool name selection that inherits from ReasoningTool.
+class ToolNameSelectorStub(SystemBaseTool, ABC):
+    """Stub class for tool name selection.
 
     Used by IronAgent to select tool name as part of reasoning phase.
     (!) Stub class for correct autocomplete. Use
-    NextStepToolsBuilder.build_NextStepToolSelector
+    NextStepToolsBuilder.build_NextStepToolSelector with
+    base_reasoning_cls. The actual base reasoning class is injected at
+    build time.
     """
 
     function_name_choice: str = Field(description="Select the name of the tool to use")
@@ -70,11 +75,23 @@ class NextStepToolsBuilder:
         return Annotated[union, Field()]
 
     @classmethod
-    def build_NextStepTools(cls, tools_list: list[Type[T]]) -> Type[NextStepToolStub]:  # noqa
-        """Build a model with all NextStepTool args."""
+    def build_NextStepTools(  # noqa
+        cls,
+        tools_list: list[Type[T]],
+        base_reasoning_cls: type[ReasoningTool] = ReasoningTool,
+    ) -> Type[NextStepToolStub]:
+        """Build a model with all NextStepTool args.
+
+        Args:
+            tools_list: List of tool classes to include in the union.
+            base_reasoning_cls: Pydantic model class used as the base for the
+                reasoning schema sent to the LLM via Structured Output. Defaults
+                to ReasoningTool. Pass a subclass to extend or override the
+                reasoning schema.
+        """
         return create_model(
             "NextStepTools",
-            __base__=NextStepToolStub,
+            __base__=base_reasoning_cls,
             function=(
                 cls._create_tool_types_union(tools_list),
                 Field(description="Select and fill parameters of the appropriate tool for the next step"),
@@ -82,9 +99,19 @@ class NextStepToolsBuilder:
         )
 
     @classmethod
-    def build_NextStepToolSelector(cls, tools_list: list[Type[T]]) -> Type[ToolNameSelectorStub]:
-        """Build a model for selecting tool name."""
-        # Extract tool names and descriptions
+    def build_NextStepToolSelector(  # noqa
+        cls,
+        tools_list: list[Type[T]],
+        base_reasoning_cls: type[SystemBaseTool] = ReasoningTool,
+    ) -> Type[ToolNameSelectorStub]:
+        """Build a model for selecting tool name.
+
+        Args:
+            tools_list: List of tool classes whose names form the allowed choices.
+            base_reasoning_cls: Pydantic model class used as the base for the
+                reasoning schema. Defaults to ReasoningTool. Pass a subclass to
+                extend or override the reasoning schema.
+        """
         tool_names = [tool.tool_name for tool in tools_list]
 
         if len(tool_names) == 1:
@@ -98,7 +125,7 @@ class NextStepToolsBuilder:
         # Create model dynamically, inheriting from ToolNameSelectorStub (which inherits from ReasoningTool)
         model_class = create_model(
             "NextStepToolSelector",
-            __base__=ToolNameSelectorStub,
+            __base__=base_reasoning_cls,
             function_name_choice=(literal_type, Field(description="Choose the name for the best tool to use")),
         )
         model_class.tool_name = "nextsteptoolselector"  # type: ignore
