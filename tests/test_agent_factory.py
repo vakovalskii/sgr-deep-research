@@ -802,7 +802,8 @@ class TestAgentFactoryErrorHandling:
 
     @pytest.mark.asyncio
     async def test_create_agent_with_invalid_tool_string(self):
-        """Test that AgentDefinition with invalid tool string raises error at definition time."""
+        """Test that AgentDefinition with invalid tool string raises error at
+        definition time."""
         from pydantic import ValidationError
 
         with mock_global_config():
@@ -822,7 +823,8 @@ class TestAgentFactoryErrorHandling:
 
     @pytest.mark.asyncio
     async def test_create_agent_with_invalid_tool_class(self):
-        """Test that AgentDefinition with a non-BaseTool class raises TypeError at definition time."""
+        """Test that AgentDefinition with a non-BaseTool class raises TypeError
+        at definition time."""
 
         class NotATool:
             """A class that is not a BaseTool subclass."""

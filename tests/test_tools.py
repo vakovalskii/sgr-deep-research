@@ -182,7 +182,8 @@ class TestToolsConfigReading:
 
 
 class TestSearchToolsKwargs:
-    """Test that search tools use kwargs (tool config) for their search settings."""
+    """Test that search tools use kwargs (tool config) for their search
+    settings."""
 
     @pytest.mark.asyncio
     async def test_web_search_tool_uses_max_results_from_kwargs(self):
@@ -202,7 +203,8 @@ class TestSearchToolsKwargs:
 
     @pytest.mark.asyncio
     async def test_web_search_tool_uses_tool_config_kwargs(self):
-        """WebSearchTool reads max_results from tool config kwargs (not config.search)."""
+        """WebSearchTool reads max_results from tool config kwargs (not
+        config.search)."""
         from sgr_agent_core.models import AgentContext
 
         tool = WebSearchTool(reasoning="r", query="test", max_results=5)
@@ -301,7 +303,8 @@ class TestSearchToolsKwargs:
 
     @pytest.mark.asyncio
     async def test_extract_page_content_tool_uses_content_limit_from_kwargs(self):
-        """ExtractPageContentTool uses content_limit from tool config kwargs."""
+        """ExtractPageContentTool uses content_limit from tool config
+        kwargs."""
         from sgr_agent_core.models import AgentContext
 
         tool = ExtractPageContentTool(reasoning="r", urls=["https://example.com"])

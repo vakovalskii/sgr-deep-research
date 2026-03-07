@@ -63,7 +63,7 @@ class WebSearchTool(BaseTool):
     )
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs: Any) -> str:
-        """Execute web search using TavilySearchService"""
+        """Execute web search using TavilySearchService."""
         search_config = SearchConfig(**kwargs)
         logger.info(f"🔍 Search query: '{self.query}'")
         self._search_service = TavilySearchService(search_config)

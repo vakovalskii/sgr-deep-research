@@ -135,9 +135,11 @@ class TestAgentDefinitionTools:
     single-key compact format)."""
 
     def test_tools_dict_with_non_dict_config_value_raises_value_error(self):
-        """Compact dict format {tool_name: value} requires value to be dict or null.
+        """Compact dict format {tool_name: value} requires value to be dict or
+        null.
 
-        A non-dict, non-null value (e.g. an integer) must raise a clear ValueError.
+        A non-dict, non-null value (e.g. an integer) must raise a clear
+        ValueError.
         """
         from pydantic import ValidationError
 

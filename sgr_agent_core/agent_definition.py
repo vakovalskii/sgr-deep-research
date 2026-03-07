@@ -300,7 +300,8 @@ class AgentDefinition(AgentConfig):
 
     @model_validator(mode="after")
     def agent_level_tools_validator(self) -> Self:
-        """Merge global tool config, resolve base_class to a class, validate via config_model."""
+        """Merge global tool config, resolve base_class to a class, validate
+        via config_model."""
         from sgr_agent_core.agent_config import GlobalConfig
         from sgr_agent_core.base_tool import BaseTool
         from sgr_agent_core.services.registry import ToolRegistry

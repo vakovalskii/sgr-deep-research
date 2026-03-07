@@ -39,7 +39,7 @@ class ExtractPageContentTool(BaseTool):
     urls: list[str] = Field(description="List of URLs to extract full content from", min_length=1, max_length=5)
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs: Any) -> str:
-        """Extract full content from specified URLs"""
+        """Extract full content from specified URLs."""
         search_config = SearchConfig(**kwargs)
         logger.info(f"📄 Extracting content from {len(self.urls)} URLs")
 

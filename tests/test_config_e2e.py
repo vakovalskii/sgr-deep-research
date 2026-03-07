@@ -35,7 +35,8 @@ from sgr_agent_core.tools.extract_page_content_tool import ExtractPageContentToo
 class E2ETestTool(BaseTool):
     """Simple test tool for e2e config tests.
 
-    Used in Format-5 tests (dict with null value) to verify registry lookup.
+    Used in Format-5 tests (dict with null value) to verify registry
+    lookup.
     """
 
     tool_name: ClassVar[str] = "e2e_test_tool"
@@ -91,7 +92,8 @@ def write_yaml_config(tmp_path, config_dict: dict) -> str:
 
 
 def make_full_yaml_config() -> dict:
-    """Build a full YAML config dict covering all global tool formats and agent variants."""
+    """Build a full YAML config dict covering all global tool formats and agent
+    variants."""
     return {
         "llm": GLOBAL_LLM,
         "execution": {"max_iterations": 5},
@@ -147,7 +149,8 @@ def make_full_yaml_config() -> dict:
 
 
 class TestGlobalToolFormatsViaYAML:
-    """Tests for global tool definition formats in the YAML 'tools:' section."""
+    """Tests for global tool definition formats in the YAML 'tools:'
+    section."""
 
     def test_g1_null_config_stored_without_base_class(self, tmp_path):
         """G-1: null value → ToolDefinition has no base_class and empty kwargs.
@@ -204,8 +207,8 @@ class TestAgentToolFormatsViaYAML:
     """Tests for agent-level tool reference formats after YAML loading.
 
     All assertions target the resolved AgentDefinition.tools list, where
-    agent_level_tools_validator has already merged global kwargs and resolved
-    base_class to an actual Python class.
+    agent_level_tools_validator has already merged global kwargs and
+    resolved base_class to an actual Python class.
     """
 
     def _load_agent_standard(self, tmp_path) -> AgentDefinition:
@@ -267,7 +270,8 @@ class TestAgentToolFormatsViaYAML:
         ]
 
     def test_all_agent_tools_have_resolved_base_class(self, tmp_path):
-        """After loading, every ToolDefinition in agent.tools has a concrete class."""
+        """After loading, every ToolDefinition in agent.tools has a concrete
+        class."""
         agent = self._load_agent_standard(tmp_path)
 
         for td in agent.tools:
@@ -279,10 +283,12 @@ class TestAgentToolFormatsViaYAML:
 
 
 class TestInlineToolDefinitionFormats:
-    """Tests for all 7 inline Python formats supported by AgentDefinition.tools.
+    """Tests for all 7 inline Python formats supported by
+    AgentDefinition.tools.
 
-    These tests create AgentDefinition objects directly in Python without loading
-    any YAML, so GlobalConfig.tools is empty and global kwargs merging does not apply.
+    These tests create AgentDefinition objects directly in Python
+    without loading any YAML, so GlobalConfig.tools is empty and global
+    kwargs merging does not apply.
     """
 
     _COMMON = dict(
@@ -430,7 +436,8 @@ class TestAgentConfigTwoLevelBuilding:
     """
 
     def test_agent_overrides_model_inherits_global_api_key_and_base_url(self, tmp_path):
-        """Level-2 model override leaves api_key, base_url, temperature from Level-1."""
+        """Level-2 model override leaves api_key, base_url, temperature from
+        Level-1."""
         GlobalConfig.from_yaml(write_yaml_config(tmp_path, make_full_yaml_config()))
         agent = GlobalConfig().agents["agent_standard"]
 
@@ -440,7 +447,8 @@ class TestAgentConfigTwoLevelBuilding:
         assert agent.llm.temperature == 0.5  # inherited from global
 
     def test_agent_without_llm_section_inherits_full_global_llm(self, tmp_path):
-        """Agent with no 'llm:' section gets the complete global LLM configuration."""
+        """Agent with no 'llm:' section gets the complete global LLM
+        configuration."""
         GlobalConfig.from_yaml(write_yaml_config(tmp_path, make_full_yaml_config()))
         agent = GlobalConfig().agents["agent_inherits_global"]
 
@@ -450,7 +458,8 @@ class TestAgentConfigTwoLevelBuilding:
         assert agent.llm.base_url == "https://api.openai.com/v1"  # from global
 
     def test_agent_overrides_multiple_llm_fields(self, tmp_path):
-        """Agent overrides both model and temperature; api_key and base_url inherited."""
+        """Agent overrides both model and temperature; api_key and base_url
+        inherited."""
         GlobalConfig.from_yaml(write_yaml_config(tmp_path, make_full_yaml_config()))
         agent = GlobalConfig().agents["agent_custom_llm"]
 
@@ -460,14 +469,16 @@ class TestAgentConfigTwoLevelBuilding:
         assert agent.llm.base_url == "https://api.openai.com/v1"  # inherited from global
 
     def test_agent_inherits_global_execution_max_iterations(self, tmp_path):
-        """Agent without 'execution:' section inherits global max_iterations."""
+        """Agent without 'execution:' section inherits global
+        max_iterations."""
         GlobalConfig.from_yaml(write_yaml_config(tmp_path, make_full_yaml_config()))
         agent = GlobalConfig().agents["agent_inherits_global"]
 
         assert agent.execution.max_iterations == 5  # from global
 
     def test_agent_overrides_one_execution_field_inherits_rest(self, tmp_path):
-        """Agent overrides max_iterations; default max_clarifications still applies."""
+        """Agent overrides max_iterations; default max_clarifications still
+        applies."""
         config = make_full_yaml_config()
         config["agents"]["agent_exec_override"] = {
             "base_class": "sgr_agent_core.agents.ToolCallingAgent",
@@ -481,7 +492,8 @@ class TestAgentConfigTwoLevelBuilding:
         assert agent.execution.max_clarifications == 3  # ExecutionConfig default unchanged
 
     def test_multiple_agents_have_independent_resolved_llm_configs(self, tmp_path):
-        """Multiple agents in same YAML each get their own correctly resolved LLM."""
+        """Multiple agents in same YAML each get their own correctly resolved
+        LLM."""
         GlobalConfig.from_yaml(write_yaml_config(tmp_path, make_full_yaml_config()))
 
         agent_a = GlobalConfig().agents["agent_standard"]
@@ -557,7 +569,8 @@ class TestFullPipelineE2E:
 
     @pytest.mark.asyncio
     async def test_yaml_agent_id_prefixed_with_definition_name(self, tmp_path):
-        """Agent created via factory has id starting with definition name from YAML."""
+        """Agent created via factory has id starting with definition name from
+        YAML."""
         GlobalConfig.from_yaml(write_yaml_config(tmp_path, make_full_yaml_config()))
         agent_def = GlobalConfig().agents["agent_standard"]
 
@@ -571,7 +584,8 @@ class TestFullPipelineE2E:
 
     @pytest.mark.asyncio
     async def test_yaml_agent_uses_correct_base_class(self, tmp_path):
-        """Agent created via factory is an instance of the base_class in YAML."""
+        """Agent created via factory is an instance of the base_class in
+        YAML."""
         GlobalConfig.from_yaml(write_yaml_config(tmp_path, make_full_yaml_config()))
         agent_def = GlobalConfig().agents["agent_standard"]
 
@@ -585,7 +599,8 @@ class TestFullPipelineE2E:
 
     @pytest.mark.asyncio
     async def test_agent_overrides_global_kwargs_in_tool_configs(self, tmp_path):
-        """Agent-level kwargs take priority over global kwargs in the final tool_configs."""
+        """Agent-level kwargs take priority over global kwargs in the final
+        tool_configs."""
         GlobalConfig.from_yaml(write_yaml_config(tmp_path, make_full_yaml_config()))
         # agent_standard overrides extract_page_content_tool.content_limit: 500 (global was 2000)
         agent_def = GlobalConfig().agents["agent_standard"]
@@ -602,7 +617,8 @@ class TestFullPipelineE2E:
 
     @pytest.mark.asyncio
     async def test_inline_agent_definition_full_pipeline(self):
-        """Inline Python AgentDefinition → AgentFactory.create() → correct agent."""
+        """Inline Python AgentDefinition → AgentFactory.create() → correct
+        agent."""
         agent_def = AgentDefinition(
             name="inline_agent",
             base_class=ToolCallingAgent,
