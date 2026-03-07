@@ -61,18 +61,8 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
         agents_data = data.get("agents", {})
         tools_data = data.get("tools", {})
 
-        # Process agents
-        for agent_name, agent_config in agents_data.items():
-            agent_config["name"] = agent_name
-
-        custom_agents = Definitions(agents=agents_data, tools={}).agents
-
-        # Check for agents that will be overridden
-        overridden = set(cls._instance.agents.keys()) & set(custom_agents.keys())
-        if overridden:
-            logger.warning(f"Loaded agents will override existing agents: {', '.join(sorted(overridden))}")
-
-        cls._instance.agents.update(custom_agents)
+        # Tools must be registered before agents so that process_tools validator
+        # can read GlobalConfig().tools when merging global kwargs into agent tools.
 
         # Process tools
         processed_tools = {}
@@ -93,6 +83,19 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
             logger.warning(f"Loaded tools will override existing tools: {', '.join(sorted(overridden_tools))}")
 
         cls._instance.tools.update(custom_tools)
+
+        # Process agents
+        for agent_name, agent_config in agents_data.items():
+            agent_config["name"] = agent_name
+
+        custom_agents = Definitions(agents=agents_data, tools={}).agents
+
+        # Check for agents that will be overridden
+        overridden = set(cls._instance.agents.keys()) & set(custom_agents.keys())
+        if overridden:
+            logger.warning(f"Loaded agents will override existing agents: {', '.join(sorted(overridden))}")
+
+        cls._instance.agents.update(custom_agents)
         return cls._instance
 
     @classmethod
