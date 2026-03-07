@@ -338,37 +338,35 @@ class TestBaseAgentGetToolConfig:
 
     def test_get_tool_config_returns_model_when_tool_has_config_model(self):
         """get_tool_config returns Pydantic model instance for tools with
-        config_model."""
+        config_model, built from tool_configs kwargs."""
         agent = create_test_agent(
             BaseAgent,
             task_messages=[{"role": "user", "content": "Test"}],
             toolkit=[WebSearchTool],
         )
-        agent.tool_configs = {"websearchtool": {"max_searches": 6}}
+        agent.tool_configs = {"websearchtool": {"tavily_api_key": "key", "max_searches": 6}}
         agent.config = AgentConfig(
             llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
             prompts=PromptsConfig(system_prompt_str="p", initial_user_request_str="p", clarification_response_str="p"),
             execution=ExecutionConfig(),
-            search=None,
         )
         out = agent.get_tool_config(WebSearchTool)
         assert isinstance(out, SearchConfig)
         assert out.max_searches == 6
 
-    def test_get_tool_config_merges_base_from_agent_config(self):
-        """get_tool_config merges base from base_config_attr (e.g.
-        config.search)."""
+    def test_get_tool_config_returns_model_from_tool_configs_only(self):
+        """get_tool_config builds SearchConfig exclusively from tool_configs
+        (search settings are per-tool, not in AgentConfig)."""
         agent = create_test_agent(
             BaseAgent,
             task_messages=[{"role": "user", "content": "Test"}],
             toolkit=[WebSearchTool],
         )
-        agent.tool_configs = {"websearchtool": {}}
+        agent.tool_configs = {"websearchtool": {"tavily_api_key": "key", "max_searches": 10}}
         agent.config = AgentConfig(
             llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
             prompts=PromptsConfig(system_prompt_str="p", initial_user_request_str="p", clarification_response_str="p"),
             execution=ExecutionConfig(),
-            search=SearchConfig(tavily_api_key="key", max_searches=10),
         )
         out = agent.get_tool_config(WebSearchTool)
         assert isinstance(out, SearchConfig)

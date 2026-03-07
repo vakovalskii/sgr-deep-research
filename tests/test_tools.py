@@ -9,7 +9,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from sgr_agent_core.agent_definition import SearchConfig
 from sgr_agent_core.models import AgentContext, SourceData
 from sgr_agent_core.services.tavily_search import TavilySearchService
 from sgr_agent_core.tools import (
@@ -183,41 +182,37 @@ class TestToolsConfigReading:
 
 
 class TestSearchToolsKwargs:
-    """Test that search tools use kwargs (tool config) with fallback to
-    config.search."""
+    """Test that search tools use kwargs (tool config) for their search settings."""
 
     @pytest.mark.asyncio
-    async def test_web_search_tool_uses_kwargs_over_config_search(self):
-        """WebSearchTool uses max_results from kwargs when provided."""
+    async def test_web_search_tool_uses_max_results_from_kwargs(self):
+        """WebSearchTool uses max_results from tool config kwargs."""
         from sgr_agent_core.models import AgentContext
 
         tool = WebSearchTool(reasoning="r", query="test", max_results=5)
         context = AgentContext()
         config = MagicMock()
-        config.search = SearchConfig(tavily_api_key="k", max_results=10)
         with patch("sgr_agent_core.tools.web_search_tool.TavilySearchService") as mock_svc_class:
             mock_svc = AsyncMock()
             mock_svc.search = AsyncMock(return_value=[])
             mock_svc_class.return_value = mock_svc
-            await tool(context, config, max_results=3)
+            await tool(context, config, tavily_api_key="k", max_results=3)
             call_args = mock_svc_class.call_args[0][0]
             assert call_args.max_results == 3
 
     @pytest.mark.asyncio
-    async def test_web_search_tool_fallback_to_config_search(self):
-        """WebSearchTool uses config.search when kwargs do not set
-        max_results."""
+    async def test_web_search_tool_uses_tool_config_kwargs(self):
+        """WebSearchTool reads max_results from tool config kwargs (not config.search)."""
         from sgr_agent_core.models import AgentContext
 
         tool = WebSearchTool(reasoning="r", query="test", max_results=5)
         context = AgentContext()
         config = MagicMock()
-        config.search = SearchConfig(tavily_api_key="k", max_results=10)
         with patch("sgr_agent_core.tools.web_search_tool.TavilySearchService") as mock_svc_class:
             mock_svc = AsyncMock()
             mock_svc.search = AsyncMock(return_value=[])
             mock_svc_class.return_value = mock_svc
-            await tool(context, config)
+            await tool(context, config, tavily_api_key="k", max_results=10)
             call_args = mock_svc_class.call_args[0][0]
             assert call_args.max_results == 10
 
@@ -228,7 +223,6 @@ class TestSearchToolsKwargs:
         tool = WebSearchTool(reasoning="r", query="test", max_results=3, offset=2)
         context = AgentContext()
         config = MagicMock()
-        config.search = SearchConfig(tavily_api_key="k", max_results=10)
 
         mock_sources = [
             SourceData(number=i, url=f"https://example.com/{i}", title=f"Result {i}", snippet=f"Snippet {i}")
@@ -241,7 +235,7 @@ class TestSearchToolsKwargs:
             mock_svc_class.return_value = mock_svc
             mock_svc_class.rearrange_sources = TavilySearchService.rearrange_sources
 
-            result = await tool(context, config)
+            result = await tool(context, config, tavily_api_key="k", max_results=10)
 
             # Tavily should receive max_results = 3 + 2 = 5
             mock_svc.search.assert_called_once_with(query="test", max_results=5, include_raw_content=False)
@@ -260,7 +254,6 @@ class TestSearchToolsKwargs:
 
         context = AgentContext()
         config = MagicMock()
-        config.search = SearchConfig(tavily_api_key="k", max_results=10)
 
         mock_sources = [
             SourceData(number=i, url=f"https://example.com/{i}", title=f"Result {i}", snippet=f"Snippet {i}")
@@ -273,7 +266,7 @@ class TestSearchToolsKwargs:
             mock_svc_class.return_value = mock_svc
             mock_svc_class.rearrange_sources = TavilySearchService.rearrange_sources
 
-            await tool(context, config)
+            await tool(context, config, tavily_api_key="k", max_results=10)
 
             # Tavily should receive max_results = 3 (no offset added)
             mock_svc.search.assert_called_once_with(query="test", max_results=3, include_raw_content=False)
@@ -286,7 +279,6 @@ class TestSearchToolsKwargs:
         tool = WebSearchTool(reasoning="r", query="test", max_results=3, offset=10)
         context = AgentContext()
         config = MagicMock()
-        config.search = SearchConfig(tavily_api_key="k", max_results=20)
 
         mock_sources = [
             SourceData(number=i, url=f"https://example.com/{i}", title=f"Result {i}", snippet=f"Snippet {i}")
@@ -299,7 +291,7 @@ class TestSearchToolsKwargs:
             mock_svc_class.return_value = mock_svc
             mock_svc_class.rearrange_sources = TavilySearchService.rearrange_sources
 
-            result = await tool(context, config)
+            result = await tool(context, config, tavily_api_key="k", max_results=20)
 
             # Tavily should receive max_results = 3 + 10 = 13
             mock_svc.search.assert_called_once_with(query="test", max_results=13, include_raw_content=False)
@@ -309,17 +301,16 @@ class TestSearchToolsKwargs:
 
     @pytest.mark.asyncio
     async def test_extract_page_content_tool_uses_content_limit_from_kwargs(self):
-        """ExtractPageContentTool uses content_limit from kwargs."""
+        """ExtractPageContentTool uses content_limit from tool config kwargs."""
         from sgr_agent_core.models import AgentContext
 
         tool = ExtractPageContentTool(reasoning="r", urls=["https://example.com"])
         context = AgentContext()
         config = MagicMock()
-        config.search = SearchConfig(tavily_api_key="k", content_limit=1000)
         with patch("sgr_agent_core.tools.extract_page_content_tool.TavilySearchService") as mock_svc_class:
             mock_svc = AsyncMock()
             mock_svc.extract = AsyncMock(return_value=[])
             mock_svc_class.return_value = mock_svc
-            await tool(context, config, content_limit=500)
+            await tool(context, config, tavily_api_key="k", content_limit=500)
             call_args = mock_svc_class.call_args[0][0]
             assert call_args.content_limit == 500

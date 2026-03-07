@@ -8,7 +8,6 @@ from pydantic import Field
 from sgr_agent_core.agent_definition import SearchConfig
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.services import TavilySearchService
-from sgr_agent_core.utils import config_from_kwargs
 
 if TYPE_CHECKING:
     from sgr_agent_core.agent_definition import AgentConfig
@@ -35,22 +34,13 @@ class ExtractPageContentTool(BaseTool):
     """
 
     config_model = SearchConfig
-    base_config_attr = "search"
 
     reasoning: str = Field(description="Why extract these specific pages")
     urls: list[str] = Field(description="List of URLs to extract full content from", min_length=1, max_length=5)
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs: Any) -> str:
-        """Extract full content from specified URLs.
-
-        Search settings (e.g. tavily_api_key, content_limit) are taken
-        from kwargs (tool config) with fallback to config.search.
-        """
-        search_config = config_from_kwargs(
-            SearchConfig,
-            config.search if config else None,
-            dict(kwargs),
-        )
+        """Extract full content from specified URLs"""
+        search_config = SearchConfig(**kwargs)
         logger.info(f"📄 Extracting content from {len(self.urls)} URLs")
 
         self._search_service = TavilySearchService(search_config)

@@ -348,12 +348,15 @@ execution:
 
 **Конфигурация:**
 
+Настройки поиска задаются в секции `tools:` для каждого инструмента отдельно (не в глобальном блоке `search:`):
+
 ```yaml
-search:
-  tavily_api_key: "your-tavily-api-key"  # Обязательно: API-ключ Tavily
-  tavily_api_base_url: "https://api.tavily.com"  # URL API Tavily
-  max_searches: 4  # Максимальное количество поисковых операций
-  max_results: 10  # Максимум результатов в поисковом запросе (переопределяет max_results тула, если меньше)
+tools:
+  web_search_tool:
+    tavily_api_key: "your-tavily-api-key"  # Обязательно: API-ключ Tavily
+    tavily_api_base_url: "https://api.tavily.com"  # URL API Tavily
+    max_searches: 4  # Максимальное количество поисковых операций
+    max_results: 10  # Максимум результатов в поисковом запросе (переопределяет max_results тула, если меньше)
 ```
 
 После достижения `max_searches` тул автоматически удаляется из доступных тулов.
@@ -361,11 +364,14 @@ search:
 **Пример:**
 
 ```yaml
+tools:
+  web_search_tool:
+    tavily_api_key: "your-tavily-api-key"
+    max_searches: 6
+    max_results: 15
+
 agents:
   research_agent:
-    search:
-      max_searches: 6
-      max_results: 15
     tools:
       - "web_search_tool"
 ```
@@ -401,20 +407,26 @@ agents:
 
 **Конфигурация:**
 
+Настройки поиска задаются в секции `tools:` для каждого инструмента отдельно:
+
 ```yaml
-search:
-  tavily_api_key: "your-tavily-api-key"  # Обязательно: API-ключ Tavily
-  tavily_api_base_url: "https://api.tavily.com"  # URL API Tavily
-  content_limit: 1500  # Лимит символов содержимого на источник (обрезает извлечённое содержимое)
+tools:
+  extract_page_content_tool:
+    tavily_api_key: "your-tavily-api-key"  # Обязательно: API-ключ Tavily
+    tavily_api_base_url: "https://api.tavily.com"  # URL API Tavily
+    content_limit: 1500  # Лимит символов содержимого на источник (обрезает извлечённое содержимое)
 ```
 
 **Пример:**
 
 ```yaml
+tools:
+  extract_page_content_tool:
+    tavily_api_key: "your-tavily-api-key"
+    content_limit: 2000  # Увеличить лимит содержимого для более детального извлечения
+
 agents:
   research_agent:
-    search:
-      content_limit: 2000  # Увеличить лимит содержимого для более детального извлечения
     tools:
       - "web_search_tool"
       - "extract_page_content_tool"
@@ -436,6 +448,15 @@ agents:
 **Пример: Базовая конфигурация тулов**
 
 ```yaml
+tools:
+  web_search_tool:
+    tavily_api_key: "your-tavily-api-key"
+    max_searches: 4
+    max_results: 10
+  extract_page_content_tool:
+    tavily_api_key: "your-tavily-api-key"
+    content_limit: 1500
+
 agents:
   my_agent:
     base_class: "SGRAgent"
@@ -450,10 +471,6 @@ agents:
     execution:
       max_clarifications: 3
       max_iterations: 10
-    search:
-      max_searches: 4
-      max_results: 10
-      content_limit: 1500
 ```
 
 ### Определение тулов в конфигурации

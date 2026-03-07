@@ -61,7 +61,7 @@ alwaysApply: true
 - All calls to `GlobalConfig()` return the same instance
 - Loads from YAML files via `from_yaml()` method
 - Loads from environment variables via `pydantic-settings` (prefix `SGR__`)
-- Contains: `llm`, `search`, `execution`, `prompts`, `mcp`, `agents`, `tools`
+- Contains: `llm`, `execution`, `prompts`, `mcp`, `agents`, `tools`
 - `agents`: Dictionary of `AgentDefinition` instances by name
 - `tools`: Dictionary of tool definitions by name
 - `definitions_from_yaml()`: Loads agent definitions from YAML (merges with existing)
@@ -71,14 +71,15 @@ alwaysApply: true
 - Inherits from `AgentConfig` (has all config fields)
 - Additional fields: `name`, `base_class`, `tools`
 - `base_class`: Can be class, ImportString (e.g., `"sgr_agent_core.agents.SGRAgent"`), or registry name
-- `tools`: List of tool names (strings) or tool classes
+- `tools`: List of `ToolDefinition` objects (resolved from names, classes, or dicts)
 - Supports YAML loading via `GlobalConfig.definitions_from_yaml()`
 - Validates import strings point to existing files
-- Automatically merges with `GlobalConfig` defaults
+- Automatically merges with `GlobalConfig` defaults (tools: global kwargs merged with agent-level kwargs)
 
 ### AgentConfig (`sgr_agent_core/agent_definition.py`)
 - Runtime configuration for agent instance
-- Combines: `LLMConfig`, `SearchConfig`, `ExecutionConfig`, `PromptsConfig`, `MCPConfig`
+- Combines: `LLMConfig`, `ExecutionConfig`, `PromptsConfig`, `MCPConfig`
+- Note: Search settings (`tavily_api_key`, `max_results`, etc.) are NOT in `AgentConfig`; they are configured per-tool in the `tools:` section as `SearchConfig` kwargs
 - Supports hierarchical inheritance from `GlobalConfig`
 - Uses `extra="allow"` to support custom fields for agent-specific parameters
 

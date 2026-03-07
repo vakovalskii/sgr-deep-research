@@ -348,12 +348,15 @@ Use for finding up-to-date information, verifying facts, researching current eve
 
 **Configuration:**
 
+Search settings are configured per-tool in the `tools:` section (not in a global `search:` block):
+
 ```yaml
-search:
-  tavily_api_key: "your-tavily-api-key"  # Required: Tavily API key
-  tavily_api_base_url: "https://api.tavily.com"  # Tavily API URL
-  max_searches: 4  # Maximum number of search operations
-  max_results: 10  # Maximum results in search query (overrides tool's max_results if lower)
+tools:
+  web_search_tool:
+    tavily_api_key: "your-tavily-api-key"  # Required: Tavily API key
+    tavily_api_base_url: "https://api.tavily.com"  # Tavily API URL
+    max_searches: 4  # Maximum number of search operations
+    max_results: 10  # Maximum results in search query (overrides tool's max_results if lower)
 ```
 
 After reaching `max_searches`, the tool is automatically removed from available tools.
@@ -361,11 +364,14 @@ After reaching `max_searches`, the tool is automatically removed from available 
 **Example:**
 
 ```yaml
+tools:
+  web_search_tool:
+    tavily_api_key: "your-tavily-api-key"
+    max_searches: 6
+    max_results: 15
+
 agents:
   research_agent:
-    search:
-      max_searches: 6
-      max_results: 15
     tools:
       - "web_search_tool"
 ```
@@ -401,20 +407,26 @@ Call after `web_search_tool` to get detailed information from promising URLs fou
 
 **Configuration:**
 
+Search settings are configured per-tool in the `tools:` section:
+
 ```yaml
-search:
-  tavily_api_key: "your-tavily-api-key"  # Required: Tavily API key
-  tavily_api_base_url: "https://api.tavily.com"  # Tavily API URL
-  content_limit: 1500  # Content character limit per source (truncates extracted content)
+tools:
+  extract_page_content_tool:
+    tavily_api_key: "your-tavily-api-key"  # Required: Tavily API key
+    tavily_api_base_url: "https://api.tavily.com"  # Tavily API URL
+    content_limit: 1500  # Content character limit per source (truncates extracted content)
 ```
 
 **Example:**
 
 ```yaml
+tools:
+  extract_page_content_tool:
+    tavily_api_key: "your-tavily-api-key"
+    content_limit: 2000  # Increase content limit for more detailed extraction
+
 agents:
   research_agent:
-    search:
-      content_limit: 2000  # Increase content limit for more detailed extraction
     tools:
       - "web_search_tool"
       - "extract_page_content_tool"
@@ -436,6 +448,15 @@ Tools are configured per agent in the `agents.yaml` file or agent definitions. Y
 **Example: Basic Tool Configuration**
 
 ```yaml
+tools:
+  web_search_tool:
+    tavily_api_key: "your-tavily-api-key"
+    max_searches: 4
+    max_results: 10
+  extract_page_content_tool:
+    tavily_api_key: "your-tavily-api-key"
+    content_limit: 1500
+
 agents:
   my_agent:
     base_class: "SGRAgent"
@@ -450,10 +471,6 @@ agents:
     execution:
       max_clarifications: 3
       max_iterations: 10
-    search:
-      max_searches: 4
-      max_results: 10
-      content_limit: 1500
 ```
 
 ### Defining Tools in Configuration
