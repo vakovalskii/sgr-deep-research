@@ -10,6 +10,11 @@ llm:
   temperature: 0.4  # Temperature (0.0-1.0)
   # proxy: "socks5://127.0.0.1:1081"  # Optional proxy (socks5:// or http://)
 
+# Observability (Langfuse)
+# When enabled, AgentFactory will create Langfuse AsyncOpenAI client instead of standard AsyncOpenAI.
+# Langfuse SDK uses LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY and LANGFUSE_BASE_URL environment variables.
+langfuse: false
+
 # Execution Settings
 execution:
   max_clarifications: 3  # Max clarification requests

@@ -407,6 +407,53 @@ class TestAgentFactoryClientCreation:
         assert client.api_key == "test-key"
         assert client._client is not None
 
+    def test_create_client_uses_langfuse_when_enabled(self, monkeypatch):
+        """Test that _create_client uses Langfuse AsyncOpenAI when enabled."""
+        from types import SimpleNamespace
+
+        class DummyAsyncOpenAI:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        mock_config = Mock()
+        mock_config.langfuse_enabled = True
+
+        with (
+            patch("sgr_agent_core.agent_factory.GlobalConfig", return_value=mock_config),
+            patch(
+                "sgr_agent_core.agent_factory.import_module",
+                return_value=SimpleNamespace(AsyncOpenAI=DummyAsyncOpenAI),
+            ),
+        ):
+            llm_config = LLMConfig(
+                api_key="test-key",
+                base_url="https://api.openai.com/v1",
+            )
+            client = AgentFactory._create_client(llm_config)
+
+        assert isinstance(client, DummyAsyncOpenAI)
+        assert client.kwargs["api_key"] == "test-key"
+        assert client.kwargs["base_url"] == "https://api.openai.com/v1"
+
+    def test_create_client_falls_back_when_langfuse_missing(self):
+        """Test that _create_client falls back to OpenAI client if Langfuse is
+        not available."""
+        mock_config = Mock()
+        mock_config.langfuse_enabled = True
+
+        with (
+            patch("sgr_agent_core.agent_factory.GlobalConfig", return_value=mock_config),
+            patch("sgr_agent_core.agent_factory.import_module", side_effect=ImportError),
+        ):
+            llm_config = LLMConfig(
+                api_key="test-key",
+                base_url="https://api.openai.com/v1",
+            )
+            client = AgentFactory._create_client(llm_config)
+
+        assert isinstance(client, AsyncOpenAI)
+        assert client.api_key == "test-key"
+
     @pytest.mark.asyncio
     async def test_stream_request_with_extra_parameters(self):
         """Test that additional parameters from LLMConfig (extra='allow') are

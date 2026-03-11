@@ -77,6 +77,64 @@ class TestAgentConfigurationEdgeCases:
         assert agent.task_messages[0]["content"] == "Invalid config test"
 
 
+class TestLangfuseConfiguration:
+    """Tests for Langfuse-related configuration flags."""
+
+    def test_langfuse_enabled_default_false(self, monkeypatch):
+        """Test that langfuse_enabled has correct default value."""
+        # Reset GlobalConfig singleton
+        from sgr_agent_core import agent_config as agent_config_module
+
+        agent_config_module.GlobalConfig._instance = None
+        agent_config_module.GlobalConfig._initialized = False
+
+        # Ensure env variable is not set
+        monkeypatch.delenv("SGR__LANGFUSE", raising=False)
+
+        config = GlobalConfig()
+
+        assert hasattr(config, "langfuse_enabled")
+        assert config.langfuse_enabled is False
+
+    def test_langfuse_enabled_from_env(self, monkeypatch):
+        """Test that langfuse_enabled can be enabled via environment
+        variable."""
+        from sgr_agent_core import agent_config as agent_config_module
+
+        agent_config_module.GlobalConfig._instance = None
+        agent_config_module.GlobalConfig._initialized = False
+
+        monkeypatch.setenv("SGR__LANGFUSE", "true")
+
+        config = GlobalConfig()
+
+        assert config.langfuse_enabled is True
+
+    def test_langfuse_enabled_from_yaml(self, tmp_path, monkeypatch):
+        """Test that langfuse_enabled can be enabled via config.yaml."""
+        from sgr_agent_core import agent_config as agent_config_module
+
+        agent_config_module.GlobalConfig._instance = None
+        agent_config_module.GlobalConfig._initialized = False
+
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(
+            "\n".join(
+                [
+                    "llm:",
+                    '  api_key: "test-key"',
+                    '  base_url: "https://api.openai.com/v1"',
+                    "langfuse: true",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        config = GlobalConfig.from_yaml(str(config_path))
+
+        assert config.langfuse_enabled is True
+
+
 class TestMultipleAgentConfigurationConsistency:
     """Tests for configuration consistency across multiple agents."""
 

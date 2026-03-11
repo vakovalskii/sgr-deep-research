@@ -68,6 +68,40 @@ config = GlobalConfig.from_yaml("config.yaml")
 Пример можно найти в [`config.yaml.example`](https://github.com/vamplabAI/sgr-agent-core/blob/main/config.yaml.example).
 
 
+### Наблюдаемость и интеграция с Langfuse
+
+SGR Agent Core может опционально интегрироваться с [Langfuse](https://langfuse.com) для трассировки вызовов LLM.
+Управление включением происходит через верхнеуровневый флаг `langfuse` в конфигурации:
+
+```yaml
+llm:
+  api_key: "your-openai-api-key-here"
+  base_url: "https://api.openai.com/v1"
+  model: "gpt-4o-mini"
+  max_tokens: 8000
+  temperature: 0.4
+
+langfuse: false  # по умолчанию отключено
+```
+
+Тот же флаг можно задать через переменную окружения:
+
+```bash
+SGR__LANGFUSE=true
+```
+
+Когда `langfuse` установлен в `true`, `AgentFactory` создает клиент на основе
+`langfuse.openai.AsyncOpenAI` (drop-in замена стандартного клиента OpenAI).
+Если пакет `langfuse` не установлен, система пишет предупреждение в лог и
+откатывается к стандартному клиенту `openai.AsyncOpenAI`.
+
+Сам Langfuse читает свои переменные окружения:
+
+- `LANGFUSE_SECRET_KEY`
+- `LANGFUSE_PUBLIC_KEY`
+- `LANGFUSE_BASE_URL`
+
+Подробности по этим параметрам см. в официальной документации Langfuse.
 
 ### Переопределение параметров
 

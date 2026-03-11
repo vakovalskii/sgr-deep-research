@@ -162,11 +162,21 @@ class AgentConfig(BaseModel, extra="allow"):
     parameters (e.g., working_directory for file agents).
     """
 
+    langfuse: bool = Field(
+        default=False,
+        description="Enable Langfuse OpenAI integration for tracing and observability",
+    )
     llm: LLMConfig = Field(default_factory=LLMConfig, description="LLM settings")
     search: SearchConfig | None = Field(default=None, description="Search settings")
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig, description="Execution settings")
     prompts: PromptsConfig = Field(default_factory=PromptsConfig, description="Prompts settings")
     mcp: MCPConfig = Field(default_factory=MCPConfig, description="MCP settings")
+
+    @property
+    def langfuse_enabled(self) -> bool:
+        """Backward-compatible accessor for Langfuse flag."""
+
+        return self.langfuse
 
 
 class AgentDefinition(AgentConfig):

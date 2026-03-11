@@ -67,6 +67,41 @@ config = GlobalConfig.from_yaml("config.yaml")
 
 An example can be found in [`config.yaml.example`](https://github.com/vamplabAI/sgr-agent-core/blob/main/config.yaml.example).
 
+### Observability and Langfuse integration
+
+SGR Agent Core can optionally integrate with [Langfuse](https://langfuse.com) for tracing LLM calls.
+This is controlled by the top-level `langfuse` flag in configuration:
+
+```yaml
+llm:
+  api_key: "your-openai-api-key-here"
+  base_url: "https://api.openai.com/v1"
+  model: "gpt-4o-mini"
+  max_tokens: 8000
+  temperature: 0.4
+
+langfuse: false  # default: disabled
+```
+
+The `langfuse` flag can also be set via environment variable:
+
+```bash
+SGR__LANGFUSE=true
+```
+
+When `langfuse` is `true`, `AgentFactory` creates the client using
+`langfuse.openai.AsyncOpenAI` (drop-in replacement for the standard OpenAI client).
+If the `langfuse` package is not installed, the system logs a warning and falls back
+to the standard `openai.AsyncOpenAI` client.
+
+Langfuse itself reads its own environment variables:
+
+- `LANGFUSE_SECRET_KEY`
+- `LANGFUSE_PUBLIC_KEY`
+- `LANGFUSE_BASE_URL`
+
+See the official Langfuse docs for details on these parameters.
+
 ### Parameter Override
 
 **Key Feature:** `AgentDefinition` inherits all parameters from `GlobalConfig` and overrides only those explicitly specified. This allows creating minimal configurations by specifying only necessary changes.

@@ -1,6 +1,7 @@
 """Agent Factory for dynamic agent creation from definitions."""
 
 import logging
+from importlib import import_module
 from typing import Any, Type, TypeVar
 
 import httpx
@@ -36,9 +37,22 @@ class AgentFactory:
         Returns:
             Configured AsyncOpenAI client
         """
+        config = GlobalConfig()
         client_kwargs = {"base_url": llm_config.base_url, "api_key": llm_config.api_key}
         if llm_config.proxy:
             client_kwargs["http_client"] = httpx.AsyncClient(proxy=llm_config.proxy)
+
+        if getattr(config, "langfuse_enabled", False):
+            try:
+                langfuse_openai = import_module("langfuse.openai")
+                LangfuseAsyncOpenAI = getattr(langfuse_openai, "AsyncOpenAI")
+                logger.info("Creating Langfuse AsyncOpenAI client (langfuse_enabled=True)")
+                return LangfuseAsyncOpenAI(**client_kwargs)
+            except ImportError:
+                logger.warning(
+                    "Langfuse is enabled but 'langfuse' package is not available. "
+                    "Falling back to standard AsyncOpenAI client."
+                )
 
         return AsyncOpenAI(**client_kwargs)
 
