@@ -51,9 +51,6 @@ WORKDIR /app
 COPY --chown=sgruser:sgrgroup examples/ ./examples/
 COPY --chown=sgruser:sgrgroup logging_config.yaml ./logging_config.yaml
 
-# Use config from examples/sgr_deep_research
-ENV CONFIG_FILE=/app/examples/sgr_deep_research/config.yaml
-
 # Create directories for logs and reports
 RUN mkdir -p logs reports \
  && chown -R sgruser:sgrgroup /app
@@ -68,4 +65,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8010/health || exit 1
 
 # Run sgr command with sgr_deep_research configuration
-ENTRYPOINT ["sgr", "--config-file", "/app/config.yaml", "--host", "0.0.0.0", "--port", "8010"]
+ENTRYPOINT ["sgr", "--host", "0.0.0.0", "--port", "8010"]
+CMD ["--config-file", "/app/config.yaml" ]

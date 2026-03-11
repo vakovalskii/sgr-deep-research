@@ -252,3 +252,23 @@ class TestServerConfig:
                 setup_logging(config.logging_file)
         finally:
             sys.argv = original_argv
+
+    def test_server_config_from_cli_long_alias_with_equals(self):
+        """Test that ServerConfig accepts long CLI alias with equals style."""
+        original_argv = sys.argv
+        try:
+            sys.argv = [
+                "prog",
+                "--config-file=/app/examples/sgr_deep_research/config.yaml",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8010",
+            ]
+            config = ServerConfig()
+        finally:
+            sys.argv = original_argv
+
+        assert config.config_file == "/app/examples/sgr_deep_research/config.yaml"
+        assert config.host == "0.0.0.0"
+        assert config.port == 8010

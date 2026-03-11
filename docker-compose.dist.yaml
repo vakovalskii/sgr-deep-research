@@ -11,8 +11,7 @@ services:
       context: .
       dockerfile: Dockerfile
     command:
-      - --config-file=/app/config.yaml
-      - --agents-file=/app/agents.yaml
+      - --config-file=/app/examples/sgr_deep_research/config.yaml
     container_name: sgr-agent-backend
     restart: unless-stopped
     ports:
@@ -20,8 +19,6 @@ services:
     volumes:
       - ./examples/sgr_deep_research:/app/examples/sgr_deep_research:ro
       - ./sgr_agent_core:/app/sgr_agent_core:ro
-      - ./config.yaml:/app/config.yaml:ro
-      - ./agents.yaml:/app/agents.yaml:ro
       - ./logging_config.yaml:/app/logging_config.yaml:ro
       - ./logs:/app/logs
       - ./reports:/app/reports
