@@ -132,11 +132,17 @@ class TestToolDefinition:
 
 class TestAgentDefinitionTools:
     """Tests for AgentDefinition.tools field (list of str, type, or dict with
-    name)."""
+    single-key compact format)."""
 
-    def test_tools_dict_must_have_name_key(self):
-        """Test that tools list with dict item without 'name' key raises
-        ValueError."""
+    def test_tools_dict_with_non_dict_config_value_raises_value_error(self):
+        """Compact dict format {tool_name: value} requires value to be dict or
+        null.
+
+        A non-dict, non-null value (e.g. an integer) must raise a clear
+        ValueError.
+        """
+        from pydantic import ValidationError
+
         mock_config = Mock()
         mock_config.llm = LLMConfig(api_key="key", base_url="https://api.openai.com/v1")
         mock_config.prompts = PromptsConfig(
@@ -150,12 +156,46 @@ class TestAgentDefinitionTools:
         mock_config.mcp = mock_mcp
         with (
             patch("sgr_agent_core.agent_config.GlobalConfig", return_value=mock_config),
-            pytest.raises(ValueError, match="Tool dict must have 'name' key"),
+            pytest.raises(ValidationError, match="must be a dict or null"),
         ):
             AgentDefinition(
                 name="test_agent",
                 base_class="sgr_agent_core.agents.SGRAgent",
-                tools=[{"max_results": 10}],  # missing 'name'
+                tools=[{"reasoning_tool": 10}],  # invalid: config value must be dict or null
+                llm={"api_key": "key", "base_url": "https://api.openai.com/v1"},
+                prompts={
+                    "system_prompt_str": "p",
+                    "initial_user_request_str": "p",
+                    "clarification_response_str": "p",
+                },
+            )
+
+    def test_tools_dict_with_multiple_keys_raises_value_error(self):
+        """Compact dict format requires exactly one key: {tool_name: config}.
+
+        A dict with more than one key is ambiguous and must raise a clear error.
+        """
+        from pydantic import ValidationError
+
+        mock_config = Mock()
+        mock_config.llm = LLMConfig(api_key="key", base_url="https://api.openai.com/v1")
+        mock_config.prompts = PromptsConfig(
+            system_prompt_str="p", initial_user_request_str="p", clarification_response_str="p"
+        )
+        mock_config.execution = ExecutionConfig()
+        mock_config.search = None
+        mock_mcp = Mock()
+        mock_mcp.model_copy.return_value = mock_mcp
+        mock_mcp.model_dump.return_value = {}
+        mock_config.mcp = mock_mcp
+        with (
+            patch("sgr_agent_core.agent_config.GlobalConfig", return_value=mock_config),
+            pytest.raises(ValidationError, match="not a valid tool definition"),
+        ):
+            AgentDefinition(
+                name="test_agent",
+                base_class="sgr_agent_core.agents.SGRAgent",
+                tools=[{"tool_a": {}, "tool_b": {}}],  # invalid: two keys in one dict
                 llm={"api_key": "key", "base_url": "https://api.openai.com/v1"},
                 prompts={
                     "system_prompt_str": "p",

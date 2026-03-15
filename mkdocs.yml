@@ -37,6 +37,7 @@ plugins:
             Description API: Описание API
             Summary Table: Сводная таблица
             SGR vs Function Calling: SGR vs Function Calling
+            Highlights: Хайлайты
 
 theme:
   name: material
@@ -93,6 +94,7 @@ nav:
     - Description API: sgr-api/SGR-Description-API.md
     - Summary Table: sgr-api/SGR-Summary-table.md
     - SGR vs Function Calling: sgr-api/SGR-vs-Function-Calling_-When-to-Use-Each-Approach.md
+  - Highlights: highlights.md
 
 markdown_extensions:
   - admonition

@@ -602,6 +602,46 @@ class TestOpenWebUIStreamingGenerator:
         assert "plain text result" in content
 
     @pytest.mark.asyncio
+    async def test_wrap_in_code_block_escapes_inner_backticks(self):
+        """Content with triple backticks is escaped so markdown block does not
+        break."""
+        generator = OpenWebUIStreamingGenerator(agent_id="test-id")
+        report_with_code = "# Report\n\n```python\nprint(1)\n```\n"
+        generator.add_tool_result(TEST_PHASE_ID, report_with_code, tool_name="CreateReport")
+        generator.finish(TEST_PHASE_ID)
+
+        items = []
+        async for item in generator.stream():
+            items.append(item)
+
+        content_chunk = items[0]
+        data = json.loads(content_chunk[6:].strip())
+        content = data["choices"][0]["delta"]["content"]
+        # Backticks in content are escaped so inner ``` do not close the block
+        assert "\\`" in content
+        assert "print(1)" in content
+
+    @pytest.mark.asyncio
+    async def test_wrap_in_code_block_escapes_html(self):
+        """Content with </details> or </summary> is HTML-escaped so it does not
+        break the page."""
+        generator = OpenWebUIStreamingGenerator(agent_id="test-id")
+        dangerous = "Summary: </summary> and </details> in text"
+        generator.add_tool_result(TEST_PHASE_ID, dangerous, tool_name="Report")
+        generator.finish(TEST_PHASE_ID)
+
+        items = []
+        async for item in generator.stream():
+            items.append(item)
+
+        content_chunk = items[0]
+        data = json.loads(content_chunk[6:].strip())
+        content = data["choices"][0]["delta"]["content"]
+        assert "&lt;/summary&gt;" in content
+        assert "&lt;/details&gt;" in content
+        assert "<details>" in content  # our real tag stays
+
+    @pytest.mark.asyncio
     async def test_finish_inherited_works(self):
         """Test that finish() still produces [DONE] and final chunk."""
         generator = OpenWebUIStreamingGenerator(agent_id="test-id")

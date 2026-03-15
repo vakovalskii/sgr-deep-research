@@ -106,7 +106,7 @@ tools:
 Each item in the `tools` list can be:
 
 - **String** – tool name (resolved from the `tools:` section or `ToolRegistry`)
-- **Object** – dict with required `"name"` and optional parameters passed to the tool at runtime as kwargs (e.g. search settings for search tools)
+- **Object** – compact dict `{tool_name: {kwargs}}` or `{tool_name: null}` with optional kwargs overriding global tool config
 
 ```yaml
 agents:
@@ -115,16 +115,16 @@ agents:
     tools:
       - "web_search_tool"
       - "reasoning_tool"
-      # Per-tool config: name + kwargs (e.g. search settings)
-      - name: "extract_page_content_tool"
-        content_limit: 2000
-      - name: "web_search_tool"
-        max_results: 15
-        max_searches: 6
-        # tavily_api_key, max_searches, etc. can be set here instead of in global search:
+      # Per-tool config override: {tool_name: {kwargs}}
+      - extract_page_content_tool:
+          content_limit: 2000
+      - web_search_tool:
+          max_results: 15
+          max_searches: 6
+          # tavily_api_key and other settings can be set here or globally in tools:
 ```
 
-Search-related settings (`tavily_api_key`, `tavily_api_base_url`, `max_results`, `content_limit`, `max_searches`) can be set globally in `search:` or per-tool in the tool object. Tool kwargs override agent-level `search` for that tool.
+Search-related settings (`tavily_api_key`, `tavily_api_base_url`, `max_results`, `content_limit`, `max_searches`) are configured per-tool in the `tools:` section (global defaults) or overridden per-agent in the `tools` list.
 
 !!! note "Tool Resolution Order"
     When resolving tools, the system checks in this order:
@@ -178,6 +178,16 @@ In this example, the `simple_agent` uses:
 An agent with full parameter override:
 
 ```yaml
+# Search tool settings are configured globally in tools: section
+tools:
+  web_search_tool:
+    tavily_api_key: "your-tavily-api-key"
+    max_results: 15
+    max_searches: 6
+  extract_page_content_tool:
+    tavily_api_key: "your-tavily-api-key"
+    content_limit: 2000
+
 agents:
   custom_research_agent:
     base_class: "sgr_agent_core.agents.sgr_agent.ResearchSGRAgent"
@@ -189,17 +199,10 @@ agents:
       max_tokens: 16000
       # api_key and base_url are inherited from GlobalConfig
 
-    # Override search settings
-    search:
-      max_results: 15
-      max_searches: 6
-      content_limit: 2000
-
     # Override execution settings
     execution:
       max_iterations: 15
       max_clarifications: 5
-      max_searches: 6
       streaming_generator: "openai"  # default; use "open_webui" for Open WebUI UI
       logs_dir: "logs/custom_agent"
       reports_dir: "reports/custom_agent"

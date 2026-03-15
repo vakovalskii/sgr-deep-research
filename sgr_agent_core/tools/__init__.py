@@ -1,4 +1,4 @@
-from sgr_agent_core.base_tool import BaseTool, MCPBaseTool, SystemBaseTool
+from sgr_agent_core.base_tool import BaseTool, MCPBaseTool, ReasoningToolStubType, SystemBaseTool
 from sgr_agent_core.next_step_tool import (
     NextStepToolsBuilder,
     NextStepToolStub,
@@ -19,6 +19,7 @@ __all__ = [
     "BaseTool",
     "MCPBaseTool",
     "SystemBaseTool",
+    "ReasoningToolStubType",
     "NextStepToolStub",
     "ToolNameSelectorStub",
     "NextStepToolsBuilder",

@@ -8,10 +8,10 @@ from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
 from sgr_agent_core.agent_config import GlobalConfig
-from sgr_agent_core.agent_definition import AgentDefinition, LLMConfig
+from sgr_agent_core.agent_definition import AgentDefinition, LLMConfig, ToolDefinition
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.base_tool import BaseTool
-from sgr_agent_core.services import AgentRegistry, MCP2ToolConverter, StreamingGeneratorRegistry, ToolRegistry
+from sgr_agent_core.services import AgentRegistry, MCP2ToolConverter, StreamingGeneratorRegistry
 from sgr_agent_core.stream import OpenAIStreamingGenerator
 
 logger = logging.getLogger(__name__)
@@ -43,88 +43,6 @@ class AgentFactory:
         return AsyncOpenAI(**client_kwargs)
 
     @classmethod
-    def _resolve_tool(cls, tool_name: str | type, config: GlobalConfig) -> type[BaseTool]:
-        """Resolve a single tool from its name or class.
-
-        Args:
-            tool_name: Tool name (string) or tool class
-            config: Global configuration containing tool definitions
-
-        Returns:
-            Resolved tool class
-
-        Raises:
-            TypeError: If tool class is not a subclass of BaseTool
-            ValueError: If tool cannot be resolved
-        """
-        # If tool_name is already a class, use it directly
-        if isinstance(tool_name, type):
-            if not issubclass(tool_name, BaseTool):
-                raise TypeError(f"Tool class '{tool_name.__name__}' must be a subclass of BaseTool")
-            return tool_name
-
-        # First, check if tool is defined in config.tools section
-        if tool_name in config.tools:
-            tool_def = config.tools[tool_name]
-            # If base_class is specified, resolve it
-            if tool_def.base_class is not None:
-                if isinstance(tool_def.base_class, type):
-                    # Already a class
-                    if not issubclass(tool_def.base_class, BaseTool):
-                        raise TypeError(
-                            f"Tool '{tool_name}' base_class '{tool_def.base_class.__name__}' "
-                            f"must be a subclass of BaseTool"
-                        )
-                    return tool_def.base_class
-                elif isinstance(tool_def.base_class, str):
-                    # Import string - try to resolve from registry
-                    tool_class = ToolRegistry.get(tool_def.base_class)
-                    if tool_class is not None:
-                        return tool_class
-            # No base_class specified or base_class is string but not found in registry
-            # Try to infer from tool name: convert snake_case to PascalCase
-            # (e.g., web_search_tool -> WebSearchTool)
-            class_name = "".join(word.capitalize() for word in tool_name.split("_"))
-            tool_class = ToolRegistry.get(class_name)
-            if tool_class is not None:
-                return tool_class
-
-        # Try to resolve tool by tool_name from registry
-        tool_class = ToolRegistry.get(tool_name)
-
-        if tool_class is None:
-            # Try converting snake_case to PascalCase
-            if "_" in tool_name:
-                class_name = "".join(word.capitalize() for word in tool_name.split("_"))
-                tool_class = ToolRegistry.get(class_name)
-
-        if tool_class is None:
-            error_msg = (
-                f"Tool '{tool_name}' not found.\n"
-                f"Available tools in registry: {', '.join([c.__name__ for c in ToolRegistry.list_items()])}\n"
-                f"  - Ensure the tool is registered in ToolRegistry"
-            )
-            if config.tools:
-                error_msg += f"\n  - Available tools in config: {', '.join(config.tools.keys())}"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-
-        return tool_class
-
-    @classmethod
-    def _resolve_tools(cls, tool_names: list[str | type], config: GlobalConfig) -> list[type[BaseTool]]:
-        """Resolve multiple tools from their names or classes.
-
-        Args:
-            tool_names: List of tool names (strings) or tool classes
-            config: Global configuration containing tool definitions
-
-        Returns:
-            List of resolved tool classes
-        """
-        return [cls._resolve_tool(tool_name, config) for tool_name in tool_names]
-
-    @classmethod
     def _resolve_streaming_generator(cls, name: str) -> type[OpenAIStreamingGenerator]:
         """Resolve streaming generator class from registry by name.
 
@@ -146,39 +64,25 @@ class AgentFactory:
         return generator_class
 
     @classmethod
-    def _global_tool_kwargs(cls, tool_name: str, config: GlobalConfig) -> dict[str, Any]:
-        """Get kwargs from global tool definition if present."""
-        if tool_name not in config.tools:
-            return {}
-        tool_def = config.tools[tool_name]
-        return tool_def.tool_kwargs()
-
-    @classmethod
     def _resolve_tools_with_configs(
-        cls, tools_spec: list[Any], config: GlobalConfig
+        cls,
+        tool_defs: list[ToolDefinition],
     ) -> tuple[list[type[BaseTool]], dict[str, dict[str, Any]]]:
-        """Resolve tools from spec (str, type, or dict with 'name' + kwargs).
+        """Build toolkit and tool_configs from ToolDefinition objects.
 
-        Global tool config (from config.tools section) is merged with
-        per-agent inline kwargs; inline takes precedence.
+        Args:
+            tool_defs: List of ToolDefinition objects from AgentDefinition
+
+        Returns:
+            Tuple of (toolkit, tool_configs) where toolkit is a list of tool classes
+            and tool_configs maps tool_name to its kwargs
         """
         toolkit: list[type[BaseTool]] = []
         tool_configs: dict[str, dict[str, Any]] = {}
-        for item in tools_spec:
-            if isinstance(item, dict):
-                name = item["name"]
-                inline_kwargs = {k: v for k, v in item.items() if k not in ("name", "type", "base_class")}
-                tool_class = cls._resolve_tool(name, config)
-                toolkit.append(tool_class)
-                global_kwargs = cls._global_tool_kwargs(name, config)
-                tool_configs[tool_class.tool_name] = {**global_kwargs, **inline_kwargs}
-            else:
-                tool_class = cls._resolve_tool(item, config)
-                toolkit.append(tool_class)
-                # Only string names can be looked up in global config
-                name_for_global = item if isinstance(item, str) else None
-                global_kwargs = cls._global_tool_kwargs(name_for_global, config) if name_for_global else {}
-                tool_configs[tool_class.tool_name] = global_kwargs
+        for tool_def in tool_defs:
+            tool_class = tool_def.base_class
+            toolkit.append(tool_class)
+            tool_configs[tool_class.tool_name] = tool_def.tool_kwargs()
         return toolkit, tool_configs
 
     @classmethod
@@ -223,8 +127,7 @@ class AgentFactory:
             logger.error(error_msg)
             raise ValueError(error_msg)
         mcp_tools: list = await MCP2ToolConverter.build_tools_from_mcp(agent_def.mcp)
-        global_config = GlobalConfig()
-        tools, tool_configs = cls._resolve_tools_with_configs(agent_def.tools, global_config)
+        tools, tool_configs = cls._resolve_tools_with_configs(agent_def.tools)
         tools.extend(mcp_tools)
 
         try:

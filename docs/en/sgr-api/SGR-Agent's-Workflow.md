@@ -32,12 +32,16 @@ sequenceDiagram
             Note over Agent: State: WAITING_FOR_CLARIFICATION
             Agent->>Tools: Execute clarification tool
             Tools->>API: Return clarifying questions
-            API-->>Client: Stream clarification questions
+            API-->>Client: Stream clarification questions with<br/>agent_id embedded in content
 
-            Client->>API: POST /v1/chat/completions<br/>{"model": "agent_id", "messages": [...]}
-            API->>Agent: provide_clarification()
+            alt Stateless mode (full-context client)
+                Client->>API: POST /v1/chat/completions<br/>{"model": "sgr_agent", "messages": [<br/>  ..., "agent {id} started", ...]}<br/>Agent ID detected inside messages
+                API->>Agent: provide_clarification(replace=True)<br/>Conversation fully replaced
+            else Stateful mode (delta client)
+                Client->>API: POST /v1/chat/completions<br/>{"model": "agent_id", "messages": [new replies]}
+                API->>Agent: provide_clarification(replace=False)<br/>Messages appended to conversation
+            end
             Note over Agent: State: RESEARCHING
-            Agent->>Agent: Add clarification to context
 
         else Tool: GeneratePlan
             Agent->>Tools: Execute plan generation

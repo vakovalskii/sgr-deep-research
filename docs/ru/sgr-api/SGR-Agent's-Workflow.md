@@ -32,12 +32,16 @@ sequenceDiagram
             Note over Agent: Состояние: WAITING_FOR_CLARIFICATION
             Agent->>Tools: Выполнить инструмент уточнения
             Tools->>API: Вернуть уточняющие вопросы
-            API-->>Client: Поток уточняющих вопросов
+            API-->>Client: Поток уточняющих вопросов<br/>(содержит agent_id в тексте)
 
-            Client->>API: POST /v1/chat/completions<br/>{"model": "agent_id", "messages": [...]}
-            API->>Agent: provide_clarification()
+            alt Режим stateless (клиент шлёт полный контекст)
+                Client->>API: POST /v1/chat/completions<br/>{"model": "sgr_agent", "messages": [<br/>  ..., "agent {id} started", ...]}<br/>ID агента найден внутри messages
+                API->>Agent: provide_clarification(replace=True)<br/>Разговор полностью заменяется
+            else Режим stateful (клиент шлёт дельту)
+                Client->>API: POST /v1/chat/completions<br/>{"model": "agent_id", "messages": [новые ответы]}
+                API->>Agent: provide_clarification(replace=False)<br/>Сообщения дописываются к разговору
+            end
             Note over Agent: Состояние: RESEARCHING
-            Agent->>Agent: Добавить уточнение в контекст
 
         else Инструмент: GeneratePlan
             Agent->>Tools: Выполнить генерацию плана

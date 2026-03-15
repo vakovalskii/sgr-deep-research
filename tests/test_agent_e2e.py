@@ -364,3 +364,129 @@ async def test_sgr_tool_calling_agent_full_execution_cycle():
 
     assert result is not None
     _assert_agent_completed(agent)
+
+
+@pytest.mark.asyncio
+async def test_sgr_tool_calling_agent_custom_reasoning_tool_is_used():
+    """Custom ReasoningTool is actually passed to OpenAI in _reasoning_phase.
+
+    Verifies that self.ReasoningTool is forwarded to
+    pydantic_function_tool() instead of the hardcoded base
+    ReasoningTool.
+    """
+    from pydantic import Field as PydanticField
+
+    class CustomReasoningTool(ReasoningTool):
+        confidence: float = PydanticField(default=0.5, description="Confidence in the decision")
+
+    captured_reasoning_tool_names: list[str] = []
+
+    reasoning_instance = CustomReasoningTool(
+        reasoning_steps=["Analyze", "Decide"],
+        current_situation="Test situation",
+        plan_status="On track",
+        enough_data=False,
+        remaining_steps=["Finalize"],
+        task_completed=False,
+        confidence=0.9,
+    )
+    final_answer_instance = FinalAnswerTool(
+        reasoning="Done",
+        completed_steps=["Step 1"],
+        answer="Final answer to the research task",
+        status=AgentStatesEnum.COMPLETED,
+    )
+
+    client = Mock(spec=AsyncOpenAI)
+
+    def mock_stream(**kwargs):
+        tools_param = kwargs.get("tools", [])
+        tool_name = None
+        if tools_param and isinstance(tools_param, list) and isinstance(tools_param[0], dict):
+            tool_name = tools_param[0].get("function", {}).get("name")
+
+        if tool_name == CustomReasoningTool.tool_name:
+            captured_reasoning_tool_names.append(tool_name)
+            return MockStream({"content": None, "tool_calls": [_create_tool_call(reasoning_instance, "call-r")]})
+
+        return MockStream({"content": None, "tool_calls": [_create_tool_call(final_answer_instance, "call-a")]})
+
+    client.chat.completions.stream = Mock(side_effect=mock_stream)
+
+    agent = SGRToolCallingAgent(
+        task_messages=[{"role": "user", "content": "Test task"}],
+        openai_client=client,
+        agent_config=_create_test_agent_config(),
+        toolkit=[FinalAnswerTool],
+        reasoning_tool_cls=CustomReasoningTool,
+    )
+
+    result = await agent.execute()
+
+    assert result is not None
+    assert agent._context.state == AgentStatesEnum.COMPLETED
+    assert len(captured_reasoning_tool_names) >= 1, "Custom ReasoningTool was never passed to OpenAI"
+    assert captured_reasoning_tool_names[0] == CustomReasoningTool.tool_name
+
+
+@pytest.mark.asyncio
+async def test_sgr_agent_custom_reasoning_tool_is_used():
+    """Custom ReasoningTool is used as SO base in SGRAgent._reasoning_phase.
+
+    Verifies that response_format passed to OpenAI is built on top of
+    the custom ReasoningTool subclass rather than the default one.
+    """
+    from pydantic import Field as PydanticField
+
+    class CustomReasoningTool(ReasoningTool):
+        confidence: float = PydanticField(default=0.5, description="Confidence in the decision")
+
+    captured_response_formats: list[type] = []
+
+    client = Mock(spec=AsyncOpenAI)
+
+    def mock_stream(**kwargs):
+        response_format = kwargs.get("response_format")
+        if response_format is not None:
+            captured_response_formats.append(response_format)
+
+        NextStepTools = NextStepToolsBuilder.build_NextStepTools(
+            [FinalAnswerTool],
+            base_reasoning_cls=CustomReasoningTool,
+        )
+        response = NextStepTools(
+            reasoning_steps=["Step 1", "Step 2"],
+            current_situation="Test",
+            plan_status="Ok",
+            enough_data=True,
+            remaining_steps=["Finalize"],
+            task_completed=True,
+            confidence=0.8,
+            function={
+                "tool_name_discriminator": FinalAnswerTool.tool_name,
+                "reasoning": "Done",
+                "completed_steps": ["Step 1"],
+                "answer": "Final answer to the research task",
+                "status": AgentStatesEnum.COMPLETED,
+            },
+        )
+        return MockStream({"parsed": response})
+
+    client.chat.completions.stream = Mock(side_effect=mock_stream)
+
+    agent = SGRAgent(
+        task_messages=[{"role": "user", "content": "Test task"}],
+        openai_client=client,
+        agent_config=_create_test_agent_config(),
+        toolkit=[FinalAnswerTool],
+        reasoning_tool_cls=CustomReasoningTool,
+    )
+
+    result = await agent.execute()
+
+    assert result is not None
+    assert agent._context.state == AgentStatesEnum.COMPLETED
+    assert len(captured_response_formats) >= 1, "response_format was never passed to OpenAI"
+    assert issubclass(
+        captured_response_formats[0], CustomReasoningTool
+    ), f"response_format {captured_response_formats[0]} is not a subclass of CustomReasoningTool"

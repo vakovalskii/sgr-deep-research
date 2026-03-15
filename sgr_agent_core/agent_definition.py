@@ -10,8 +10,6 @@ import yaml
 from fastmcp.mcp_config import MCPConfig
 from pydantic import BaseModel, Field, FilePath, ImportString, computed_field, field_validator, model_validator
 
-# Element of AgentDefinition.tools: name (str), class (type), or dict with "name" + kwargs
-ToolItem = Union[str, type[Any], dict[str, Any]]
 logger = logging.getLogger(__name__)
 
 
@@ -162,113 +160,9 @@ class AgentConfig(BaseModel, extra="allow"):
     """
 
     llm: LLMConfig = Field(default_factory=LLMConfig, description="LLM settings")
-    search: SearchConfig | None = Field(default=None, description="Search settings")
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig, description="Execution settings")
     prompts: PromptsConfig = Field(default_factory=PromptsConfig, description="Prompts settings")
     mcp: MCPConfig = Field(default_factory=MCPConfig, description="MCP settings")
-
-
-class AgentDefinition(AgentConfig):
-    """Definition of a custom agent.
-
-    Agents can override global settings by providing:
-    - llm: dict with keys matching LLMConfig (api_key, base_url, model, etc.)
-    - prompts: dict with keys matching PromptsConfig (system_prompt_file, etc.)
-    - ExecutionConfig: execution parameters and limits
-    - tools: list of tool names to include
-    """
-
-    name: str = Field(description="Unique agent name/ID")
-    # ToDo: not sure how to type this properly and avoid circular imports
-    base_class: type[Any] | ImportString | str = Field(description="Agent class name")
-    tools: list[ToolItem] = Field(
-        default_factory=list,
-        description="List of tool names, classes, or dicts with 'name' and optional kwargs for the tool",
-    )
-
-    @field_validator("tools", mode="before")
-    @classmethod
-    def tools_dict_must_have_name(cls, v: Any) -> Any:
-        """Ensure each dict item in tools has a 'name' key."""
-        if not isinstance(v, list):
-            return v
-        result = []
-        for item in v:
-            if isinstance(item, dict):
-                if "name" not in item:
-                    raise ValueError("Tool dict must have 'name' key")
-                result.append(item)
-            else:
-                result.append(item)
-        return result
-
-    @field_validator("base_class", mode="before")
-    def base_class_import_points_to_file(cls, v: Any) -> Any:
-        """Ensure ImportString based base_class points to an existing file to
-        catch a FileError and not interpret it as str class_name.
-
-        A dotted path indicates an import string (e.g.,
-        dir.agent.MyAgent). We use importlib to automatically search for
-        the module in sys.path.
-        """
-        return validate_import_string_points_to_file(v)
-
-    @model_validator(mode="before")
-    def default_config_override_validator(cls, data):
-        from sgr_agent_core.agent_config import GlobalConfig
-
-        # check if already built model, otherwise build from config with JSON update
-        if not isinstance(llm_conf := data.get("llm"), BaseModel):
-            data["llm"] = GlobalConfig().llm.model_copy(update=llm_conf).model_dump()
-        if not isinstance(search_conf := data.get("search"), BaseModel):
-            data["search"] = (
-                GlobalConfig().search.model_copy(update=search_conf).model_dump()
-                if GlobalConfig().search
-                else search_conf
-            )
-        if not isinstance(prompts_conf := data.get("prompts"), BaseModel):
-            data["prompts"] = GlobalConfig().prompts.model_copy(update=prompts_conf).model_dump()
-        if not isinstance(execution_conf := data.get("execution"), BaseModel):
-            data["execution"] = GlobalConfig().execution.model_copy(update=execution_conf).model_dump()
-        if not isinstance(mcp_conf := data.get("mcp"), BaseModel):
-            data["mcp"] = GlobalConfig().mcp.model_copy(update=mcp_conf).model_dump(warnings=False)
-        return data
-
-    @model_validator(mode="after")
-    def necessary_fields_validator(self) -> Self:
-        if self.llm.api_key is None:
-            raise ValueError(f"LLM API key is not provided for agent '{self.name}'")
-        # Search API key can be provided via config.search or per-tool in tools array (kwargs)
-        if not self.tools:
-            raise ValueError(f"Tools are not provided for agent '{self.name}'")
-        return self
-
-    @field_validator("base_class", mode="after")
-    def base_class_is_agent(cls, v: Any) -> type[Any]:
-        from sgr_agent_core.base_agent import BaseAgent
-
-        if inspect.isclass(v) and not issubclass(v, BaseAgent):
-            raise TypeError("Imported base_class must be a subclass of BaseAgent")
-        return v
-
-    def __str__(self) -> str:
-        base_class_name = self.base_class.__name__ if isinstance(self.base_class, type) else self.base_class
-        tool_names = [
-            t.get("name", t) if isinstance(t, dict) else (t.__name__ if isinstance(t, type) else t) for t in self.tools
-        ]
-        return (
-            f"AgentDefinition(name='{self.name}', "
-            f"base_class={base_class_name}, "
-            f"tools={tool_names}, "
-            f"execution={self.execution}), "
-        )
-
-    @classmethod
-    def from_yaml(cls, yaml_path: str) -> Self:
-        try:
-            return cls(**yaml.safe_load(Path(yaml_path).read_text(encoding="utf-8")))
-        except FileNotFoundError as e:
-            raise FileNotFoundError(f"Agent definition file not found: {yaml_path}") from e
 
 
 class ToolDefinition(BaseModel, extra="allow"):
@@ -300,11 +194,9 @@ class ToolDefinition(BaseModel, extra="allow"):
 
     @field_validator("base_class", mode="after")
     def base_class_is_tool(cls, v: Any) -> Union[type[Any], None]:
-        # Don't validate at definition time - validation happens when tool is actually used
-        # This allows relative imports to work correctly
         if v is None:
             return None
-        # Only validate if it's already a class
+        # Strings are resolved later in AgentDefinition.process_tools via ToolRegistry
         if inspect.isclass(v):
             from sgr_agent_core.base_tool import BaseTool
 
@@ -315,6 +207,176 @@ class ToolDefinition(BaseModel, extra="allow"):
     def __str__(self) -> str:
         base_class_name = self.base_class.__name__ if isinstance(self.base_class, type) else self.base_class
         return f"ToolDefinition(name='{self.name}', base_class={base_class_name})"
+
+
+class AgentDefinition(AgentConfig):
+    """Definition of a custom agent.
+
+    Agents can override global settings by providing:
+    - llm: dict with keys matching LLMConfig (api_key, base_url, model, etc.)
+    - prompts: dict with keys matching PromptsConfig (system_prompt_file, etc.)
+    - execution: dict with keys matching ExecutionConfig (max_iterations, etc.)
+    - tools: list of tool names, classes, or dicts with 'name' and optional kwargs
+    """
+
+    name: str = Field(description="Unique agent name/ID")
+    # ToDo: not sure how to type this properly and avoid circular imports
+    base_class: type[Any] | ImportString | str = Field(description="Agent class name")
+    tools: list[ToolDefinition] = Field(
+        default_factory=list,
+        description="List of tool definitions (resolved from names, classes, or dicts)",
+    )
+
+    @field_validator("tools", mode="before")
+    @classmethod
+    def normalize_tools(cls, v: Any) -> list[Any]:
+        """Normalize each item to a ToolDefinition-compatible dict.
+
+        Supported input formats:
+            - str:            "web_search_tool"
+            - type:           WebSearchTool
+            - ToolDefinition: ToolDefinition(name="web_search_tool", ...)
+            - dict:           {"web_search_tool": {"max_results": 5}}  # or None value
+        """
+        if not isinstance(v, list):
+            return v
+        result = []
+        for item in v:
+            if isinstance(item, ToolDefinition):
+                result.append(item)
+            elif isinstance(item, dict):
+                if len(item) != 1:
+                    raise ValueError(
+                        f"{item} is not a valid tool definition. "
+                        "Use {{'tool_name': {{...}}}} or {{'tool_name': null}} format."
+                    )
+                tool_name, tool_config = next(iter(item.items()))
+                if tool_config is not None and not isinstance(tool_config, dict):
+                    raise ValueError(
+                        f"Tool config for '{tool_name}' must be a dict or null, "
+                        f"got {type(tool_config).__name__}. "
+                        "Use {{'tool_name': {{...}}}} or {{'tool_name': null}} format."
+                    )
+                result.append({"name": tool_name, **(tool_config or {})})
+            elif isinstance(item, type):
+                tool_name = getattr(item, "tool_name", item.__name__.lower())
+                result.append({"name": tool_name, "base_class": item})
+            elif isinstance(item, str):
+                result.append({"name": item})
+            else:
+                result.append(item)  # pydantic will raise validation error if item is not a valid tool definition
+        return result
+
+    @field_validator("base_class", mode="before")
+    def base_class_import_points_to_file(cls, v: Any) -> Any:
+        """Ensure ImportString based base_class points to an existing file to
+        catch a FileError and not interpret it as str class_name.
+
+        A dotted path indicates an import string (e.g.,
+        dir.agent.MyAgent). We use importlib to automatically search for
+        the module in sys.path.
+        """
+        return validate_import_string_points_to_file(v)
+
+    @model_validator(mode="before")
+    def agent_level_config_override_validator(cls, data):
+        """Merge agent level config with global config."""
+        from sgr_agent_core.agent_config import GlobalConfig
+
+        global_config = GlobalConfig()
+        for field_name in GlobalConfig.model_fields:
+            global_value = getattr(global_config, field_name, None)
+            override = data.get(field_name)
+            # merge only if its overload global validated model with raw agent level config.
+            # Otherwise we expecting whole valid model on input
+            if not isinstance(global_value, BaseModel) or isinstance(override, BaseModel):
+                continue
+            if override is None:
+                data[field_name] = global_value.model_dump(warnings=False)
+            else:
+                data[field_name] = global_value.model_copy(update=override).model_dump(warnings=False)
+        return data
+
+    @model_validator(mode="after")
+    def agent_level_tools_validator(self) -> Self:
+        """Merge global tool config, resolve base_class to a class, validate
+        via config_model."""
+        from sgr_agent_core.agent_config import GlobalConfig
+        from sgr_agent_core.base_tool import BaseTool
+        from sgr_agent_core.services.registry import ToolRegistry
+
+        global_tools = GlobalConfig().tools
+        processed = []
+        for tool_def in self.tools:
+            global_tool_def = global_tools.get(tool_def.name)
+
+            # base_class: agent-level wins; fall back to global if not set locally
+            base_class = tool_def.base_class
+            kwargs = tool_def.tool_kwargs()
+            if global_tool_def is not None:
+                if base_class is None:
+                    base_class = global_tool_def.base_class
+                kwargs = {**global_tool_def.tool_kwargs(), **kwargs}
+
+            # Resolve base_class string/None → actual class via registry
+            if not isinstance(base_class, type):
+                lookup = base_class if isinstance(base_class, str) and base_class else tool_def.name
+                pascal = "".join(w.capitalize() for w in lookup.split("_"))
+                tool_class = ToolRegistry.get(lookup) or ToolRegistry.get(pascal)
+                if tool_class is None:
+                    available = ", ".join(c.__name__ for c in ToolRegistry.list_items())
+                    raise ValueError(
+                        f"Tool '{lookup}' not found.\n"
+                        f"Available tools in registry: {available}\n"
+                        f"  - Ensure the tool is registered in ToolRegistry"
+                    )
+            else:
+                tool_class = base_class
+
+            if not issubclass(tool_class, BaseTool):
+                raise TypeError(f"Tool class '{tool_class.__name__}' must be a subclass of BaseTool")
+
+            if tool_class.config_model is not None:
+                tool_class.config_model.model_validate(kwargs)
+
+            processed.append(tool_def.model_copy(update={"base_class": tool_class, **kwargs}))
+
+        self.tools = processed
+        return self
+
+    @model_validator(mode="after")
+    def necessary_fields_validator(self) -> Self:
+        if self.llm.api_key is None:
+            raise ValueError(f"LLM API key is not provided for agent '{self.name}'")
+        # Search API key can be provided via config.search or per-tool in tools array (kwargs)
+        if not self.tools:
+            raise ValueError(f"Tools are not provided for agent '{self.name}'")
+        return self
+
+    @field_validator("base_class", mode="after")
+    def base_class_is_agent(cls, v: Any) -> type[Any]:
+        from sgr_agent_core.base_agent import BaseAgent
+
+        if inspect.isclass(v) and not issubclass(v, BaseAgent):
+            raise TypeError("Imported base_class must be a subclass of BaseAgent")
+        return v
+
+    def __str__(self) -> str:
+        base_class_name = self.base_class.__name__ if isinstance(self.base_class, type) else self.base_class
+        tool_names = [t.name for t in self.tools]
+        return (
+            f"AgentDefinition(name='{self.name}', "
+            f"base_class={base_class_name}, "
+            f"tools={tool_names}, "
+            f"execution={self.execution}), "
+        )
+
+    @classmethod
+    def from_yaml(cls, yaml_path: str) -> Self:
+        try:
+            return cls(**yaml.safe_load(Path(yaml_path).read_text(encoding="utf-8")))
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Agent definition file not found: {yaml_path}") from e
 
 
 class Definitions(BaseModel):

@@ -11,7 +11,7 @@ from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.next_step_tool import NextStepToolsBuilder
 from sgr_agent_core.services.registry import ToolRegistry
 from sgr_agent_core.services.tool_instantiator import ToolInstantiator
-from sgr_agent_core.tools import BaseTool, ReasoningTool, ToolNameSelectorStub
+from sgr_agent_core.tools import BaseTool, ReasoningTool, SystemBaseTool, ToolNameSelectorStub
 
 
 class IronAgent(BaseAgent):
@@ -34,7 +34,9 @@ class IronAgent(BaseAgent):
         openai_client: AsyncOpenAI,
         agent_config: AgentConfig,
         toolkit: list[Type[BaseTool]],
+        *,
         def_name: str | None = None,
+        reasoning_tool_cls: type[SystemBaseTool] = ReasoningTool,
         **kwargs: dict,
     ):
         super().__init__(
@@ -45,6 +47,7 @@ class IronAgent(BaseAgent):
             def_name=def_name,
             **kwargs,
         )
+        self.ReasoningTool: type[SystemBaseTool] = reasoning_tool_cls
 
     def _log_tool_instantiator(
         self,
@@ -144,7 +147,7 @@ TOOL GENERATION DEBUG
         """Prepare available tools for the current agent state and progress."""
         if self._context.iteration >= self.config.execution.max_iterations:
             raise RuntimeError("Max iterations reached")
-        return NextStepToolsBuilder.build_NextStepToolSelector(self.toolkit)
+        return NextStepToolsBuilder.build_NextStepToolSelector(self.toolkit, base_reasoning_cls=self.ReasoningTool)
 
     async def _reasoning_phase(self) -> ReasoningTool:
         """Call LLM to get ReasoningTool with selected tool name."""
@@ -153,8 +156,8 @@ TOOL GENERATION DEBUG
         tool_selector_model = await self._prepare_tools()
         reasoning = await self._generate_tool(tool_selector_model, messages)
 
-        if not isinstance(reasoning, ReasoningTool):
-            raise ValueError("Expected ReasoningTool instance")
+        if not isinstance(reasoning, self.ReasoningTool):
+            raise ValueError(f"Expected {self.ReasoningTool.__name__} instance")
 
         # Log reasoning
         self._log_reasoning(reasoning)

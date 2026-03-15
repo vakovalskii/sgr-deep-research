@@ -15,7 +15,6 @@ from sgr_agent_core.server.models import (
     ChatCompletionChoice,
     ChatCompletionRequest,
     ChatCompletionResponse,
-    ClarificationRequest,
     HealthResponse,
     MessagesList,
 )
@@ -346,51 +345,6 @@ class TestAgentDeleteResponse:
         )
         assert response.deleted is False
         assert response.final_state == "completed"
-
-
-class TestClarificationRequest:
-    """Tests for ClarificationRequest model."""
-
-    def test_clarification_request_creation(self):
-        """Test creating a clarification request."""
-        content = "Here are my answers: 1. Yes 2. No 3. Maybe"
-        request = ClarificationRequest(messages=[{"role": "user", "content": content}])
-        assert len(request.messages) == 1
-        assert request.messages[0]["content"] == content
-
-    def test_clarification_request_required_field(self):
-        """Test that messages field is required."""
-        with pytest.raises(ValidationError):
-            ClarificationRequest()
-
-    def test_clarification_request_empty_list(self):
-        """Test clarification request with empty list."""
-        request = ClarificationRequest(messages=[])
-        assert request.messages == []
-
-    def test_clarification_request_multiple_messages(self):
-        """Test clarification request with multiple messages."""
-        request = ClarificationRequest(
-            messages=[
-                {"role": "user", "content": "Answer 1: Yes"},
-                {"role": "user", "content": "Answer 2: No"},
-            ]
-        )
-        assert len(request.messages) == 2
-        assert request.messages[0]["content"] == "Answer 1: Yes"
-        assert request.messages[1]["content"] == "Answer 2: No"
-
-    def test_clarification_request_with_system_message(self):
-        """Test clarification request with system message."""
-        request = ClarificationRequest(
-            messages=[
-                {"role": "system", "content": "Context for clarification"},
-                {"role": "user", "content": "My clarification"},
-            ]
-        )
-        assert len(request.messages) == 2
-        assert request.messages[0]["role"] == "system"
-        assert request.messages[1]["role"] == "user"
 
 
 class TestMessagesListTruncation:

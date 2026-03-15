@@ -10,7 +10,6 @@ from tavily import AsyncTavilyClient
 
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.models import SearchResult, SourceData
-from sgr_agent_core.utils import config_from_kwargs
 
 if TYPE_CHECKING:
     from sgr_agent_core.agent_definition import AgentConfig
@@ -277,7 +276,6 @@ class WebSearchTool(BaseTool):
     """
 
     config_model = WebSearchConfig
-    base_config_attr = "search"
 
     reasoning: str = Field(description="Why this search is needed and what to expect")
     query: str = Field(description="Search query in same language as user request")
@@ -298,11 +296,7 @@ class WebSearchTool(BaseTool):
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs: Any) -> str:
         """Execute web search using the configured search engine."""
-        search_config = config_from_kwargs(
-            WebSearchConfig,
-            config.search if config else None,
-            dict(kwargs),
-        )
+        search_config = WebSearchConfig(**kwargs)
 
         engine = search_config.engine
         logger.info(f"Search query: '{self.query}' (engine={engine})")

@@ -5,7 +5,9 @@ from datetime import datetime
 from typing import Any, ClassVar, Literal
 
 from openai.types.chat import ChatCompletionMessageParam
-from pydantic import BaseModel, Field, RootModel, field_serializer, field_validator
+from pydantic import BaseModel, Field, RootModel, computed_field, field_serializer, field_validator
+
+from sgr_agent_core.utils import _AGENT_ID_SEARCH_RE
 
 
 class MessagesList(RootModel[list[ChatCompletionMessageParam]]):
@@ -55,8 +57,44 @@ class MessagesList(RootModel[list[ChatCompletionMessageParam]]):
         return truncated_messages
 
 
-class ChatCompletionRequest(BaseModel):
-    """Request for creating chat completion."""
+class MessagesRequest(BaseModel):
+    """Request body with messages only.
+
+    Used for provide_clarification; ChatCompletionRequest extends it.
+    """
+
+    messages: MessagesList = Field(description="List of messages in OpenAI format")
+
+    @computed_field
+    @property
+    def agent_id_from_messages(self) -> str | None:
+        """Extract agent ID from messages if present.
+
+        Looks for the 'agent {id} started' marker that the agent emits
+        at the beginning of its execution, or any other text that
+        matches the name_uuid format. Returns the first match or None.
+        """
+        for msg in self.messages:
+            try:
+                content = msg["content"]
+                try:
+                    texts = [p["text"] for p in content if p.get("type") == "text"]
+                except (TypeError, AttributeError):
+                    texts = [content]
+                for text in texts:
+                    match = _AGENT_ID_SEARCH_RE.search(text)
+                    if match:
+                        return match.group(1)
+            except (KeyError, TypeError):
+                continue
+        return None
+
+
+class ChatCompletionRequest(MessagesRequest):
+    """Request for creating chat completion.
+
+    Extends MessagesRequest with model, stream, etc.
+    """
 
     model: str | None = Field(
         default="sgr_tool_calling_agent",
@@ -65,7 +103,6 @@ class ChatCompletionRequest(BaseModel):
             "sgr_tool_calling_agent",
         ],
     )
-    messages: MessagesList = Field(description="List of messages")
     stream: bool = Field(default=True, description="Enable streaming mode")
     max_tokens: int | None = Field(default=1500, description="Maximum number of tokens")
     temperature: float | None = Field(default=0, description="Generation temperature")
@@ -117,13 +154,6 @@ class AgentListItem(BaseModel):
 class AgentListResponse(BaseModel):
     agents: list[AgentListItem] = Field(description="List of agents")
     total: int = Field(description="Total number of agents")
-
-
-class ClarificationRequest(BaseModel):
-    """Request for providing clarifications to an agent in OpenAI messages
-    format."""
-
-    messages: list[ChatCompletionMessageParam] = Field(description="Clarification messages in OpenAI format")
 
 
 class AgentCancelResponse(BaseModel):

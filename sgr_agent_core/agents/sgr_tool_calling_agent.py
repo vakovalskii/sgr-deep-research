@@ -9,6 +9,7 @@ from sgr_agent_core.tools import (
     BaseTool,
     FinalAnswerTool,
     ReasoningTool,
+    SystemBaseTool,
 )
 
 
@@ -24,7 +25,9 @@ class SGRToolCallingAgent(BaseAgent):
         openai_client: AsyncOpenAI,
         agent_config: AgentConfig,
         toolkit: list[Type[BaseTool]],
+        *,
         def_name: str | None = None,
+        reasoning_tool_cls: type[SystemBaseTool] = ReasoningTool,
         **kwargs: dict,
     ):
         super().__init__(
@@ -36,12 +39,13 @@ class SGRToolCallingAgent(BaseAgent):
             **kwargs,
         )
         self.tool_choice: Literal["required"] = "required"
+        self.ReasoningTool: type[SystemBaseTool] = reasoning_tool_cls
 
     async def _reasoning_phase(self) -> ReasoningTool:
         phase_id = f"{self._context.iteration}-reasoning"
         async with self.openai_client.chat.completions.stream(
             messages=await self._prepare_context(),
-            tools=[pydantic_function_tool(ReasoningTool, name=ReasoningTool.tool_name)],
+            tools=[pydantic_function_tool(self.ReasoningTool, name=self.ReasoningTool.tool_name)],
             tool_choice=self.tool_choice,
             **self.config.llm.to_openai_client_kwargs(),
         ) as stream:

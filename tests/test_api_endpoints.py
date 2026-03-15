@@ -12,7 +12,6 @@ from fastapi import HTTPException
 from sgr_agent_core.agents import SGRAgent
 from sgr_agent_core.models import AgentStatesEnum
 from sgr_agent_core.server.endpoints import (
-    _is_agent_id,
     agents_storage,
     cancel_agent,
     create_chat_completion,
@@ -21,12 +20,13 @@ from sgr_agent_core.server.endpoints import (
     get_agents_list,
     provide_clarification,
 )
-from sgr_agent_core.server.models import ChatCompletionRequest, ClarificationRequest
+from sgr_agent_core.server.models import ChatCompletionRequest, MessagesList, MessagesRequest
+from sgr_agent_core.utils import is_agent_id
 from tests.conftest import create_test_agent
 
 
 class TestIsAgentId:
-    """Tests for _is_agent_id utility function."""
+    """Tests for is_agent_id utility function."""
 
     def test_valid_agent_id_format(self):
         """Test that valid agent ID format is recognized."""
@@ -37,36 +37,21 @@ class TestIsAgentId:
         ]
 
         for agent_id in valid_ids:
-            assert _is_agent_id(agent_id) is True
+            assert is_agent_id(agent_id) is True
 
     def test_invalid_agent_id_format(self):
         """Test that invalid agent ID format is rejected."""
         invalid_ids = [
             "sgr_agent",  # No UUID
-            "short_id",  # Too short
+            "short_id",  # Too short, no UUID
             "",  # Empty string
-            "model_name",  # Regular model name
+            "model_name",  # Regular model name, no UUID
+            "sgr_agent_12345678-1234-1234-1234",  # Truncated UUID
+            "sgr_agent_gggggggg-1234-1234-1234-123456789012",  # Non-hex UUID
         ]
 
         for invalid_id in invalid_ids:
-            assert _is_agent_id(invalid_id) is False
-
-    def test_edge_case_lengths(self):
-        """Test edge cases around minimum length requirement."""
-        # Exactly 20 characters with underscore - should be invalid (need >20)
-        exactly_20 = "a_bcdefghijklmnopqr"
-        assert len(exactly_20) == 19
-        assert _is_agent_id(exactly_20) is False
-
-        # 21 characters with underscore - should be valid
-        exactly_21 = "a_bcdefghijklmnopqrs"
-        assert len(exactly_21) == 20
-        assert _is_agent_id(exactly_21) is False
-
-        # 22 characters with underscore - should be valid
-        exactly_22 = "a_bcdefghijklmnopqrst"
-        assert len(exactly_22) == 21
-        assert _is_agent_id(exactly_22) is True
+            assert is_agent_id(invalid_id) is False
 
 
 class TestChatCompletionEndpoint:
@@ -224,7 +209,7 @@ class TestChatCompletionEndpoint:
         agents_storage[agent.id] = agent
 
         # Mock the agent's methods with actual async function
-        async def mock_provide_clarification(messages):
+        async def mock_provide_clarification(messages, replace_conversation=False):
             pass
 
         agent.provide_clarification = Mock(side_effect=mock_provide_clarification)
@@ -236,10 +221,81 @@ class TestChatCompletionEndpoint:
 
         await create_chat_completion(request)
 
-        # Verify clarification was provided
+        # Verify clarification was provided with delta mode (replace=False)
         agent.provide_clarification.assert_called_once()
-        call_args = agent.provide_clarification.call_args[0][0]
-        assert call_args == [{"role": "user", "content": "Here is my clarification"}]
+        call_args = agent.provide_clarification.call_args
+        assert call_args[0][0] == [{"role": "user", "content": "Here is my clarification"}]
+        assert call_args.kwargs["replace_conversation"] is False
+
+    @pytest.mark.asyncio
+    async def test_clarification_request_with_agent_id_in_messages(self):
+        """Test stateless clarification when agent_id is present inside
+        messages.
+
+        The agent should detect its ID in the messages, overwrite its
+        conversation with the provided messages and resume from
+        WAITING_FOR_CLARIFICATION without using provide_clarification().
+        """
+        # Create and store an agent waiting for clarification
+        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Test task"}])
+        agent._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
+        agents_storage[agent.id] = agent
+
+        # agent_id is in messages (e.g. system or user message), not as separate field
+        messages = [
+            {"role": "system", "content": f"Continue agent {agent.id}"},
+            {"role": "user", "content": "Here is my clarification via context"},
+        ]
+        request = ChatCompletionRequest(model="sgr_agent", messages=messages, stream=True)
+
+        response = await create_chat_completion(request)
+
+        # Should return a streaming response (agent will resume execution)
+        assert hasattr(response, "body_iterator")
+
+        # Conversation should start with the overwritten messages; provide_clarification
+        # appends a clarification template after them, so we check the prefix.
+        assert agent.conversation[: len(messages)] == messages
+
+        # Agent should move out of WAITING_FOR_CLARIFICATION into RESEARCHING
+        assert agent._context.state == AgentStatesEnum.RESEARCHING
+        assert agent._context.clarifications_used == 1
+        assert agent._context.clarification_received.is_set()
+
+    @pytest.mark.asyncio
+    async def test_stateless_clarification_does_not_duplicate_context(self):
+        """Stateless path must replace conversation, not append — no duplicate
+        context."""
+        agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Research it"}])
+        agent._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
+        # Simulate existing conversation (e.g. after "agent started" and clarification request)
+        old_turn = [
+            {"role": "assistant", "content": f"Agent {agent.id} started"},
+            {"role": "user", "content": "Research it"},
+        ]
+        agent.conversation = list(old_turn)
+        agents_storage[agent.id] = agent
+
+        # Stateless: client sends full context including agent id and new clarification
+        incoming_messages = [
+            {"role": "user", "content": "Research it"},
+            {"role": "assistant", "content": f"Agent {agent.id} started"},
+            {"role": "user", "content": "Research BMW X6 2025 prices"},
+        ]
+        request = ChatCompletionRequest(model="sgr_agent", messages=incoming_messages, stream=True)
+
+        await create_chat_completion(request)
+
+        # Replaced: conversation must start with incoming_messages, then exactly one clarification template
+        assert agent.conversation[: len(incoming_messages)] == incoming_messages
+        assert len(agent.conversation) == len(incoming_messages) + 1
+        assert agent.conversation[-1]["role"] == "user"
+        # Old pre-existing turn must not appear (no duplication)
+        for old_msg in old_turn:
+            assert agent.conversation.count(old_msg) <= 1
+        # No duplicate of incoming: each incoming message appears only once in the prefix
+        for i, msg in enumerate(incoming_messages):
+            assert agent.conversation[i] == msg
 
 
 class TestAgentStateEndpoint:
@@ -356,16 +412,17 @@ class TestProvideClarificationEndpoint:
         agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Test task"}])
 
         # Mock the agent's methods with actual async function
-        async def mock_provide_clarification(messages):
+        async def mock_provide_clarification(messages, replace_conversation=False):
             pass
 
         agent.provide_clarification = Mock(side_effect=mock_provide_clarification)
         agent.streaming_generator.stream = Mock(return_value=iter(["clarification response"]))
+        agent._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
         agents_storage[agent.id] = agent
 
-        request = ClarificationRequest(messages=[{"role": "user", "content": "This is my clarification"}])
+        body = MessagesRequest(messages=MessagesList(root=[{"role": "user", "content": "This is my clarification"}]))
 
-        await provide_clarification(agent.id, request)
+        await provide_clarification(body, agent_id=agent.id)
 
         # Verify clarification was provided
         agent.provide_clarification.assert_called_once()
@@ -377,21 +434,24 @@ class TestProvideClarificationEndpoint:
         """Test clarification provision with multiple messages."""
         agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Test task"}])
 
-        async def mock_provide_clarification(messages):
+        async def mock_provide_clarification(messages, replace_conversation=False):
             pass
 
         agent.provide_clarification = Mock(side_effect=mock_provide_clarification)
         agent.streaming_generator.stream = Mock(return_value=iter(["response"]))
+        agent._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
         agents_storage[agent.id] = agent
 
-        request = ClarificationRequest(
-            messages=[
-                {"role": "user", "content": "Answer 1: Yes"},
-                {"role": "user", "content": "Answer 2: No"},
-            ]
+        body = MessagesRequest(
+            messages=MessagesList(
+                root=[
+                    {"role": "user", "content": "Answer 1: Yes"},
+                    {"role": "user", "content": "Answer 2: No"},
+                ]
+            )
         )
 
-        await provide_clarification(agent.id, request)
+        await provide_clarification(body, agent_id=agent.id)
 
         agent.provide_clarification.assert_called_once()
         call_args = agent.provide_clarification.call_args[0][0]
@@ -403,16 +463,13 @@ class TestProvideClarificationEndpoint:
     async def test_provide_clarification_agent_not_found(self):
         """Test clarification provision for non-existent agent."""
         non_existent_id = "non_existent_agent_id"
-        request = ClarificationRequest(messages=[{"role": "user", "content": "Some clarification"}])
+        body = MessagesRequest(messages=MessagesList(root=[{"role": "user", "content": "Some clarification"}]))
 
-        # Agent not found, exception will be raised
-        # The code catches any exception and returns 500, not 404
         with pytest.raises(HTTPException) as exc_info:
-            await provide_clarification(non_existent_id, request)
+            await provide_clarification(body, agent_id=non_existent_id)
 
-        # The endpoint returns 500 for any error, including missing agent
-        assert exc_info.value.status_code == 500
-        assert "404" in str(exc_info.value.detail) or "Agent not found" in str(exc_info.value.detail)
+        assert exc_info.value.status_code == 404
+        assert "Agent not found" in str(exc_info.value.detail)
 
     @pytest.mark.asyncio
     async def test_provide_clarification_with_exception(self):
@@ -421,16 +478,17 @@ class TestProvideClarificationEndpoint:
         agent = create_test_agent(SGRAgent, task_messages=[{"role": "user", "content": "Test task"}])
 
         # Mock the agent's method to raise exception
-        async def mock_provide_clarification_error(messages):
+        async def mock_provide_clarification_error(messages, replace_conversation=False):
             raise Exception("Test error")
 
         agent.provide_clarification = Mock(side_effect=mock_provide_clarification_error)
+        agent._context.state = AgentStatesEnum.WAITING_FOR_CLARIFICATION
         agents_storage[agent.id] = agent
 
-        request = ClarificationRequest(messages=[{"role": "user", "content": "Some clarification"}])
+        body = MessagesRequest(messages=MessagesList(root=[{"role": "user", "content": "Some clarification"}]))
 
         with pytest.raises(HTTPException) as exc_info:
-            await provide_clarification(agent.id, request)
+            await provide_clarification(body, agent_id=agent.id)
 
         assert exc_info.value.status_code == 500
         assert "Test error" in str(exc_info.value.detail)

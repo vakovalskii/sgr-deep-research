@@ -8,6 +8,8 @@ from sgr_agent_core.next_step_tool import NextStepToolsBuilder
 from sgr_agent_core.tools import (
     BaseTool,
     NextStepToolStub,
+    ReasoningTool,
+    SystemBaseTool,
 )
 
 
@@ -22,7 +24,9 @@ class SGRAgent(BaseAgent):
         openai_client: AsyncOpenAI,
         agent_config: AgentConfig,
         toolkit: list[Type[BaseTool]],
+        *,
         def_name: str | None = None,
+        reasoning_tool_cls: type[SystemBaseTool] = ReasoningTool,
         **kwargs: dict,
     ):
         super().__init__(
@@ -33,11 +37,12 @@ class SGRAgent(BaseAgent):
             def_name=def_name,
             **kwargs,
         )
+        self.ReasoningTool: type[SystemBaseTool] = reasoning_tool_cls
 
     async def _prepare_tools(self) -> Type[NextStepToolStub]:
         """Prepare available tools for the current agent state and progress."""
         tools = set(self.toolkit)
-        return NextStepToolsBuilder.build_NextStepTools(list(tools))
+        return NextStepToolsBuilder.build_NextStepTools(list(tools), base_reasoning_cls=self.ReasoningTool)
 
     async def _reasoning_phase(self) -> NextStepToolStub:
         phase_id = f"{self._context.iteration}-reasoning"

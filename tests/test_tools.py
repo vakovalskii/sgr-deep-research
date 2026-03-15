@@ -9,7 +9,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from sgr_agent_core.agent_definition import SearchConfig
 from sgr_agent_core.models import AgentContext, SourceData
 from sgr_agent_core.tools import (
     AdaptPlanTool,
@@ -181,29 +180,27 @@ class TestToolsConfigReading:
 
 
 class TestSearchToolsKwargs:
-    """Test that search tools use kwargs (tool config) with fallback to
-    config.search."""
+    """Test that search tools use kwargs (tool config) for their search
+    settings."""
 
     @pytest.mark.asyncio
-    async def test_web_search_tool_uses_kwargs_over_config_search(self):
+    async def test_web_search_tool_uses_kwargs_max_results(self):
         """WebSearchTool uses max_results from kwargs when provided."""
         tool = WebSearchTool(reasoning="r", query="test", max_results=5)
         context = AgentContext()
         config = MagicMock()
-        config.search = SearchConfig(tavily_api_key="k", max_results=10)
         mock_handler = AsyncMock(return_value=[])
         with patch.dict("sgr_agent_core.tools.web_search_tool._ENGINE_HANDLERS", {"tavily": mock_handler}):
             await tool(context, config, api_key="k", max_results=3)
             assert mock_handler.call_args.kwargs["max_results"] == 3
 
     @pytest.mark.asyncio
-    async def test_web_search_tool_fallback_to_config_search(self):
-        """WebSearchTool uses config.search when kwargs do not set
-        max_results."""
+    async def test_web_search_tool_default_max_results(self):
+        """WebSearchTool uses default max_results when not overridden in
+        kwargs."""
         tool = WebSearchTool(reasoning="r", query="test", max_results=5)
         context = AgentContext()
         config = MagicMock()
-        config.search = SearchConfig(tavily_api_key="k", max_results=10)
         mock_handler = AsyncMock(return_value=[])
         with patch.dict("sgr_agent_core.tools.web_search_tool._ENGINE_HANDLERS", {"tavily": mock_handler}):
             await tool(context, config, api_key="k")
@@ -216,7 +213,6 @@ class TestSearchToolsKwargs:
         tool = WebSearchTool(reasoning="r", query="test", max_results=3, offset=2)
         context = AgentContext()
         config = MagicMock()
-        config.search = SearchConfig(tavily_api_key="k", max_results=10)
 
         mock_sources = [
             SourceData(number=i, url=f"https://example.com/{i}", title=f"Result {i}", snippet=f"Snippet {i}")
@@ -239,7 +235,6 @@ class TestSearchToolsKwargs:
 
         context = AgentContext()
         config = MagicMock()
-        config.search = SearchConfig(tavily_api_key="k", max_results=10)
 
         mock_sources = [
             SourceData(number=i, url=f"https://example.com/{i}", title=f"Result {i}", snippet=f"Snippet {i}")
@@ -259,7 +254,6 @@ class TestSearchToolsKwargs:
         tool = WebSearchTool(reasoning="r", query="test", max_results=3, offset=10)
         context = AgentContext()
         config = MagicMock()
-        config.search = SearchConfig(tavily_api_key="k", max_results=20)
 
         mock_handler = AsyncMock(return_value=[])
         with patch.dict("sgr_agent_core.tools.web_search_tool._ENGINE_HANDLERS", {"tavily": mock_handler}):
@@ -274,8 +268,7 @@ class TestSearchToolsKwargs:
         tool = ExtractPageContentTool(reasoning="r", urls=["https://example.com"])
         context = AgentContext()
         config = MagicMock()
-        config.search = SearchConfig(tavily_api_key="k", content_limit=1000)
         with patch.object(ExtractPageContentTool, "_extract", new_callable=AsyncMock, return_value=[]) as mock_extract:
-            await tool(context, config, content_limit=500)
+            await tool(context, config, tavily_api_key="k", content_limit=500)
             # search_config is passed as first positional arg
             assert mock_extract.call_args[0][0].content_limit == 500

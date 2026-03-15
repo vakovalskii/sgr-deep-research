@@ -674,7 +674,7 @@ class TestAgentFactoryRegistryIntegration:
             agent_def = AgentDefinition(
                 name="sgr_agent",
                 base_class=SGRAgent,
-                tools=[{"name": "reasoningtool", "custom_key": "custom_value"}],
+                tools=[{"reasoningtool": {"custom_key": "custom_value"}}],
                 llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
                 prompts={
                     "system_prompt_str": "Test system prompt",
@@ -690,8 +690,8 @@ class TestAgentFactoryRegistryIntegration:
 
     @pytest.mark.asyncio
     async def test_global_tool_config_merged_into_tool_configs(self):
-        """Test that global tool definition params (config.tools) are passed as
-        tool kwargs."""
+        """Test that global tool definition params (config.tools) are merged at
+        AgentDefinition level and passed as tool kwargs."""
         mock_config = Mock()
         mock_config.llm = LLMConfig(api_key="test-key", base_url="https://api.openai.com/v1")
         mock_config.prompts = PromptsConfig(
@@ -714,7 +714,6 @@ class TestAgentFactoryRegistryIntegration:
         with (
             patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
             patch("sgr_agent_core.agent_config.GlobalConfig", return_value=mock_config),
-            patch("sgr_agent_core.agent_factory.GlobalConfig", return_value=mock_config),
         ):
             agent_def = AgentDefinition(
                 name="sgr_agent",
@@ -758,12 +757,11 @@ class TestAgentFactoryRegistryIntegration:
         with (
             patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
             patch("sgr_agent_core.agent_config.GlobalConfig", return_value=mock_config),
-            patch("sgr_agent_core.agent_factory.GlobalConfig", return_value=mock_config),
         ):
             agent_def = AgentDefinition(
                 name="sgr_agent",
                 base_class=SGRAgent,
-                tools=[{"name": "reasoningtool", "max_results": 20}],
+                tools=[{"reasoningtool": {"max_results": 20}}],
                 llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
                 prompts={
                     "system_prompt_str": "p",
@@ -804,54 +802,49 @@ class TestAgentFactoryErrorHandling:
 
     @pytest.mark.asyncio
     async def test_create_agent_with_invalid_tool_string(self):
-        """Test creating agent with invalid tool string name."""
-        with (
-            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
-            mock_global_config(),
-        ):
-            agent_def = AgentDefinition(
-                name="sgr_agent",
-                base_class=SGRAgent,
-                tools=["nonexistent_tool"],  # Invalid string name
-                llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
-                prompts={
-                    "system_prompt_str": "Test system prompt",
-                    "initial_user_request_str": "Test initial request",
-                    "clarification_response_str": "Test clarification response",
-                },
-                execution={},
-            )
-            with pytest.raises(ValueError, match="Tool 'nonexistent_tool' not found"):
-                await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "Test task"}])
+        """Test that AgentDefinition with invalid tool string raises error at
+        definition time."""
+        from pydantic import ValidationError
+
+        with mock_global_config():
+            with pytest.raises(ValidationError, match="Tool 'nonexistent_tool' not found"):
+                AgentDefinition(
+                    name="sgr_agent",
+                    base_class=SGRAgent,
+                    tools=["nonexistent_tool"],  # Invalid string name
+                    llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
+                    prompts={
+                        "system_prompt_str": "Test system prompt",
+                        "initial_user_request_str": "Test initial request",
+                        "clarification_response_str": "Test clarification response",
+                    },
+                    execution={},
+                )
 
     @pytest.mark.asyncio
     async def test_create_agent_with_invalid_tool_class(self):
-        """Test creating agent with class that is not a subclass of
-        BaseTool."""
+        """Test that AgentDefinition with a non-BaseTool class raises TypeError
+        at definition time."""
 
         class NotATool:
             """A class that is not a BaseTool subclass."""
 
             pass
 
-        with (
-            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
-            mock_global_config(),
-        ):
-            agent_def = AgentDefinition(
-                name="sgr_agent",
-                base_class=SGRAgent,
-                tools=[NotATool],  # Invalid class - not a BaseTool subclass
-                llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
-                prompts={
-                    "system_prompt_str": "Test system prompt",
-                    "initial_user_request_str": "Test initial request",
-                    "clarification_response_str": "Test clarification response",
-                },
-                execution={},
-            )
-            with pytest.raises(TypeError, match=f"Tool class '{NotATool.__name__}' must be a subclass of BaseTool"):
-                await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "Test task"}])
+        with mock_global_config():
+            with pytest.raises(TypeError, match="Imported base_class must be a subclass of BaseTool"):
+                AgentDefinition(
+                    name="sgr_agent",
+                    base_class=SGRAgent,
+                    tools=[NotATool],  # Invalid class - not a BaseTool subclass
+                    llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
+                    prompts={
+                        "system_prompt_str": "Test system prompt",
+                        "initial_user_request_str": "Test initial request",
+                        "clarification_response_str": "Test clarification response",
+                    },
+                    execution={},
+                )
 
     @pytest.mark.asyncio
     async def test_create_agent_with_agent_creation_exception(self):

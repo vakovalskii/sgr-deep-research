@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - framework-docs
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:

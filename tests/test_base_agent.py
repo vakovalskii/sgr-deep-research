@@ -5,13 +5,14 @@ including initialization, logging, clarification handling, and execution
 flow.
 """
 
+import asyncio
 import uuid
 from datetime import datetime
 from unittest.mock import Mock
 
 import pytest
 
-from sgr_agent_core.agent_definition import AgentConfig, ExecutionConfig, LLMConfig, PromptsConfig, SearchConfig
+from sgr_agent_core.agent_definition import AgentConfig, ExecutionConfig, LLMConfig, PromptsConfig
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.models import AgentContext, AgentStatesEnum
 from sgr_agent_core.tools import BaseTool, ReasoningTool, WebSearchTool
@@ -337,18 +338,17 @@ class TestBaseAgentGetToolConfig:
 
     def test_get_tool_config_returns_model_when_tool_has_config_model(self):
         """get_tool_config returns Pydantic model instance for tools with
-        config_model."""
+        config_model, built from tool_configs kwargs."""
         agent = create_test_agent(
             BaseAgent,
             task_messages=[{"role": "user", "content": "Test"}],
             toolkit=[WebSearchTool],
         )
-        agent.tool_configs = {"websearchtool": {"max_searches": 6}}
+        agent.tool_configs = {"websearchtool": {"tavily_api_key": "key", "max_searches": 6}}
         agent.config = AgentConfig(
             llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
             prompts=PromptsConfig(system_prompt_str="p", initial_user_request_str="p", clarification_response_str="p"),
             execution=ExecutionConfig(),
-            search=None,
         )
         out = agent.get_tool_config(WebSearchTool)
         from sgr_agent_core.tools.web_search_tool import WebSearchConfig
@@ -356,20 +356,19 @@ class TestBaseAgentGetToolConfig:
         assert isinstance(out, WebSearchConfig)
         assert out.max_searches == 6
 
-    def test_get_tool_config_merges_base_from_agent_config(self):
-        """get_tool_config merges base from base_config_attr (e.g.
-        config.search)."""
+    def test_get_tool_config_returns_model_from_tool_configs_only(self):
+        """get_tool_config builds SearchConfig exclusively from tool_configs
+        (search settings are per-tool, not in AgentConfig)."""
         agent = create_test_agent(
             BaseAgent,
             task_messages=[{"role": "user", "content": "Test"}],
             toolkit=[WebSearchTool],
         )
-        agent.tool_configs = {"websearchtool": {}}
+        agent.tool_configs = {"websearchtool": {"tavily_api_key": "key", "max_searches": 10}}
         agent.config = AgentConfig(
             llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
             prompts=PromptsConfig(system_prompt_str="p", initial_user_request_str="p", clarification_response_str="p"),
             execution=ExecutionConfig(),
-            search=SearchConfig(tavily_api_key="key", max_searches=10),
         )
         out = agent.get_tool_config(WebSearchTool)
         from sgr_agent_core.tools.web_search_tool import WebSearchConfig
@@ -501,6 +500,44 @@ class TestBaseAgentCancellation:
         await execute_task
 
     @pytest.mark.asyncio
+    async def test_execute_adds_agent_started_to_conversation_and_stream(self):
+        """Test that at execute start, 'agent {id} started' is in conversation
+        and stream."""
+        agent = create_test_agent(BaseAgent, task_messages=[{"role": "user", "content": "Test"}])
+        agent_id = agent.id
+
+        async def quick_execution_step():
+            agent._context.state = AgentStatesEnum.COMPLETED
+
+        agent._execution_step = quick_execution_step
+
+        # Consume stream in background to avoid blocking
+        streamed = []
+
+        async def consume():
+            async for chunk in agent.streaming_generator.stream():
+                streamed.append(chunk)
+
+        consume_task = asyncio.create_task(consume())
+        await agent.execute()
+        await asyncio.sleep(0.05)
+
+        expected = f"Agent {agent_id} started\n"
+        assert any(
+            m.get("content") == expected for m in agent.conversation if m.get("role") == "system"
+        ), "Conversation should contain agent started system message"
+        # SSE chunks are JSON-serialized, so the newline appears as \\n in the raw string
+        assert any(
+            f"Agent {agent_id} started" in chunk for chunk in streamed
+        ), "Stream should contain agent started message"
+
+        consume_task.cancel()
+        try:
+            await consume_task
+        except asyncio.CancelledError:
+            pass
+
+    @pytest.mark.asyncio
     async def test_cancel_sets_cancelled_state(self):
         """Test that cancelling agent sets state to CANCELLED."""
         import asyncio
@@ -558,6 +595,102 @@ class TestBaseAgentCancellation:
             await execute_task
         except asyncio.CancelledError:
             pass
+
+
+class TestReasoningToolCls:
+    """Tests for configurable self.ReasoningTool on SGR agents."""
+
+    def test_sgr_agent_default_ReasoningTool(self):  # noqa: N802
+        """SGRAgent.ReasoningTool defaults to ReasoningTool."""
+        from sgr_agent_core.agents import SGRAgent
+
+        agent = create_test_agent(SGRAgent)
+        assert agent.ReasoningTool is ReasoningTool
+
+    def test_sgr_tool_calling_agent_default_ReasoningTool(self):  # noqa: N802
+        """SGRToolCallingAgent.ReasoningTool defaults to ReasoningTool."""
+        from sgr_agent_core.agents import SGRToolCallingAgent
+
+        agent = create_test_agent(SGRToolCallingAgent)
+        assert agent.ReasoningTool is ReasoningTool
+
+    def test_next_step_tools_builder_uses_custom_base_reasoning_cls(self):
+        """build_NextStepTools uses custom base_reasoning_cls as model base."""
+        from pydantic import Field as PydanticField
+
+        from sgr_agent_core.next_step_tool import NextStepToolsBuilder
+
+        class CustomReasoningTool(ReasoningTool):
+            custom_field: str = PydanticField(default="custom_value")
+
+        model = NextStepToolsBuilder.build_NextStepTools(
+            [WebSearchTool],
+            base_reasoning_cls=CustomReasoningTool,
+        )
+        assert issubclass(model, CustomReasoningTool)
+        assert "custom_field" in model.model_fields
+
+    def test_sgr_agent_custom_ReasoningTool_is_stored(self):  # noqa: N802
+        """SGRAgent stores custom ReasoningTool."""
+        from unittest.mock import Mock
+
+        from openai import AsyncOpenAI
+        from pydantic import Field as PydanticField
+
+        from sgr_agent_core.agent_definition import AgentConfig, ExecutionConfig, LLMConfig, PromptsConfig
+        from sgr_agent_core.agents import SGRAgent
+
+        class CustomReasoningTool(ReasoningTool):
+            extra: str = PydanticField(default="x")
+
+        agent_config = AgentConfig(
+            llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
+            prompts=PromptsConfig(
+                system_prompt_str="p",
+                initial_user_request_str="p",
+                clarification_response_str="p",
+            ),
+            execution=ExecutionConfig(),
+        )
+        agent = SGRAgent(
+            task_messages=[{"role": "user", "content": "Test"}],
+            openai_client=Mock(spec=AsyncOpenAI),
+            agent_config=agent_config,
+            toolkit=[],
+            reasoning_tool_cls=CustomReasoningTool,
+        )
+        assert agent.ReasoningTool is CustomReasoningTool
+
+    def test_sgr_tool_calling_agent_custom_ReasoningTool_is_stored(self):  # noqa: N802
+        """SGRToolCallingAgent stores custom ReasoningTool."""
+        from unittest.mock import Mock
+
+        from openai import AsyncOpenAI
+        from pydantic import Field as PydanticField
+
+        from sgr_agent_core.agent_definition import AgentConfig, ExecutionConfig, LLMConfig, PromptsConfig
+        from sgr_agent_core.agents import SGRToolCallingAgent
+
+        class CustomReasoningTool(ReasoningTool):
+            extra: str = PydanticField(default="x")
+
+        agent_config = AgentConfig(
+            llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
+            prompts=PromptsConfig(
+                system_prompt_str="p",
+                initial_user_request_str="p",
+                clarification_response_str="p",
+            ),
+            execution=ExecutionConfig(),
+        )
+        agent = SGRToolCallingAgent(
+            task_messages=[{"role": "user", "content": "Test"}],
+            openai_client=Mock(spec=AsyncOpenAI),
+            agent_config=agent_config,
+            toolkit=[],
+            reasoning_tool_cls=CustomReasoningTool,
+        )
+        assert agent.ReasoningTool is CustomReasoningTool
 
 
 class TestBaseAgentSaveLog:

@@ -10,7 +10,9 @@ from typing import Type
 from openai import AsyncOpenAI, pydantic_function_tool
 from openai.types.chat import ChatCompletionFunctionToolParam, ChatCompletionMessageParam
 
+from sgr_agent_core import AnswerTool
 from sgr_agent_core.agent_definition import AgentConfig
+from sgr_agent_core.agents.dialog_agent import DialogAgent
 from sgr_agent_core.agents.sgr_agent import SGRAgent
 from sgr_agent_core.agents.sgr_tool_calling_agent import SGRToolCallingAgent
 from sgr_agent_core.agents.tool_calling_agent import ToolCallingAgent
@@ -141,6 +143,53 @@ class ResearchSGRToolCallingAgent(SGRToolCallingAgent):
                 ReasoningTool,
                 CreateReportTool,
                 FinalAnswerTool,
+            }
+        if self._context.clarifications_used >= self.config.execution.max_clarifications:
+            tools -= {
+                ClarificationTool,
+            }
+        search_config = self.get_tool_config(WebSearchTool)
+        if self._context.searches_used >= search_config.max_searches:
+            tools -= {
+                WebSearchTool,
+            }
+        return [pydantic_function_tool(tool, name=tool.tool_name, description="") for tool in tools]
+
+
+class ResearchDialogAgent(DialogAgent):
+    """Dialog research agent: supports intermediate results (AnswerTool) and
+    research toolkit with iteration/clarification/search limits.
+    """
+
+    def __init__(
+        self,
+        task_messages: list[ChatCompletionMessageParam],
+        openai_client: AsyncOpenAI,
+        agent_config: AgentConfig,
+        toolkit: list[Type[BaseTool]],
+        def_name: str | None = None,
+        **kwargs: dict,
+    ):
+        research_toolkit = [WebSearchTool, ExtractPageContentTool, CreateReportTool, AnswerTool]
+        merged = research_toolkit + [t for t in toolkit if t not in research_toolkit]
+        super().__init__(
+            task_messages=task_messages,
+            openai_client=openai_client,
+            agent_config=agent_config,
+            toolkit=merged,
+            def_name=def_name,
+            **kwargs,
+        )
+
+    async def _prepare_tools(self) -> list[ChatCompletionFunctionToolParam]:
+        """Prepare available tools with research limits (iterations,
+        clarifications, searches)."""
+        tools = set(self.toolkit)
+        if self._context.iteration >= self.config.execution.max_iterations:
+            tools = {
+                ReasoningTool,
+                CreateReportTool,
+                AnswerTool,
             }
         if self._context.clarifications_used >= self.config.execution.max_clarifications:
             tools -= {
