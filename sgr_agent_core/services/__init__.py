@@ -4,7 +4,6 @@ from sgr_agent_core.services.mcp_service import MCP2ToolConverter
 from sgr_agent_core.services.prompt_loader import PromptLoader
 from sgr_agent_core.services.registry import (
     AgentRegistry,
-    SearchProviderRegistry,
     StreamingGeneratorRegistry,
     ToolRegistry,
 )
@@ -14,7 +13,6 @@ __all__ = [
     "MCP2ToolConverter",
     "ToolRegistry",
     "StreamingGeneratorRegistry",
-    "SearchProviderRegistry",
     "AgentRegistry",
     "PromptLoader",
     "ToolInstantiator",

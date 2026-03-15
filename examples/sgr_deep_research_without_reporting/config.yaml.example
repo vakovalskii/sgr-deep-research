@@ -30,13 +30,11 @@ tools:
   # Search tools: configure Tavily API key and search limits per tool
   web_search_tool:
     engine: "tavily"  # Search engine: "tavily" (default), "brave", or "perplexity"
-    tavily_api_key: "your-tavily-api-key-here"  # Tavily API key (get at tavily.com)
-    tavily_api_base_url: "https://api.tavily.com"  # Tavily API URL
+    api_key: "your-tavily-api-key-here"  # API key for the selected engine
     max_searches: 4  # Max search operations
     max_results: 10  # Max results in search query
   extract_page_content_tool:
-    tavily_api_key: "your-tavily-api-key-here"  # Same Tavily API key
-    tavily_api_base_url: "https://api.tavily.com"
+    tavily_api_key: "your-tavily-api-key-here"  # Tavily API key (Tavily extract only)
     content_limit: 1500  # Content char limit per source
   final_answer_tool:
     # base_class defaults to sgr_agent_core.tools.FinalAnswerTool

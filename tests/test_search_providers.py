@@ -1,5 +1,4 @@
-"""Tests for search provider logic inlined into tools (TavilySearchTool,
-BraveSearchTool, PerplexitySearchTool)."""
+"""Tests for search engine handler functions."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -9,46 +8,26 @@ from sgr_agent_core.agent_definition import SearchConfig
 from sgr_agent_core.models import SourceData
 
 
-class TestSearchToolRegistry:
-    """Tests for _BaseSearchTool registry and shared helpers."""
+class TestRearrangeSources:
+    """Tests for _rearrange_sources helper."""
 
-    def test_registry_contains_all_engines(self):
-        from sgr_agent_core.services.registry import SearchProviderRegistry
-
-        # Ensure concrete tools are imported so registry is populated
-        from sgr_agent_core.tools.brave_search_tool import BraveSearchTool  # noqa: F401
-        from sgr_agent_core.tools.perplexity_search_tool import PerplexitySearchTool  # noqa: F401
-        from sgr_agent_core.tools.tavily_search_tool import TavilySearchTool  # noqa: F401
-
-        assert SearchProviderRegistry.get("tavily") is not None
-        assert SearchProviderRegistry.get("brave") is not None
-        assert SearchProviderRegistry.get("perplexity") is not None
-
-    def test_rearrange_sources(self):
-        from sgr_agent_core.tools.base_search_tool import _BaseSearchTool
+    def test_renumbers_from_starting_number(self):
+        from sgr_agent_core.tools.web_search_tool import _rearrange_sources
 
         sources = [
             SourceData(number=0, url="https://a.com", title="A", snippet="a"),
             SourceData(number=0, url="https://b.com", title="B", snippet="b"),
         ]
-        result = _BaseSearchTool._rearrange_sources(sources, starting_number=5)
+        result = _rearrange_sources(sources, starting_number=5)
         assert result[0].number == 5
         assert result[1].number == 6
 
 
-class TestBraveSearchProvider:
-    """Tests for BraveSearchTool provider logic."""
+class TestBraveSearchHandler:
+    """Tests for Brave search handler function."""
 
-    @pytest.mark.asyncio
-    async def test_raises_without_api_key(self):
-        from sgr_agent_core.tools.brave_search_tool import BraveSearchTool
-
-        config = SearchConfig(engine="brave")
-        with pytest.raises(ValueError, match="brave_api_key is required"):
-            await BraveSearchTool._search(config, query="test", max_results=5)
-
-    def test_convert_to_source_data(self):
-        from sgr_agent_core.tools.brave_search_tool import BraveSearchTool
+    def test_convert_brave_response(self):
+        from sgr_agent_core.tools.web_search_tool import _convert_brave_response
 
         response = {
             "web": {
@@ -59,7 +38,7 @@ class TestBraveSearchProvider:
                 ]
             }
         }
-        sources = BraveSearchTool._convert_to_source_data(response)
+        sources = _convert_brave_response(response)
         assert len(sources) == 2
         assert sources[0].title == "Test"
         assert sources[0].url == "https://example.com"
@@ -67,9 +46,7 @@ class TestBraveSearchProvider:
 
     @pytest.mark.asyncio
     async def test_search_calls_brave_api(self):
-        from sgr_agent_core.tools.brave_search_tool import BraveSearchTool
-
-        config = SearchConfig(engine="brave", brave_api_key="test-key", max_results=10)
+        from sgr_agent_core.tools.web_search_tool import _search_brave
 
         mock_response = MagicMock()
         mock_response.json.return_value = {
@@ -81,14 +58,20 @@ class TestBraveSearchProvider:
         }
         mock_response.raise_for_status = MagicMock()
 
-        with patch("sgr_agent_core.tools.brave_search_tool.httpx.AsyncClient") as mock_client_cls:
+        with patch("sgr_agent_core.tools.web_search_tool.httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()
             mock_client.get = AsyncMock(return_value=mock_response)
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=False)
             mock_client_cls.return_value = mock_client
 
-            sources = await BraveSearchTool._search(config, query="test query", max_results=5)
+            sources = await _search_brave(
+                api_key="test-key",
+                api_base_url="https://api.search.brave.com/res/v1/web/search",
+                query="test query",
+                max_results=5,
+                offset=0,
+            )
 
             mock_client.get.assert_called_once()
             call_kwargs = mock_client.get.call_args
@@ -97,19 +80,11 @@ class TestBraveSearchProvider:
             assert len(sources) == 1
 
 
-class TestPerplexitySearchProvider:
-    """Tests for PerplexitySearchTool provider logic."""
+class TestPerplexitySearchHandler:
+    """Tests for Perplexity search handler function."""
 
-    @pytest.mark.asyncio
-    async def test_raises_without_api_key(self):
-        from sgr_agent_core.tools.perplexity_search_tool import PerplexitySearchTool
-
-        config = SearchConfig(engine="perplexity")
-        with pytest.raises(ValueError, match="perplexity_api_key is required"):
-            await PerplexitySearchTool._search(config, query="test", max_results=5)
-
-    def test_convert_to_source_data(self):
-        from sgr_agent_core.tools.perplexity_search_tool import PerplexitySearchTool
+    def test_convert_perplexity_response(self):
+        from sgr_agent_core.tools.web_search_tool import _convert_perplexity_response
 
         response = {
             "results": [
@@ -118,7 +93,7 @@ class TestPerplexitySearchProvider:
                 {"title": "No URL", "url": "", "snippet": "Skipped"},
             ],
         }
-        sources = PerplexitySearchTool._convert_to_source_data(response)
+        sources = _convert_perplexity_response(response)
         assert len(sources) == 2
         assert sources[0].url == "https://example.com/page1"
         assert sources[0].title == "Page 1"
@@ -127,9 +102,7 @@ class TestPerplexitySearchProvider:
 
     @pytest.mark.asyncio
     async def test_search_calls_perplexity_api(self):
-        from sgr_agent_core.tools.perplexity_search_tool import PerplexitySearchTool
-
-        config = SearchConfig(engine="perplexity", perplexity_api_key="test-key", max_results=10)
+        from sgr_agent_core.tools.web_search_tool import _search_perplexity
 
         mock_response = MagicMock()
         mock_response.json.return_value = {
@@ -139,14 +112,20 @@ class TestPerplexitySearchProvider:
         }
         mock_response.raise_for_status = MagicMock()
 
-        with patch("sgr_agent_core.tools.perplexity_search_tool.httpx.AsyncClient") as mock_client_cls:
+        with patch("sgr_agent_core.tools.web_search_tool.httpx.AsyncClient") as mock_client_cls:
             mock_client = AsyncMock()
             mock_client.post = AsyncMock(return_value=mock_response)
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=False)
             mock_client_cls.return_value = mock_client
 
-            sources = await PerplexitySearchTool._search(config, query="test query", max_results=5)
+            sources = await _search_perplexity(
+                api_key="test-key",
+                api_base_url="https://api.perplexity.ai/search",
+                query="test query",
+                max_results=5,
+                offset=0,
+            )
 
             mock_client.post.assert_called_once()
             call_kwargs = mock_client.post.call_args
@@ -155,18 +134,18 @@ class TestPerplexitySearchProvider:
             assert len(sources) == 1
 
 
-class TestTavilySearchProvider:
-    """Tests for TavilySearchTool provider logic."""
+class TestTavilySearchHandler:
+    """Tests for Tavily search handler function."""
 
-    def test_convert_to_source_data(self):
-        from sgr_agent_core.tools.tavily_search_tool import TavilySearchTool
+    def test_convert_tavily_response(self):
+        from sgr_agent_core.tools.web_search_tool import _convert_tavily_response
 
         response = {
             "results": [
                 {"title": "Test", "url": "https://example.com", "content": "Snippet", "raw_content": "Full content"},
             ]
         }
-        sources = TavilySearchTool._convert_to_source_data(response)
+        sources = _convert_tavily_response(response)
         assert len(sources) == 1
         assert sources[0].title == "Test"
         assert sources[0].snippet == "Snippet"

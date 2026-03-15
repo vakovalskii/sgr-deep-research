@@ -351,7 +351,9 @@ class TestBaseAgentGetToolConfig:
             search=None,
         )
         out = agent.get_tool_config(WebSearchTool)
-        assert isinstance(out, SearchConfig)
+        from sgr_agent_core.tools.web_search_tool import WebSearchConfig
+
+        assert isinstance(out, WebSearchConfig)
         assert out.max_searches == 6
 
     def test_get_tool_config_merges_base_from_agent_config(self):
@@ -370,7 +372,9 @@ class TestBaseAgentGetToolConfig:
             search=SearchConfig(tavily_api_key="key", max_searches=10),
         )
         out = agent.get_tool_config(WebSearchTool)
-        assert isinstance(out, SearchConfig)
+        from sgr_agent_core.tools.web_search_tool import WebSearchConfig
+
+        assert isinstance(out, WebSearchConfig)
         assert out.max_searches == 10
         assert out.tavily_api_key == "key"
 

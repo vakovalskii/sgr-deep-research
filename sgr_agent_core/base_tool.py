@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class ToolRegistryMixin:
     def __init_subclass__(cls, **kwargs) -> None:
         super().__init_subclass__(**kwargs)
-        if cls.__name__ not in ("BaseTool", "MCPBaseTool", "_BaseSearchTool", "SystemBaseTool"):
+        if cls.__name__ not in ("BaseTool", "MCPBaseTool", "SystemBaseTool"):
             ToolRegistry.register(cls, name=cls.tool_name)
 
 
