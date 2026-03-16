@@ -16,7 +16,6 @@ from sgr_agent_core.agent_definition import (
     ExecutionConfig,
     LLMConfig,
     PromptsConfig,
-    SearchConfig,
 )
 from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.agents import *  # noqa: F403
@@ -63,7 +62,6 @@ __all__ = [
     "AgentDefinition",
     "LLMConfig",
     "PromptsConfig",
-    "SearchConfig",
     "ExecutionConfig",
     "GlobalConfig",
     # Next step tools

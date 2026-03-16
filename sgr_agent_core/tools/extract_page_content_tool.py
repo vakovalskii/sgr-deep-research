@@ -3,10 +3,9 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from pydantic import Field
+from pydantic import BaseModel, Field, model_validator
 from tavily import AsyncTavilyClient
 
-from sgr_agent_core.agent_definition import SearchConfig
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.models import SourceData
 
@@ -16,6 +15,23 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+class ExtractPageContentConfig(BaseModel, extra="allow"):
+    """Configuration for ExtractPageContentTool (Tavily Extract API)."""
+
+    tavily_api_key: str | None = Field(default=None, description="Tavily API key")
+    tavily_api_base_url: str = Field(default="https://api.tavily.com", description="Tavily API base URL")
+    content_limit: int = Field(default=3500, gt=0, description="Content character limit per source")
+
+    @model_validator(mode="after")
+    def validate_api_key(self):
+        if not self.tavily_api_key:
+            raise ValueError(
+                "tavily_api_key is required for ExtractPageContentTool."
+                " Tavily is the only provider that supports content extraction."
+            )
+        return self
 
 
 class ExtractPageContentTool(BaseTool):
@@ -35,13 +51,13 @@ class ExtractPageContentTool(BaseTool):
         - For date/number questions, cross-check extracted values with search snippets
     """
 
-    config_model = SearchConfig
+    config_model = ExtractPageContentConfig
 
     reasoning: str = Field(description="Why extract these specific pages")
     urls: list[str] = Field(description="List of URLs to extract full content from", min_length=1, max_length=5)
 
     @staticmethod
-    async def _extract(config: SearchConfig, urls: list[str]) -> list[SourceData]:
+    async def _extract(config: ExtractPageContentConfig, urls: list[str]) -> list[SourceData]:
         """Extract full content from URLs via Tavily Extract API."""
         logger.info(f"Tavily extract: {len(urls)} URLs")
 
@@ -53,13 +69,15 @@ class ExtractPageContentTool(BaseTool):
             if not result.get("url"):
                 continue
 
+            url = result.get("url", "")
+            raw_content = result.get("raw_content", "")
             source = SourceData(
                 number=i,
-                title=result.get("url", "").split("/")[-1] or "Extracted Content",
-                url=result.get("url", ""),
+                title=url.split("/")[-1] or "Extracted Content",
+                url=url,
                 snippet="",
-                full_content=result.get("raw_content", ""),
-                char_count=len(result.get("raw_content", "")),
+                full_content=raw_content,
+                char_count=len(raw_content),
             )
             sources.append(source)
 
@@ -71,15 +89,13 @@ class ExtractPageContentTool(BaseTool):
 
     async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs: Any) -> str:
         """Extract full content from specified URLs."""
-        search_config = SearchConfig(**kwargs)
-        if not search_config.tavily_api_key:
-            return (
-                "Error: tavily_api_key is required for ExtractPageContentTool."
-                " Tavily is the only provider that supports content extraction."
-            )
+        try:
+            extract_config = ExtractPageContentConfig(**kwargs)
+        except ValueError as e:
+            return f"Error: {e}"
         logger.info(f"Extracting content from {len(self.urls)} URLs")
 
-        sources = await self._extract(search_config, urls=self.urls)
+        sources = await self._extract(extract_config, urls=self.urls)
 
         # Update existing sources instead of overwriting
         for source in sources:
@@ -97,10 +113,10 @@ class ExtractPageContentTool(BaseTool):
 
         # Format results using sources from context (to get correct numbers)
         for url in self.urls:
-            if url in context.sources:
-                source = context.sources[url]
+            source = context.sources.get(url)
+            if source is not None:
                 if source.full_content:
-                    content_preview = source.full_content[: search_config.content_limit]
+                    content_preview = source.full_content[: extract_config.content_limit]
                     formatted_result += (
                         f"{str(source)}\n\n**Full Content:**\n"
                         f"{content_preview}\n\n"

@@ -8,7 +8,7 @@ from sgr_agent_core.tools.adapt_plan_tool import AdaptPlanTool
 from sgr_agent_core.tools.answer_tool import AnswerTool
 from sgr_agent_core.tools.clarification_tool import ClarificationTool
 from sgr_agent_core.tools.create_report_tool import CreateReportTool
-from sgr_agent_core.tools.extract_page_content_tool import ExtractPageContentTool
+from sgr_agent_core.tools.extract_page_content_tool import ExtractPageContentConfig, ExtractPageContentTool
 from sgr_agent_core.tools.final_answer_tool import FinalAnswerTool
 from sgr_agent_core.tools.generate_plan_tool import GeneratePlanTool
 from sgr_agent_core.tools.reasoning_tool import ReasoningTool
@@ -28,6 +28,7 @@ __all__ = [
     "AnswerTool",
     "ClarificationTool",
     "CreateReportTool",
+    "ExtractPageContentConfig",
     "ExtractPageContentTool",
     "FinalAnswerTool",
     "GeneratePlanTool",

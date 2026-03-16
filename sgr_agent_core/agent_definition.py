@@ -62,14 +62,6 @@ class LLMConfig(BaseModel, extra="allow"):
         return self.model_dump(exclude={"api_key", "base_url", "proxy"})
 
 
-class SearchConfig(BaseModel, extra="allow"):
-    max_searches: int = Field(default=4, ge=0, description="Maximum number of searches")
-    max_results: int = Field(default=10, ge=1, description="Maximum number of search results")
-    content_limit: int = Field(default=3500, gt=0, description="Content character limit per source")
-    tavily_api_key: str | None = Field(default=None, description="Tavily API key")
-    tavily_api_base_url: str = Field(default="https://api.tavily.com", description="Tavily API base URL")
-
-
 class PromptsConfig(BaseModel, extra="allow"):
     system_prompt_file: FilePath | None = Field(
         default=os.path.join(os.path.dirname(__file__), "prompts/system_prompt.txt"),

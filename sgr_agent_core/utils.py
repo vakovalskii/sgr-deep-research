@@ -27,7 +27,7 @@ def config_from_kwargs(config_class: type[T], base: T | None, kwargs: dict[str, 
     agent-level config with per-tool kwargs from the tools array (global or inline).
 
     Args:
-        config_class: Pydantic model class to instantiate (e.g. SearchConfig).
+        config_class: Pydantic model class to instantiate (e.g. WebSearchConfig).
         base: Existing config instance, or None to use only kwargs (with model defaults).
         kwargs: Overrides; keys present here override base. None values are skipped.
 

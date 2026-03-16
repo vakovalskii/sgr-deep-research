@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from sgr_agent_core.agent_definition import SearchConfig
 from sgr_agent_core.models import SourceData
 
 
@@ -153,9 +152,9 @@ class TestTavilySearchHandler:
 
     @pytest.mark.asyncio
     async def test_extract_calls_tavily_api(self):
-        from sgr_agent_core.tools.extract_page_content_tool import ExtractPageContentTool
+        from sgr_agent_core.tools.extract_page_content_tool import ExtractPageContentConfig, ExtractPageContentTool
 
-        config = SearchConfig(tavily_api_key="test-key")
+        config = ExtractPageContentConfig(tavily_api_key="test-key")
 
         mock_client = AsyncMock()
         mock_client.extract = AsyncMock(

@@ -357,7 +357,7 @@ class TestBaseAgentGetToolConfig:
         assert out.max_searches == 6
 
     def test_get_tool_config_returns_model_from_tool_configs_only(self):
-        """get_tool_config builds SearchConfig exclusively from tool_configs
+        """get_tool_config builds config model exclusively from tool_configs
         (search settings are per-tool, not in AgentConfig)."""
         agent = create_test_agent(
             BaseAgent,
