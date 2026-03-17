@@ -50,7 +50,7 @@ from sgr_agent_core.agent_definition import AgentDefinition
 
 # Load configuration
 config_path = Path(__file__).parent / "config.yaml"
-GlobalConfig.load_from_yaml(str(config_path))
+GlobalConfig.from_yaml(str(config_path))
 
 # Get agent definition
 agent_def = GlobalConfig().agents["sgr_agent_no_reporting"]

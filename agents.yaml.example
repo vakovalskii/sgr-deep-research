@@ -6,14 +6,14 @@
 # ------
 # 1. Agent names must be unique or will be overridden
 # 2. All tools must be registered in the tool registry
-# 3. LLM, Search, Prompts, Execution, MCP settings are optional and inherit from global config
+# 3. LLM, Prompts, Execution, MCP settings are optional and inherit from global config
 # 4. Agents override global settings by providing their own values
 
 agents:
   # Example 1: Simple custom research agent with overrides
   custom_research_agent:
     base_class: "sgr_agent_core.agents.sgr_agent.SGRAgent"
-    # Optional: Override LLM settings for this agentк
+    # Optional: Override LLM settings for this agent
     llm:
       model: "gpt-4o"
       temperature: 0.3
@@ -24,10 +24,8 @@ agents:
 
     # Optional: Execution configuration
     execution:
-      max_steps: 8
       max_iterations: 15
       max_clarifications: 5
-      max_searches: 6
       mcp_context_limit: 20000
       logs_dir: "logs/custom_agent"
       reports_dir: "reports/custom_agent"
@@ -38,10 +36,13 @@ agents:
         deepwiki:
           url: "https://mcp.deepwiki.com/mcp"
 
-    # Tools: list of names, or dicts with "name" and optional kwargs (override global tool settings)
+    # Tools: list of names, or per-tool overrides with optional kwargs
     tools:
-      - {"name": "web_search_tool", "max_results": 15}
-      - {"name": "extract_page_content_tool", "content_limit": 2000}
+      - web_search_tool:
+          max_results: 15
+          max_searches: 6
+      - extract_page_content_tool:
+          content_limit: 2000
       - "create_report_tool"
       - "clarification_tool"
       - "generate_plan_tool"
@@ -70,13 +71,12 @@ agents:
       max_tokens: 4000
 
     execution:
-      max_steps: 4
       max_iterations: 8
       max_clarifications: 2
-      max_searches: 3
 
     tools:
-      - "web_search_tool"
+      - web_search_tool:
+          max_searches: 3
       - "create_report_tool"
       - "final_answer_tool"
       - "reasoning_tool"
@@ -90,16 +90,15 @@ agents:
       temperature: 0.2
 
     prompts:
-      system_prompt: "You are a highly specialized technical analyst."
+      system_prompt_str: "You are a highly specialized technical analyst."
 
     execution:
-      max_steps: 10
       max_iterations: 20
       max_clarifications: 3
-      max_searches: 8
 
     tools:
-      - "web_search_tool"
+      - web_search_tool:
+          max_searches: 8
       - "extract_page_content_tool"
       - "create_report_tool"
       - "clarification_tool"

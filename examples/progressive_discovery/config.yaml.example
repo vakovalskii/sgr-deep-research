@@ -17,6 +17,16 @@ execution:
   max_iterations: 15
   max_clarifications: 2
 
+tools:
+  web_search_tool:
+    engine: "tavily"  # Search engine: "tavily" (default), "brave", or "perplexity"
+    api_key: "your-search-api-key-here"
+    max_results: 10
+    max_searches: 4
+  extract_page_content_tool:
+    tavily_api_key: "your-tavily-api-key-here"
+    content_limit: 2000
+
 # MCP servers provide additional tools that will be discoverable
 # (not loaded into context until agent searches for them)
 #

@@ -181,7 +181,8 @@ An agent with full parameter override:
 # Search tool settings are configured globally in tools: section
 tools:
   web_search_tool:
-    tavily_api_key: "your-tavily-api-key"
+    engine: "tavily"           # "tavily" (default), "brave", or "perplexity"
+    api_key: "your-tavily-api-key"
     max_results: 15
     max_searches: 6
   extract_page_content_tool:
@@ -190,7 +191,7 @@ tools:
 
 agents:
   custom_research_agent:
-    base_class: "sgr_agent_core.agents.sgr_agent.ResearchSGRAgent"
+    base_class: "examples.sgr_deep_research.agents.ResearchSGRAgent"
 
     # Override LLM settings
     llm:
@@ -235,10 +236,10 @@ agents:
     execution:
       max_iterations: 8  # Fewer iterations
       max_clarifications: 2
-      max_searches: 3
 
     tools:
-      - "web_search_tool"
+      - web_search_tool:
+          max_searches: 3
       - "create_report_tool"
       - "final_answer_tool"
       - "reasoning_tool"
@@ -292,10 +293,10 @@ agents:
 
     execution:
       max_iterations: 20
-      max_searches: 8
 
     tools:
-      - "web_search_tool"
+      - web_search_tool:
+          max_searches: 8
       - "extract_page_content_tool"
       - "create_report_tool"
       - "clarification_tool"

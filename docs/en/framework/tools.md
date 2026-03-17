@@ -318,7 +318,7 @@ No specific configuration required.
 **Type:** Auxiliary Tool
 **Source:** [sgr_agent_core/tools/web_search_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/tools/web_search_tool.py)
 
-Searches the web for real-time information using Tavily Search API.
+Searches the web for real-time information using a pluggable search engine (Tavily, Brave, or Perplexity).
 
 **Parameters:**
 
@@ -328,7 +328,7 @@ Searches the web for real-time information using Tavily Search API.
 
 **Behavior:**
 
-- Executes search via TavilySearchService
+- Executes search via the configured engine (Tavily, Brave, or Perplexity)
 - Adds found sources to `context.sources` dictionary
 - Creates SearchResult and appends to `context.searches`
 - Increments `context.searches_used`
@@ -353,10 +353,11 @@ Search settings are configured per-tool in the `tools:` section (not in a global
 ```yaml
 tools:
   web_search_tool:
-    tavily_api_key: "your-tavily-api-key"  # Required: Tavily API key
-    tavily_api_base_url: "https://api.tavily.com"  # Tavily API URL
-    max_searches: 4  # Maximum number of search operations
-    max_results: 10  # Maximum results in search query (overrides tool's max_results if lower)
+    engine: "tavily"           # Search engine: "tavily" (default), "brave", or "perplexity"
+    api_key: "your-api-key"    # Required: API key for the selected engine
+    # api_base_url: "https://custom-url"  # Optional, uses engine default
+    max_searches: 4            # Maximum number of search operations
+    max_results: 10            # Maximum results per query
 ```
 
 After reaching `max_searches`, the tool is automatically removed from available tools.
@@ -366,7 +367,8 @@ After reaching `max_searches`, the tool is automatically removed from available 
 ```yaml
 tools:
   web_search_tool:
-    tavily_api_key: "your-tavily-api-key"
+    engine: "tavily"
+    api_key: "your-tavily-api-key"
     max_searches: 6
     max_results: 15
 
@@ -450,7 +452,8 @@ Tools are configured per agent in the `agents.yaml` file or agent definitions. Y
 ```yaml
 tools:
   web_search_tool:
-    tavily_api_key: "your-tavily-api-key"
+    engine: "tavily"
+    api_key: "your-tavily-api-key"
     max_searches: 4
     max_results: 10
   extract_page_content_tool:

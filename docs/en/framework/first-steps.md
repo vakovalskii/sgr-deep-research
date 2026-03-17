@@ -230,9 +230,10 @@ tools:
 # Search tool settings are configured in tools: section (not in agent-level search:)
 tools:
   web_search_tool:
-    tavily_api_key: "___"
+    engine: "tavily"
+    api_key: "___"
     max_results: 5
-    content_limit: 5000
+    max_searches: 4
 
 agents:
   simple_search_agent:

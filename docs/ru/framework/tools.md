@@ -318,7 +318,7 @@ execution:
 **Тип:** Вспомогательный тул
 **Исходный код:** [sgr_agent_core/tools/web_search_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/tools/web_search_tool.py)
 
-Выполняет поиск в интернете для получения актуальной информации с использованием Tavily Search API.
+Выполняет поиск в интернете для получения актуальной информации с использованием подключаемого поискового движка (Tavily, Brave или Perplexity).
 
 **Параметры:**
 
@@ -328,7 +328,7 @@ execution:
 
 **Поведение:**
 
-- Выполняет поиск через TavilySearchService
+- Выполняет поиск через настроенный движок (Tavily, Brave или Perplexity)
 - Добавляет найденные источники в словарь `context.sources`
 - Создаёт SearchResult и добавляет в `context.searches`
 - Увеличивает `context.searches_used`
@@ -353,10 +353,11 @@ execution:
 ```yaml
 tools:
   web_search_tool:
-    tavily_api_key: "your-tavily-api-key"  # Обязательно: API-ключ Tavily
-    tavily_api_base_url: "https://api.tavily.com"  # URL API Tavily
-    max_searches: 4  # Максимальное количество поисковых операций
-    max_results: 10  # Максимум результатов в поисковом запросе (переопределяет max_results тула, если меньше)
+    engine: "tavily"           # Поисковый движок: "tavily" (по умолчанию), "brave" или "perplexity"
+    api_key: "your-api-key"    # Обязательно: API-ключ для выбранного движка
+    # api_base_url: "https://custom-url"  # Опционально, используется URL по умолчанию движка
+    max_searches: 4            # Максимальное количество поисковых операций
+    max_results: 10            # Максимум результатов в поисковом запросе
 ```
 
 После достижения `max_searches` тул автоматически удаляется из доступных тулов.
@@ -366,7 +367,8 @@ tools:
 ```yaml
 tools:
   web_search_tool:
-    tavily_api_key: "your-tavily-api-key"
+    engine: "tavily"
+    api_key: "your-tavily-api-key"
     max_searches: 6
     max_results: 15
 
@@ -450,7 +452,8 @@ agents:
 ```yaml
 tools:
   web_search_tool:
-    tavily_api_key: "your-tavily-api-key"
+    engine: "tavily"
+    api_key: "your-tavily-api-key"
     max_searches: 4
     max_results: 10
   extract_page_content_tool:

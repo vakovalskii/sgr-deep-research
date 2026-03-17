@@ -127,7 +127,7 @@ agents:
           # tavily_api_key и другие настройки можно задать здесь или глобально в tools:
 ```
 
-Настройки поиска (`tavily_api_key`, `tavily_api_base_url`, `max_results`, `content_limit`, `max_searches`) задаются в секции `tools:` (глобальные значения по умолчанию) или переопределяются для агента в списке `tools`.
+Настройки поиска (`engine`, `api_key`, `max_results`, `content_limit`, `max_searches`) задаются в секции `tools:` (глобальные значения по умолчанию) или переопределяются для агента в списке `tools`.
 
 !!! note "Порядок резолва инструментов"
     При резолве инструментов система проверяет в порядке:
@@ -182,7 +182,8 @@ agents:
 # Настройки поисковых тулов задаются глобально в секции tools:
 tools:
   web_search_tool:
-    tavily_api_key: "your-tavily-api-key"
+    engine: "tavily"           # "tavily" (по умолчанию), "brave" или "perplexity"
+    api_key: "your-tavily-api-key"
     max_results: 15
     max_searches: 6
   extract_page_content_tool:
@@ -191,7 +192,7 @@ tools:
 
 agents:
   custom_research_agent:
-    base_class: "sgr_agent_core.agents.sgr_agent.ResearchSGRAgent"
+    base_class: "examples.sgr_deep_research.agents.ResearchSGRAgent"
 
     # Переопределяем LLM настройки
     llm:
@@ -236,10 +237,10 @@ agents:
     execution:
       max_iterations: 8  # Меньше итераций
       max_clarifications: 2
-      max_searches: 3
 
     tools:
-      - "web_search_tool"
+      - web_search_tool:
+          max_searches: 3
       - "create_report_tool"
       - "final_answer_tool"
       - "reasoning_tool"
@@ -293,10 +294,10 @@ agents:
 
     execution:
       max_iterations: 20
-      max_searches: 8
 
     tools:
-      - "web_search_tool"
+      - web_search_tool:
+          max_searches: 8
       - "extract_page_content_tool"
       - "create_report_tool"
       - "clarification_tool"

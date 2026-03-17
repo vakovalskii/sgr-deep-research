@@ -42,7 +42,8 @@ sudo chmod 777 logs reports
 cp examples/sgr_deep_research/config.yaml.example examples/sgr_deep_research/config.yaml
 # Edit examples/sgr_deep_research/config.yaml and set your API keys:
 # - llm.api_key: Your OpenAI API key
-# - search.tavily_api_key: Your Tavily API key (optional)
+# - tools.web_search_tool.api_key: Your Tavily API key (optional)
+# - tools.extract_page_content_tool.tavily_api_key: Your Tavily API key (optional)
 
 # Run the container
 docker run --rm -i \
@@ -79,7 +80,8 @@ The project includes example research agent configurations in the `examples/` di
 cp examples/sgr_deep_research/config.yaml.example examples/sgr_deep_research/config.yaml
 # Edit examples/sgr_deep_research/config.yaml and set your API keys:
 # - llm.api_key: Your OpenAI API key
-# - search.tavily_api_key: Your Tavily API key (optional)
+# - tools.web_search_tool.api_key: Your Tavily API key (optional)
+# - tools.extract_page_content_tool.tavily_api_key: Your Tavily API key (optional)
 ```
 
 2. Run the API server using the `sgr` utility:

@@ -259,7 +259,8 @@ self.toolkit = [
 # Использование в _prepare_tools():
 tools = set(self.toolkit)
 # Фильтрация инструментов на основе состояния
-if self._context.searches_used >= self.config.search.max_searches:
+search_config = self.get_tool_config(WebSearchTool)
+if self._context.searches_used >= search_config.max_searches:
     tools -= {WebSearchTool}
 ```
 
@@ -314,7 +315,8 @@ class ResearchSGRAgent(SGRAgent):
         if self._context.clarifications_used >= self.config.execution.max_clarifications:  # (2)!
             tools -= {ClarificationTool}
 
-        if self._context.searches_used >= self.config.search.max_searches:  # (3)!
+        search_config = self.get_tool_config(WebSearchTool)
+        if self._context.searches_used >= search_config.max_searches:  # (3)!
             tools -= {WebSearchTool}
 
         return NextStepToolsBuilder.build_NextStepTools(list(tools))

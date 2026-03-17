@@ -84,10 +84,8 @@ agents:
 
     # Optional: Execution configuration
     execution:
-      max_steps: 8
       max_iterations: 15
       max_clarifications: 5
-      max_searches: 6
       mcp_context_limit: 20000
       logs_dir: "logs/custom_agent"
       reports_dir: "reports/custom_agent"
@@ -98,11 +96,11 @@ agents:
         deepwiki:
           url: "https://mcp.deepwiki.com/mcp"
 
-    # Tools: names, or dicts with "name" and optional kwargs (e.g. search settings per tool)
-    # Example:
+    # Tools: names, or per-tool overrides with optional kwargs
+    # Example with per-tool overrides:
     # - web_search_tool:
-    #    max_results: 15
-    #    max_searches: 6
+    #     max_results: 15
+    #     max_searches: 6
     tools:
       - "web_search_tool"
       - "extract_page_content_tool"
