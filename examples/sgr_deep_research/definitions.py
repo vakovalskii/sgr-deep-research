@@ -9,6 +9,7 @@ from pathlib import Path
 import sgr_agent_core.tools as tools
 from examples.sgr_deep_research.agents import (
     ResearchDialogAgent,
+    ResearchIronAgent,
     ResearchSGRAgent,
     ResearchSGRToolCallingAgent,
     ResearchToolCallingAgent,
@@ -54,6 +55,12 @@ def get_research_agents_definitions() -> dict[str, AgentDefinition]:
         AgentDefinition(
             name="research_dialog_agent",
             base_class=ResearchDialogAgent,
+            tools=DEFAULT_TOOLKIT,
+            prompts=PromptsConfig(system_prompt_file=Path("sgr_agent_core/prompts/research_system_prompt.txt")),
+        ),
+        AgentDefinition(
+            name="iron_agent",
+            base_class=ResearchIronAgent,
             tools=DEFAULT_TOOLKIT,
             prompts=PromptsConfig(system_prompt_file=Path("sgr_agent_core/prompts/research_system_prompt.txt")),
         ),

@@ -100,6 +100,21 @@ agents:
       - "generate_plan_tool"
       - "adapt_plan_tool"
 
+  # Iron Agent for research (no tool calling / structured output required)
+  iron_agent:
+    base_class: "agents.ResearchIronAgent"
+    llm:
+      model: "gpt-4.1-mini"
+      temperature: 0.4
+    tools:
+      - "web_search_tool"
+      - "extract_page_content_tool"
+      - "create_report_tool"
+      - "final_answer_tool"
+      - "clarification_tool"
+      - "generate_plan_tool"
+      - "adapt_plan_tool"
+
   # Dialog Agent for research (intermediate results, long conversations)
   dialog_agent:
     base_class: "agents.ResearchDialogAgent"
