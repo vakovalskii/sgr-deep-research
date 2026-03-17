@@ -23,8 +23,11 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev,tests]"
 
-      - name: Run tests
+      - name: Run unit + integration tests
         run: pytest --tb=short -q
+
+      - name: Run e2e tests
+        run: pytest -m e2e --tb=short -q
 
   # ─────────────────────────────────────────────
   # 2. Build wheel
@@ -193,12 +196,13 @@ jobs:
 
       - name: Test each agent
         run: |
-          QUERY='{"messages": [{"role": "user", "content": "What is 2+2? Answer briefly."}], "stream": true}'
           for agent in sgr_agent sgr_tool_calling_agent tool_calling_agent iron_agent; do
             echo "--- Testing $agent ---"
+            body=$(jq -n --arg model "$agent" \
+              '{model: $model, messages: [{role: "user", content: "What is Schema-Guided Reasoning? Give a brief answer."}], stream: true}')
             result=$(curl -s -X POST http://127.0.0.1:8010/v1/chat/completions \
               -H "Content-Type: application/json" \
-              -d "{\"model\": \"$agent\", $QUERY}" \
+              -d "$body" \
               --max-time 120 -N)
             if echo "$result" | grep -q "\[DONE\]"; then
               echo "✅ $agent: OK"
