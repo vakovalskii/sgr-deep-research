@@ -1,0 +1,210 @@
+name: Release Testing
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  # ─────────────────────────────────────────────
+  # 1. Unit + integration tests
+  # ─────────────────────────────────────────────
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev,tests]"
+
+      - name: Run tests
+        run: pytest --tb=short -q
+
+  # ─────────────────────────────────────────────
+  # 2. Build wheel
+  # ─────────────────────────────────────────────
+  build:
+    name: Build wheel
+    runs-on: ubuntu-latest
+    needs: tests
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build wheel
+        run: pip install build && python -m build --wheel
+
+      - name: Verify version importable
+        run: |
+          pip install dist/sgr_agent_core-*.whl
+          python -c "import sgr_agent_core; print('Version:', sgr_agent_core.__version__)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel
+          path: dist/*.whl
+
+  # ─────────────────────────────────────────────
+  # 3. Server startup check (no real API keys)
+  # ─────────────────────────────────────────────
+  server-startup:
+    name: Server startup
+    runs-on: ubuntu-latest
+    needs: tests
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev,tests]"
+
+      - name: Write minimal CI config
+        run: |
+          cat > /tmp/ci_config.yaml << 'EOF'
+          llm:
+            api_key: "test-key"
+            base_url: "https://api.openai.com/v1"
+            model: "gpt-4o-mini"
+          tools:
+            web_search_tool:
+              engine: "tavily"
+              api_key: "test-tavily-key"
+              max_results: 5
+              max_searches: 4
+            extract_page_content_tool:
+              tavily_api_key: "test-tavily-key"
+            final_answer_tool:
+            generate_plan_tool:
+            adapt_plan_tool:
+          agents:
+            ci_agent:
+              base_class: "SGRToolCallingAgent"
+              tools:
+                - "web_search_tool"
+                - "final_answer_tool"
+                - "generate_plan_tool"
+                - "adapt_plan_tool"
+          EOF
+
+      - name: Start server and check /v1/models
+        run: |
+          python -m sgr_agent_core.server --config-file /tmp/ci_config.yaml --host 127.0.0.1 --port 8010 &
+          sleep 4
+          curl -sf http://127.0.0.1:8010/v1/models | python -m json.tool
+          models=$(curl -s http://127.0.0.1:8010/v1/models | python -c "import sys,json; d=json.load(sys.stdin); print([m['id'] for m in d['data']])")
+          echo "Loaded models: $models"
+          curl -sf http://127.0.0.1:8010/docs > /dev/null && echo "Swagger UI OK"
+
+  # ─────────────────────────────────────────────
+  # 4. Live agent tests (requires secrets)
+  # ─────────────────────────────────────────────
+  live-agents:
+    name: Live agent tests
+    runs-on: ubuntu-latest
+    needs: server-startup
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev,tests]"
+
+      - name: Write live config from secrets
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: |
+          cat > /tmp/live_config.yaml << EOF
+          llm:
+            api_key: "${LLM_API_KEY}"
+            base_url: "${LLM_BASE_URL:-https://api.openai.com/v1}"
+            model: "gpt-4o-mini"
+            max_tokens: 4000
+          execution:
+            max_iterations: 5
+            max_clarifications: 1
+          tools:
+            web_search_tool:
+              engine: "tavily"
+              api_key: "${TAVILY_API_KEY}"
+              max_results: 5
+              max_searches: 2
+            extract_page_content_tool:
+              tavily_api_key: "${TAVILY_API_KEY}"
+              content_limit: 2000
+            final_answer_tool:
+            generate_plan_tool:
+            adapt_plan_tool:
+            create_report_tool:
+            clarification_tool:
+            reasoning_tool:
+          agents:
+            sgr_agent:
+              base_class: "examples.sgr_deep_research.agents.ResearchSGRAgent"
+              tools:
+                - "web_search_tool"
+                - "final_answer_tool"
+                - "generate_plan_tool"
+                - "adapt_plan_tool"
+            sgr_tool_calling_agent:
+              base_class: "examples.sgr_deep_research.agents.ResearchSGRToolCallingAgent"
+              tools:
+                - "web_search_tool"
+                - "final_answer_tool"
+                - "reasoning_tool"
+                - "generate_plan_tool"
+                - "adapt_plan_tool"
+            tool_calling_agent:
+              base_class: "examples.sgr_deep_research.agents.ResearchToolCallingAgent"
+              tools:
+                - "web_search_tool"
+                - "final_answer_tool"
+                - "generate_plan_tool"
+                - "adapt_plan_tool"
+            iron_agent:
+              base_class: "examples.sgr_deep_research.agents.ResearchIronAgent"
+              tools:
+                - "web_search_tool"
+                - "final_answer_tool"
+                - "generate_plan_tool"
+                - "adapt_plan_tool"
+          EOF
+
+      - name: Start server
+        run: |
+          python -m sgr_agent_core.server --config-file /tmp/live_config.yaml --host 127.0.0.1 --port 8010 &
+          sleep 5
+
+      - name: Test each agent
+        run: |
+          QUERY='{"messages": [{"role": "user", "content": "What is 2+2? Answer briefly."}], "stream": true}'
+          for agent in sgr_agent sgr_tool_calling_agent tool_calling_agent iron_agent; do
+            echo "--- Testing $agent ---"
+            result=$(curl -s -X POST http://127.0.0.1:8010/v1/chat/completions \
+              -H "Content-Type: application/json" \
+              -d "{\"model\": \"$agent\", $QUERY}" \
+              --max-time 120 -N)
+            if echo "$result" | grep -q "\[DONE\]"; then
+              echo "✅ $agent: OK"
+            else
+              echo "❌ $agent: FAILED"
+              echo "$result" | tail -5
+              exit 1
+            fi
+          done
