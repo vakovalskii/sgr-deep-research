@@ -5,7 +5,7 @@ A powerful research assistant that combines structured reasoning with deep analy
 """
 
 # Version info
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 __author__ = "sgr-agent-core-team"
 
 # Base classes (from direct .py files)
