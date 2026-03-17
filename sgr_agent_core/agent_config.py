@@ -111,7 +111,7 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
 
         Raises:
             FileNotFoundError: If YAML file not found
-            ValueError: If YAML file doesn't contain both 'agents' and 'tools' keys
+            ValueError: If YAML file doesn't contain 'agents' key
         """
         agents_yaml_path = Path(agents_yaml_path)
 
@@ -120,7 +120,7 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
             raise FileNotFoundError(f"Agents definitions file not found: {agents_yaml_path}")
 
         yaml_data = yaml.safe_load(agents_yaml_path.read_text(encoding="utf-8"))
-        if "agents" not in yaml_data or "tools" not in yaml_data:
-            raise ValueError(f"Agents definitions file must contain both 'agents' and 'tools' keys: {agents_yaml_path}")
+        if "agents" not in yaml_data:
+            raise ValueError(f"Agents definitions file must contain 'agents' key: {agents_yaml_path}")
 
         return cls._definitions_from_dict(yaml_data)

@@ -254,12 +254,13 @@ class TestAgentsLoadingOrder:
 
         # Use actual load_config() from __main__.py
         # Loading agents.yaml without 'agents' key should raise ValueError
-        with pytest.raises(ValueError, match="must contain both 'agents' and 'tools' keys"):
+        with pytest.raises(ValueError, match="must contain 'agents' key"):
             load_config(str(config_yaml), str(agents_yaml))
 
     def test_agents_yaml_missing_tools_key(self, temp_dir, reset_global_config):
-        """Test that missing 'tools' key in agents.yaml raises ValueError."""
-        # Create agents.yaml without 'tools' key
+        """Test that missing 'tools' key in agents.yaml is allowed (defaults to
+        {})."""
+        # Create agents.yaml without 'tools' key — should succeed
         agents_yaml = temp_dir / "agents.yaml"
         agents_data = {
             "agents": {
@@ -277,15 +278,12 @@ class TestAgentsLoadingOrder:
         config_data = {"llm": {"api_key": "test-key", "model": "gpt-4o-mini"}}
         config_yaml.write_text(yaml.dump(config_data), encoding="utf-8")
 
-        # Use actual load_config() from __main__.py
-        # Loading agents.yaml without 'tools' key should raise ValueError
-        with pytest.raises(ValueError, match="must contain both 'agents' and 'tools' keys"):
-            load_config(str(config_yaml), str(agents_yaml))
+        # 'tools' key is optional — should not raise
+        load_config(str(config_yaml), str(agents_yaml))
 
     def test_agents_yaml_missing_both_keys(self, temp_dir, reset_global_config):
-        """Test that missing both 'agents' and 'tools' keys in agents.yaml
-        raises ValueError."""
-        # Create agents.yaml without both keys
+        """Test that missing 'agents' key in agents.yaml raises ValueError."""
+        # Create agents.yaml without 'agents' key
         agents_yaml = temp_dir / "agents.yaml"
         agents_data = {"some_other_key": "value"}
         agents_yaml.write_text(yaml.dump(agents_data), encoding="utf-8")
@@ -295,9 +293,8 @@ class TestAgentsLoadingOrder:
         config_data = {"llm": {"api_key": "test-key", "model": "gpt-4o-mini"}}
         config_yaml.write_text(yaml.dump(config_data), encoding="utf-8")
 
-        # Use actual load_config() from __main__.py
-        # Loading agents.yaml without both keys should raise ValueError
-        with pytest.raises(ValueError, match="must contain both 'agents' and 'tools' keys"):
+        # Loading agents.yaml without 'agents' key should raise ValueError
+        with pytest.raises(ValueError, match="must contain 'agents' key"):
             load_config(str(config_yaml), str(agents_yaml))
 
     def test_agents_yaml_error_logging(self, temp_dir, reset_global_config):
@@ -319,7 +316,7 @@ class TestAgentsLoadingOrder:
         # Mock logger to check if error is logged
         with patch("sgr_agent_core.server.__main__.logger") as mock_logger:
             # Use actual load_config() from __main__.py
-            with pytest.raises(ValueError, match="must contain both 'agents' and 'tools' keys"):
+            with pytest.raises(ValueError, match="must contain 'agents' key"):
                 load_config(str(config_yaml), str(agents_yaml))
 
             # Check that logger.error was called (only if try/except is uncommented)
@@ -329,9 +326,8 @@ class TestAgentsLoadingOrder:
                 "ERROR: logger.error was not called! This means try/except block is commented out in __main__.py",
             )
             error_message = mock_logger.error.call_args[0][0]
-            assert (
-                "Invalid agents file format" in error_message
-                or "must contain both 'agents' and 'tools' keys" in str(error_message)
+            assert "Invalid agents file format" in error_message or "must contain 'agents' key" in str(
+                error_message
             ), f"Expected error message about invalid format, got: {error_message}"
 
     def test_agents_yaml_yaml_error_logging(self, temp_dir, reset_global_config):
