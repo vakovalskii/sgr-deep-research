@@ -32,35 +32,31 @@ class AgentFactory:
     def _patch_langfuse_stream_close(cls) -> None:
         """Patch OpenAI streaming implementation for Langfuse compatibility.
 
-        Langfuse may wrap the underlying HTTP stream object so that it only
-        exposes a synchronous `close()` method instead of async `aclose()`.
-        OpenAI's AsyncStream.close expects `self._response.aclose()`.
+        Langfuse wraps the underlying HTTP response so that it exposes
+        ``close()`` instead of ``aclose()``.  OpenAI's
+        ``AsyncChatCompletionStream.close`` calls
+        ``self._response.aclose()`` which raises ``AttributeError``.
 
-        This patch replaces AsyncStream.close with a version that:
-        - prefers awaitable `aclose()` when available
-        - otherwise falls back to `close()`, awaiting it if it is async.
+        This patch replaces ``AsyncChatCompletionStream.close`` with a
+        version that prefers ``aclose()`` when available and falls back
+        to ``close()``, awaiting the result if necessary.
         """
         try:
-            from openai.lib.streaming.chat import _completions as chat_streaming
+            from openai.lib.streaming.chat._completions import AsyncChatCompletionStream
         except Exception:  # pragma: no cover
             logger.warning("Failed to import OpenAI chat streaming module for Langfuse patch")
             return
 
-        original_close = getattr(chat_streaming.AsyncStream, "close", None)
-        if getattr(chat_streaming.AsyncStream.close, "_langfuse_patched", False):
+        if getattr(AsyncChatCompletionStream.close, "_langfuse_patched", False):
             return
 
         async def safe_close(self) -> None:  # type: ignore[override]
             response = getattr(self, "_response", None)
             if response is None:
-                if original_close:
-                    await original_close(self)
                 return
 
             close_method = getattr(response, "aclose", None) or getattr(response, "close", None)
             if close_method is None:
-                if original_close:
-                    await original_close(self)
                 return
 
             result = close_method()
@@ -68,7 +64,7 @@ class AgentFactory:
                 await result
 
         safe_close._langfuse_patched = True  # type: ignore[attr-defined]
-        chat_streaming.AsyncStream.close = safe_close  # type: ignore[assignment]
+        AsyncChatCompletionStream.close = safe_close  # type: ignore[assignment]
 
     @classmethod
     def _create_client(cls, llm_config: LLMConfig) -> AsyncOpenAI:
