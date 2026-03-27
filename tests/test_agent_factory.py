@@ -460,7 +460,8 @@ class TestAgentFactoryClientCreation:
         assert client.api_key == "test-key"
 
     def test_create_client_inits_langfuse_with_credentials(self):
-        """Test that Langfuse() is initialized with explicit credentials from config."""
+        """Test that Langfuse() is initialized with explicit credentials from
+        config."""
         from types import SimpleNamespace
 
         class DummyAsyncOpenAI:
