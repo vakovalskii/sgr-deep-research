@@ -70,37 +70,39 @@ An example can be found in [`config.yaml.example`](https://github.com/vamplabAI/
 ### Observability and Langfuse integration
 
 SGR Agent Core can optionally integrate with [Langfuse](https://langfuse.com) for tracing LLM calls.
-This is controlled by the top-level `langfuse` flag in configuration:
+Configuration is done via the `langfuse` section in `config.yaml`:
 
 ```yaml
-llm:
-  api_key: "your-openai-api-key-here"
-  base_url: "https://api.openai.com/v1"
-  model: "gpt-4o-mini"
-  max_tokens: 8000
-  temperature: 0.4
-
-langfuse: false  # default: disabled
+langfuse:
+  enabled: true
+  public_key: "pk-lf-..."
+  secret_key: "sk-lf-..."
+  host: "http://localhost:3000"  # omit for cloud.langfuse.com
 ```
 
-The `langfuse` flag can also be set via environment variable:
+The same settings can be passed via environment variables:
 
 ```bash
-SGR__LANGFUSE=true
+SGR__LANGFUSE__ENABLED=true
+SGR__LANGFUSE__PUBLIC_KEY=pk-lf-xxx
+SGR__LANGFUSE__SECRET_KEY=sk-lf-xxx
+SGR__LANGFUSE__HOST=http://localhost:3000
 ```
 
-When `langfuse` is `true`, `AgentFactory` creates the client using
+**Shorthand** (when credentials are already in `LANGFUSE_*` env vars):
+
+```yaml
+langfuse: true
+```
+
+When `langfuse.enabled` is `true`, `AgentFactory` creates the client using
 `langfuse.openai.AsyncOpenAI` (drop-in replacement for the standard OpenAI client).
+If `public_key`/`secret_key`/`host` are provided in config, Langfuse is initialized
+with those credentials explicitly. Otherwise the Langfuse SDK falls back to reading
+`LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, and `LANGFUSE_HOST` from the environment.
+
 If the `langfuse` package is not installed, the system logs a warning and falls back
 to the standard `openai.AsyncOpenAI` client.
-
-Langfuse itself reads its own environment variables:
-
-- `LANGFUSE_SECRET_KEY`
-- `LANGFUSE_PUBLIC_KEY`
-- `LANGFUSE_BASE_URL`
-
-See the official Langfuse docs for details on these parameters.
 
 ### Parameter Override
 

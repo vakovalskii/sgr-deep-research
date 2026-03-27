@@ -71,37 +71,39 @@ config = GlobalConfig.from_yaml("config.yaml")
 ### Наблюдаемость и интеграция с Langfuse
 
 SGR Agent Core может опционально интегрироваться с [Langfuse](https://langfuse.com) для трассировки вызовов LLM.
-Управление включением происходит через верхнеуровневый флаг `langfuse` в конфигурации:
+Настройка производится через секцию `langfuse` в `config.yaml`:
 
 ```yaml
-llm:
-  api_key: "your-openai-api-key-here"
-  base_url: "https://api.openai.com/v1"
-  model: "gpt-4o-mini"
-  max_tokens: 8000
-  temperature: 0.4
-
-langfuse: false  # по умолчанию отключено
+langfuse:
+  enabled: true
+  public_key: "pk-lf-..."
+  secret_key: "sk-lf-..."
+  host: "http://localhost:3000"  # опустите для cloud.langfuse.com
 ```
 
-Тот же флаг можно задать через переменную окружения:
+Те же параметры можно задать через переменные окружения:
 
 ```bash
-SGR__LANGFUSE=true
+SGR__LANGFUSE__ENABLED=true
+SGR__LANGFUSE__PUBLIC_KEY=pk-lf-xxx
+SGR__LANGFUSE__SECRET_KEY=sk-lf-xxx
+SGR__LANGFUSE__HOST=http://localhost:3000
 ```
 
-Когда `langfuse` установлен в `true`, `AgentFactory` создает клиент на основе
+**Сокращённая форма** (когда ключи уже заданы в `LANGFUSE_*` переменных окружения):
+
+```yaml
+langfuse: true
+```
+
+Когда `langfuse.enabled` установлен в `true`, `AgentFactory` создаёт клиент на основе
 `langfuse.openai.AsyncOpenAI` (drop-in замена стандартного клиента OpenAI).
+Если в конфиге указаны `public_key`/`secret_key`/`host`, Langfuse инициализируется
+с этими учётными данными явно. В противном случае SDK Langfuse самостоятельно
+читает `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` и `LANGFUSE_HOST` из окружения.
+
 Если пакет `langfuse` не установлен, система пишет предупреждение в лог и
 откатывается к стандартному клиенту `openai.AsyncOpenAI`.
-
-Сам Langfuse читает свои переменные окружения:
-
-- `LANGFUSE_SECRET_KEY`
-- `LANGFUSE_PUBLIC_KEY`
-- `LANGFUSE_BASE_URL`
-
-Подробности по этим параметрам см. в официальной документации Langfuse.
 
 ### Переопределение параметров
 
