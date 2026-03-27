@@ -83,8 +83,19 @@ class AgentFactory:
 
         if getattr(config, "langfuse_enabled", False):
             try:
-                langfuse_openai = import_module("langfuse.openai")
-                LangfuseAsyncOpenAI = getattr(langfuse_openai, "AsyncOpenAI")
+                lf_cfg = config.langfuse
+                if lf_cfg.public_key or lf_cfg.secret_key or lf_cfg.host:
+                    LangfuseClient = getattr(import_module("langfuse"), "Langfuse")
+                    kwargs = {}
+                    if lf_cfg.public_key:
+                        kwargs["public_key"] = lf_cfg.public_key
+                    if lf_cfg.secret_key:
+                        kwargs["secret_key"] = lf_cfg.secret_key
+                    if lf_cfg.host:
+                        kwargs["host"] = lf_cfg.host
+                    LangfuseClient(**kwargs)
+                    logger.info("Langfuse initialized with explicit credentials from config")
+                LangfuseAsyncOpenAI = getattr(import_module("langfuse.openai"), "AsyncOpenAI")
                 cls._patch_langfuse_stream_close()
                 logger.info("Creating Langfuse AsyncOpenAI client (langfuse_enabled=True)")
                 return LangfuseAsyncOpenAI(**client_kwargs)
