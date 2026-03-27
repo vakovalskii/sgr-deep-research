@@ -12,8 +12,12 @@ llm:
 
 # Observability (Langfuse)
 # When enabled, AgentFactory will create Langfuse AsyncOpenAI client instead of standard AsyncOpenAI.
-# Langfuse SDK uses LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY and LANGFUSE_BASE_URL environment variables.
-langfuse: false
+# Credentials can be set here or via LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY / LANGFUSE_HOST env vars.
+langfuse:
+  enabled: false
+  # public_key: "pk-lf-xxx"
+  # secret_key: "sk-lf-xxx"
+  # host: "http://localhost:3000"
 
 # Execution Settings
 execution:
