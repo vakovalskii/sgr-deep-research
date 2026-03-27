@@ -144,6 +144,15 @@ class ExecutionConfig(BaseModel, extra="allow"):
     reports_dir: str = Field(default="reports", description="Directory for saving reports")
 
 
+class LangfuseConfig(BaseModel):
+    """Langfuse observability configuration."""
+
+    enabled: bool = Field(default=False, description="Enable Langfuse integration")
+    public_key: str | None = Field(default=None, description="Langfuse public key (pk-lf-...)")
+    secret_key: str | None = Field(default=None, description="Langfuse secret key (sk-lf-...)")
+    host: str | None = Field(default=None, description="Langfuse host URL (e.g. http://localhost:3000)")
+
+
 class AgentConfig(BaseModel, extra="allow"):
     """Agent configuration with all settings.
 
@@ -151,19 +160,25 @@ class AgentConfig(BaseModel, extra="allow"):
     parameters (e.g., working_directory for file agents).
     """
 
-    langfuse: bool = Field(
-        default=False,
-        description="Enable Langfuse OpenAI integration for tracing and observability",
-    )
+    langfuse: LangfuseConfig = Field(default_factory=LangfuseConfig, description="Langfuse observability settings")
     llm: LLMConfig = Field(default_factory=LLMConfig, description="LLM settings")
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig, description="Execution settings")
     prompts: PromptsConfig = Field(default_factory=PromptsConfig, description="Prompts settings")
     mcp: MCPConfig = Field(default_factory=MCPConfig, description="MCP settings")
 
+    @field_validator("langfuse", mode="before")
+    @classmethod
+    def normalize_langfuse(cls, v):
+        """Accept bool shorthand: langfuse: true → LangfuseConfig(enabled=True)."""
+        if isinstance(v, bool):
+            return {"enabled": v}
+        if isinstance(v, str):
+            return {"enabled": v.lower() in ("true", "1", "yes")}
+        return v
+
     @property
     def langfuse_enabled(self) -> bool:
-        """Backward-compatible accessor for Langfuse flag."""
-        return self.langfuse
+        return self.langfuse.enabled
 
 
 class ToolDefinition(BaseModel, extra="allow"):
