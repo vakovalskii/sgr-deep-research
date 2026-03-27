@@ -81,13 +81,13 @@ class TestLangfuseConfiguration:
     """Tests for Langfuse-related configuration flags."""
 
     def test_langfuse_enabled_default_false(self, monkeypatch):
-        """Test that langfuse_enabled has correct default value."""
+        """Test that langfuse_enabled is False by default."""
         from sgr_agent_core import agent_config as agent_config_module
 
         agent_config_module.GlobalConfig._instance = None
         agent_config_module.GlobalConfig._initialized = False
-
         monkeypatch.delenv("SGR__LANGFUSE", raising=False)
+        monkeypatch.delenv("SGR__LANGFUSE__ENABLED", raising=False)
 
         config = GlobalConfig()
 
@@ -95,12 +95,25 @@ class TestLangfuseConfiguration:
         assert config.langfuse_enabled is False
 
     def test_langfuse_enabled_from_env(self, monkeypatch):
-        """Test that langfuse_enabled can be enabled via environment
-        variable."""
+        """Test that langfuse_enabled can be enabled via nested env variable."""
         from sgr_agent_core import agent_config as agent_config_module
 
         agent_config_module.GlobalConfig._instance = None
         agent_config_module.GlobalConfig._initialized = False
+
+        monkeypatch.setenv("SGR__LANGFUSE__ENABLED", "true")
+
+        config = GlobalConfig()
+
+        assert config.langfuse_enabled is True
+
+    def test_langfuse_enabled_from_env_shorthand(self, monkeypatch):
+        """Test backward-compat: SGR__LANGFUSE=true still works."""
+        from sgr_agent_core import agent_config as agent_config_module
+
+        agent_config_module.GlobalConfig._instance = None
+        agent_config_module.GlobalConfig._initialized = False
+        monkeypatch.delenv("SGR__LANGFUSE__ENABLED", raising=False)
 
         monkeypatch.setenv("SGR__LANGFUSE", "true")
 
@@ -109,7 +122,7 @@ class TestLangfuseConfiguration:
         assert config.langfuse_enabled is True
 
     def test_langfuse_enabled_from_yaml(self, tmp_path, monkeypatch):
-        """Test that langfuse_enabled can be enabled via config.yaml."""
+        """Test that langfuse_enabled can be enabled via nested config.yaml."""
         from sgr_agent_core import agent_config as agent_config_module
 
         agent_config_module.GlobalConfig._instance = None
@@ -122,7 +135,8 @@ class TestLangfuseConfiguration:
                     "llm:",
                     '  api_key: "test-key"',
                     '  base_url: "https://api.openai.com/v1"',
-                    "langfuse: true",
+                    "langfuse:",
+                    "  enabled: true",
                 ]
             ),
             encoding="utf-8",
@@ -131,6 +145,37 @@ class TestLangfuseConfiguration:
         config = GlobalConfig.from_yaml(str(config_path))
 
         assert config.langfuse_enabled is True
+
+    def test_langfuse_yaml_with_credentials(self, tmp_path, monkeypatch):
+        """Test that Langfuse credentials are parsed from config.yaml."""
+        from sgr_agent_core import agent_config as agent_config_module
+
+        agent_config_module.GlobalConfig._instance = None
+        agent_config_module.GlobalConfig._initialized = False
+
+        config_path = tmp_path / "config.yaml"
+        config_path.write_text(
+            "\n".join(
+                [
+                    "llm:",
+                    '  api_key: "test-key"',
+                    '  base_url: "https://api.openai.com/v1"',
+                    "langfuse:",
+                    "  enabled: true",
+                    '  public_key: "pk-lf-test"',
+                    '  secret_key: "sk-lf-test"',
+                    '  host: "http://localhost:3000"',
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        config = GlobalConfig.from_yaml(str(config_path))
+
+        assert config.langfuse_enabled is True
+        assert config.langfuse.public_key == "pk-lf-test"
+        assert config.langfuse.secret_key == "sk-lf-test"
+        assert config.langfuse.host == "http://localhost:3000"
 
 
 class TestMultipleAgentConfigurationConsistency:
