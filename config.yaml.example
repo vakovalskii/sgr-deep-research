@@ -18,6 +18,10 @@ execution:
   logs_dir: "logs"  # Directory for saving agent execution logs
   reports_dir: "reports"  # Directory for saving agent reports
 
+# Optional: Agent Client Protocol (stdio) via `sgracp --config config.yaml`
+# acp:
+#   agent: "sgr_agent"  # Must match a name under agents:
+
 # Prompts Configuration
 # prompts:
 #   # Option 1: Use file paths (absolute or relative to project root)

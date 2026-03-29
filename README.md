@@ -126,6 +126,23 @@ The `sgrsh` command:
 
 For more examples and detailed usage instructions, see the [examples/](examples/) directory.
 
+### Agent Client Protocol (`sgracp`)
+
+Editors and tools that speak the [Agent Client Protocol](https://agentclientprotocol.com/) can run SGR agents over **stdio** (newline-delimited JSON-RPC), using the same YAML configuration as the HTTP server.
+
+```bash
+sgracp --config examples/sgr_deep_research/config.yaml
+```
+
+Optional `acp` block in `config.yaml` selects which `agents:` entry to expose (if omitted, the first agent definition is used):
+
+```yaml
+acp:
+  agent: sgr_agent
+```
+
+Protocol details follow the official ACP specification, the [Python SDK](https://agentclientprotocol.github.io/python-sdk/), and the `agent-client-protocol` package used by this binary.
+
 ## Benchmarking
 
 ![SimpleQA Benchmark Comparison](https://github.com/vamplabAI/sgr-agent-core/blob/main/docs/assets/images/simpleqa_benchmark_comparison.png)

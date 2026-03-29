@@ -95,7 +95,7 @@ class SGRToolCallingAgent(BaseAgent):
             final_content = completion.choices[0].message.content or "Task completed successfully"
             tool = FinalAnswerTool(
                 reasoning="Agent decided to complete the task",
-                completed_steps=[],
+                completed_steps=["Response synthesized without a tool call"],
                 answer=final_content,
                 status=AgentStatesEnum.COMPLETED,
             )

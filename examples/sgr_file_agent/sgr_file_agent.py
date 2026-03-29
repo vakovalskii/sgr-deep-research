@@ -1,10 +1,11 @@
 from typing import Type
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, pydantic_function_tool
+from openai.types.chat import ChatCompletionFunctionToolParam
 
 from sgr_agent_core.agent_definition import AgentConfig
-from sgr_agent_core.agents.sgr_agent import SGRAgent
-from sgr_agent_core.next_step_tool import NextStepToolsBuilder, NextStepToolStub
+from sgr_agent_core.agents.tool_calling_agent import ToolCallingAgent
+from sgr_agent_core.models import AgentStatesEnum
 from sgr_agent_core.tools import (
     BaseTool,
     ClarificationTool,
@@ -21,9 +22,10 @@ from .tools import (
 )
 
 
-class SGRFileAgent(SGRAgent):
-    """File-first agent that uses OpenAI native function calling to work with filesystem.
-    Two-phase agent: reasoning phase + action phase.
+class SGRFileAgent(ToolCallingAgent):
+    """File-first agent using native function calling only (no separate
+    reasoning round-trip). Suited for OpenAI-compatible endpoints that handle
+    tool_choice reliably but not structured reasoning schemas.
 
     Focus: File search and analysis (read-only operations)
 
@@ -92,12 +94,9 @@ class SGRFileAgent(SGRAgent):
             working_directory = getattr(agent_config, "working_directory", ".")
         self.working_directory = working_directory
 
-    async def _prepare_tools(self) -> Type[NextStepToolStub]:
-        """Prepare available tools for current agent state and progress.
-
-        Returns NextStepToolStub class for response_format, filtering
-        tools based on agent state.
-        """
+    async def _prepare_tools(self) -> list[ChatCompletionFunctionToolParam]:
+        """Build function-calling tool list for each step (filter by iteration
+        limits)."""
         tools = set(self.toolkit)
         if self._context.iteration >= self.config.execution.max_iterations:
             tools = {
@@ -108,4 +107,49 @@ class SGRFileAgent(SGRAgent):
             tools -= {
                 ClarificationTool,
             }
-        return NextStepToolsBuilder.build_NextStepTools(list(tools))
+        return [pydantic_function_tool(tool, name=tool.tool_name) for tool in tools]
+
+    async def _select_action_phase(self, reasoning=None) -> BaseTool:
+        """Same as ToolCallingAgent, with a FinalAnswer fallback when the model
+        returns no tool call (common on some gateways)."""
+        phase_id = f"{self._context.iteration}-action"
+        async with self.openai_client.chat.completions.stream(
+            messages=await self._prepare_context(),
+            tools=await self._prepare_tools(),
+            tool_choice=self.tool_choice,
+            **self.config.llm.to_openai_client_kwargs(),
+        ) as stream:
+            async for event in stream:
+                if event.type == "chunk":
+                    self.streaming_generator.add_chunk(event.chunk, phase_id)
+            completion = await stream.get_final_completion()
+        try:
+            tool = completion.choices[0].message.tool_calls[0].function.parsed_arguments
+        except (IndexError, AttributeError, TypeError):
+            final_content = completion.choices[0].message.content or "Task completed successfully"
+            tool = FinalAnswerTool(
+                reasoning="Agent decided to complete the task",
+                completed_steps=["Response synthesized without a tool call"],
+                answer=final_content,
+                status=AgentStatesEnum.COMPLETED,
+            )
+        if not isinstance(tool, BaseTool):
+            raise ValueError("Selected tool is not a valid BaseTool instance")
+        self.conversation.append(
+            {
+                "role": "assistant",
+                "content": None,
+                "tool_calls": [
+                    {
+                        "type": "function",
+                        "id": phase_id,
+                        "function": {
+                            "name": tool.tool_name,
+                            "arguments": tool.model_dump_json(),
+                        },
+                    }
+                ],
+            }
+        )
+        self.streaming_generator.add_tool_call(phase_id, tool)
+        return tool

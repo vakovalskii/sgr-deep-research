@@ -67,7 +67,22 @@ config = GlobalConfig.from_yaml("config.yaml")
 
 Пример можно найти в [`config.yaml.example`](https://github.com/vamplabAI/sgr-agent-core/blob/main/config.yaml.example).
 
+### Agent Client Protocol (`sgracp`)
 
+Необязательная секция верхнего уровня `acp` задаёт параметры для stdio-входа [`sgracp`](https://github.com/vamplabAI/sgr-agent-core) (Agent Client Protocol поверх stdin/stdout). Используются те же определения `agents:`, что и для HTTP API.
+
+| Поле | Описание |
+| ---- | -------- |
+| `agent` | Имя записи в `agents:` для запуска при подключении клиента. Если не задано, берётся первый агент из `agents:`. |
+
+Пример:
+
+```yaml
+acp:
+  agent: sgr_agent
+```
+
+Переменную окружения можно задать как `SGR__ACP__AGENT` (см. правила вложенных переменных в `pydantic-settings` для вашей версии).
 
 ### Переопределение параметров
 
