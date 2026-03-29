@@ -9,41 +9,38 @@ from typing import Any
 
 from acp.interfaces import Client
 from acp.schema import (
-    AuthenticateResponse,
     AgentCapabilities,
+    AuthenticateResponse,
+    CloseSessionResponse,
     HttpMcpServer,
     Implementation,
     InitializeResponse,
     ListSessionsResponse,
     LoadSessionResponse,
-    McpServerStdio,
     McpCapabilities,
+    McpServerStdio,
     NewSessionResponse,
     PromptCapabilities,
     PromptResponse,
     SessionInfo,
+    SetSessionConfigOptionResponse,
     SetSessionModelResponse,
     SetSessionModeResponse,
-    SetSessionConfigOptionResponse,
-    CloseSessionResponse,
     SseMcpServer,
     TextContentBlock,
 )
 
 from sgr_agent_core import __version__
+from sgr_agent_core.acp.streaming import create_acp_streaming_generator_class
 from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.agent_definition import AgentDefinition
 from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.base_agent import BaseAgent
-from sgr_agent_core.acp.streaming import create_acp_streaming_generator_class
 from sgr_agent_core.models import AgentStatesEnum
 
 
 def extract_prompt_text(
-    prompt: list[
-        TextContentBlock
-        | Any
-    ],
+    prompt: list[TextContentBlock | Any],
 ) -> str:
     """Concatenate user-visible text from ACP prompt content blocks."""
     parts: list[str] = []
@@ -128,7 +125,8 @@ class SGRACPBridge:
         mcp_servers: list[HttpMcpServer | SseMcpServer | McpServerStdio] | None = None,
         **kwargs: Any,
     ) -> NewSessionResponse:
-        """Create a new session id (working directory is stored for future use)."""
+        """Create a new session id (working directory is stored for future
+        use)."""
         session_id = f"sgr_{uuid.uuid4().hex}"
         self._sessions[session_id] = _ACPSession(session_id=session_id, cwd=cwd)
         return NewSessionResponse(session_id=session_id)
@@ -150,9 +148,7 @@ class SGRACPBridge:
         **kwargs: Any,
     ) -> ListSessionsResponse:
         """Return basic metadata for active sessions."""
-        sessions = [
-            SessionInfo(session_id=s.session_id, cwd=s.cwd) for s in self._sessions.values()
-        ]
+        sessions = [SessionInfo(session_id=s.session_id, cwd=s.cwd) for s in self._sessions.values()]
         return ListSessionsResponse(sessions=sessions)
 
     async def set_session_mode(
@@ -194,7 +190,8 @@ class SGRACPBridge:
         message_id: str | None = None,
         **kwargs: Any,
     ) -> PromptResponse:
-        """Run one user turn (or continue after clarification) for the SGR agent."""
+        """Run one user turn (or continue after clarification) for the SGR
+        agent."""
         if self._client is None:
             raise RuntimeError("ACP client connection is not initialized")
 

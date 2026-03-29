@@ -19,7 +19,8 @@ def create_acp_streaming_generator_class(
     """Build a streaming generator class bound to an ACP session and client."""
 
     class ACPStreamingGenerator(BaseStreamingGenerator):
-        """Forwards SGR streaming events to ACP ``session/update`` notifications."""
+        """Forwards SGR streaming events to ACP ``session/update``
+        notifications."""
 
         name = "acp"
 

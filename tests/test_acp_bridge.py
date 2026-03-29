@@ -8,14 +8,15 @@ import pytest
 from acp.schema import TextContentBlock
 
 from sgr_agent_core.agent_definition import AgentDefinition, ExecutionConfig, LLMConfig, PromptsConfig
-from sgr_agent_core.agents import SGRAgent
 from sgr_agent_core.agent_factory import AgentFactory
+from sgr_agent_core.agents import SGRAgent
 from sgr_agent_core.stream import BaseStreamingGenerator
 
 
 @pytest.mark.asyncio
 async def test_acp_extract_prompt_text_joins_text_blocks():
-    """Prompt extraction should concatenate text parts from ACP content blocks."""
+    """Prompt extraction should concatenate text parts from ACP content
+    blocks."""
     from sgr_agent_core.acp.bridge import extract_prompt_text
 
     blocks = [
@@ -27,7 +28,8 @@ async def test_acp_extract_prompt_text_joins_text_blocks():
 
 @pytest.mark.asyncio
 async def test_acp_bridge_initialize_returns_agent_info():
-    """initialize should negotiate protocol version and return agent capabilities."""
+    """Initialize should negotiate protocol version and return agent
+    capabilities."""
     from sgr_agent_core.acp.bridge import SGRACPBridge
 
     bridge = SGRACPBridge(default_agent_name="sgr_agent")
@@ -49,7 +51,8 @@ async def test_acp_bridge_new_session_returns_session_id():
 
 @pytest.mark.asyncio
 async def test_agent_factory_create_accepts_streaming_generator_override():
-    """AgentFactory.create should allow overriding streaming generator class."""
+    """AgentFactory.create should allow overriding streaming generator
+    class."""
     from tests.test_agent_factory import mock_global_config
 
     class DummyGen(BaseStreamingGenerator):
