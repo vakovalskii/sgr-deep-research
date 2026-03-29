@@ -4,7 +4,7 @@
 llm:
   api_key: "https://t.me/evilfreelancer"
   base_url: "https://api.rpa.icu/v1"
-  model: "gpt-oss:20b"
+  model: "gpt-oss:120b"
   max_tokens: 4000
   temperature: 0.3
 
@@ -19,7 +19,6 @@ mcp:
   mcpServers: {}
 
 tools:
-  reasoning_tool: {}
   clarification_tool: {}
   final_answer_tool: {}
   get_system_paths_tool:
@@ -36,10 +35,6 @@ tools:
 agents:
   sgr_file_agent:
     base_class: "sgr_file_agent.SGRFileAgent"
-    llm:
-      model: "gpt-oss:20b"
-      temperature: 0.3
-      max_tokens: 4000
     execution:
       max_iterations: 3
       max_clarifications: 1
@@ -48,7 +43,6 @@ agents:
       reports_dir: "reports/file_agent"
     working_directory: "."
     tools:
-      - "reasoning_tool"
       - "clarification_tool"
       - "final_answer_tool"
       - "get_system_paths_tool"
