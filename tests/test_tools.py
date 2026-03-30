@@ -5,6 +5,7 @@ This module contains simple tests for all tools:
 - Config reading (if needed)
 """
 
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -337,15 +338,18 @@ class TestRunCommandTool:
 
     @pytest.mark.asyncio
     async def test_run_command_tool_uses_workspace_path_as_cwd(self):
-        """RunCommandTool with workspace_path runs command with cwd set to
-        workspace_path."""
+        """RunCommandTool with workspace_path runs subprocess with cwd set to
+        workspace_path (print cwd via same Python as test runner)."""
         from sgr_agent_core.models import AgentContext
 
         tmp = Path(__file__).resolve().parent
-        tool = RunCommandTool(reasoning="Test", command="pwd")
+        command = f'"{sys.executable}" -c "import os; print(os.getcwd())"'
+        tool = RunCommandTool(reasoning="Test", command=command)
         context = AgentContext()
         config = MagicMock()
         result = await tool(context, config, mode="unsafe", workspace_path=str(tmp))
+        print(result)
+        print(tmp.name)
         assert tmp.name in result or str(tmp) in result
 
     @pytest.mark.asyncio
