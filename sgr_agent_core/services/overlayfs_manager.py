@@ -36,7 +36,7 @@ def _get_run_command_config_candidates(config: GlobalConfig) -> list[RunCommandT
         tool_config_dict = runcommand_def.tool_kwargs()
         candidates.append(RunCommandToolConfig(**tool_config_dict))
     for agent_def in config.agents.values():
-        _, tool_configs = AgentFactory._resolve_tools_with_configs(agent_def.tools, config)
+        _, tool_configs = AgentFactory._resolve_tools_with_configs(agent_def.tools)
         if "runcommandtool" in tool_configs:
             candidates.append(RunCommandToolConfig(**tool_configs["runcommandtool"]))
     return candidates
