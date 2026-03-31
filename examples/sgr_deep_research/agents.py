@@ -14,7 +14,6 @@ from sgr_agent_core import AnswerTool
 from sgr_agent_core.agent_definition import AgentConfig
 from sgr_agent_core.agents.dialog_agent import DialogAgent
 from sgr_agent_core.agents.iron_agent import IronAgent
-from sgr_agent_core.agents.sgr_agent import SGRAgent
 from sgr_agent_core.agents.sgr_tool_calling_agent import SGRToolCallingAgent
 from sgr_agent_core.agents.tool_calling_agent import ToolCallingAgent
 from sgr_agent_core.tools import (
@@ -24,7 +23,6 @@ from sgr_agent_core.tools import (
     ExtractPageContentTool,
     FinalAnswerTool,
     NextStepToolsBuilder,
-    NextStepToolStub,
     ReasoningTool,
     WebSearchTool,
 )
