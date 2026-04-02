@@ -152,6 +152,23 @@ class LangfuseConfig(BaseModel):
     secret_key: str | None = Field(default=None, description="Langfuse secret key (sk-lf-...)")
     host: str | None = Field(default=None, description="Langfuse host URL (e.g. http://localhost:3000)")
 
+    @field_validator("public_key", "secret_key", "host", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v: Any) -> Any:
+        """Treat empty strings as unset so SDK kwargs omit them."""
+        if v == "":
+            return None
+        return v
+
+    def has_explicit_sdk_fields(self) -> bool:
+        """Return True if any credential or host is set for explicit Langfuse SDK init."""
+        return bool(self.to_langfuse_client_kwargs())
+
+    def to_langfuse_client_kwargs(self) -> dict[str, str]:
+        """Build kwargs for ``Langfuse(...)`` with only non-empty fields."""
+        raw = self.model_dump(include={"public_key", "secret_key", "host"}, exclude_none=True)
+        return {k: v for k, v in raw.items() if isinstance(v, str) and v != ""}
+
 
 class AgentConfig(BaseModel, extra="allow"):
     """Agent configuration with all settings.
@@ -175,10 +192,6 @@ class AgentConfig(BaseModel, extra="allow"):
         if isinstance(v, str):
             return {"enabled": v.lower() in ("true", "1", "yes")}
         return v
-
-    @property
-    def langfuse_enabled(self) -> bool:
-        return self.langfuse.enabled
 
 
 class ToolDefinition(BaseModel, extra="allow"):

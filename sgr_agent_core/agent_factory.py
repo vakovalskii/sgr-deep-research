@@ -21,6 +21,10 @@ logger = logging.getLogger(__name__)
 Agent = TypeVar("Agent", bound=BaseAgent)
 
 
+class LangfuseImportError(RuntimeError):
+    """Raised when Langfuse is enabled in config but the ``langfuse`` package cannot be imported."""
+
+
 class AgentFactory:
     """Factory for creating agent instances from definitions.
 
@@ -40,6 +44,9 @@ class AgentFactory:
         This patch replaces ``AsyncChatCompletionStream.close`` with a
         version that prefers ``aclose()`` when available and falls back
         to ``close()``, awaiting the result if necessary.
+
+        See ``docs/*/framework/langfuse.md`` (*Streaming compatibility patch*)
+        for background; some Langfuse/OpenAI version pairs need this guard.
         """
         try:
             from openai.lib.streaming.chat._completions import AsyncChatCompletionStream
@@ -81,29 +88,22 @@ class AgentFactory:
         if llm_config.proxy:
             client_kwargs["http_client"] = httpx.AsyncClient(proxy=llm_config.proxy)
 
-        if getattr(config, "langfuse_enabled", False):
+        if config.langfuse.enabled:
             try:
                 lf_cfg = config.langfuse
-                if lf_cfg.public_key or lf_cfg.secret_key or lf_cfg.host:
+                if lf_cfg.has_explicit_sdk_fields():
                     LangfuseClient = getattr(import_module("langfuse"), "Langfuse")
-                    kwargs = {}
-                    if lf_cfg.public_key:
-                        kwargs["public_key"] = lf_cfg.public_key
-                    if lf_cfg.secret_key:
-                        kwargs["secret_key"] = lf_cfg.secret_key
-                    if lf_cfg.host:
-                        kwargs["host"] = lf_cfg.host
-                    LangfuseClient(**kwargs)
+                    LangfuseClient(**lf_cfg.to_langfuse_client_kwargs())
                     logger.info("Langfuse initialized with explicit credentials from config")
                 LangfuseAsyncOpenAI = getattr(import_module("langfuse.openai"), "AsyncOpenAI")
                 cls._patch_langfuse_stream_close()
-                logger.info("Creating Langfuse AsyncOpenAI client (langfuse_enabled=True)")
+                logger.info("Creating Langfuse AsyncOpenAI client (langfuse.enabled=True)")
                 return LangfuseAsyncOpenAI(**client_kwargs)
-            except ImportError:
-                logger.warning(
-                    "Langfuse is enabled but 'langfuse' package is not available. "
-                    "Falling back to standard AsyncOpenAI client."
-                )
+            except ImportError as exc:
+                raise LangfuseImportError(
+                    "Langfuse is enabled in config but the 'langfuse' package could not be imported. "
+                    "Install dependencies or set langfuse.enabled to false in configuration."
+                ) from exc
 
         return AsyncOpenAI(**client_kwargs)
 
