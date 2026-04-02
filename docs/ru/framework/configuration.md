@@ -70,40 +70,24 @@ config = GlobalConfig.from_yaml("config.yaml")
 
 ### Наблюдаемость и интеграция с Langfuse
 
-SGR Agent Core может опционально интегрироваться с [Langfuse](https://langfuse.com) для трассировки вызовов LLM.
-Настройка производится через секцию `langfuse` в `config.yaml`:
+SGR Agent Core поддерживает опциональную интеграцию с [Langfuse](https://langfuse.com) для трассировки LLM-вызовов:
 
 ```yaml
 langfuse:
   enabled: true
   public_key: "pk-lf-..."
   secret_key: "sk-lf-..."
-  host: "http://localhost:3000"  # опустите для cloud.langfuse.com
+  host: "https://cloud.langfuse.com"  # или ваш self-hosted URL
 ```
 
-Те же параметры можно задать через переменные окружения:
-
-```bash
-SGR__LANGFUSE__ENABLED=true
-SGR__LANGFUSE__PUBLIC_KEY=pk-lf-xxx
-SGR__LANGFUSE__SECRET_KEY=sk-lf-xxx
-SGR__LANGFUSE__HOST=http://localhost:3000
-```
-
-**Сокращённая форма** (когда ключи уже заданы в `LANGFUSE_*` переменных окружения):
+Сокращённая форма (когда ключи уже заданы в `LANGFUSE_*` env):
 
 ```yaml
 langfuse: true
 ```
 
-Когда `langfuse.enabled` установлен в `true`, `AgentFactory` создаёт клиент на основе
-`langfuse.openai.AsyncOpenAI` (drop-in замена стандартного клиента OpenAI).
-Если в конфиге указаны `public_key`/`secret_key`/`host`, Langfuse инициализируется
-с этими учётными данными явно. В противном случае SDK Langfuse самостоятельно
-читает `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` и `LANGFUSE_HOST` из окружения.
-
-Если пакет `langfuse` не установлен, система пишет предупреждение в лог и
-откатывается к стандартному клиенту `openai.AsyncOpenAI`.
+Подробнее о всех сценариях подключения (Langfuse Cloud, self-hosted, LiteLLM proxy),
+переменных окружения и решении проблем — в [руководстве по интеграции с Langfuse](langfuse.md).
 
 ### Переопределение параметров
 
