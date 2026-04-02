@@ -1,6 +1,5 @@
 """Agent Factory for dynamic agent creation from definitions."""
 
-import inspect
 import logging
 from importlib import import_module
 from typing import Any, Type, TypeVar
@@ -33,47 +32,6 @@ class AgentFactory:
     """
 
     @classmethod
-    def _patch_langfuse_stream_close(cls) -> None:
-        """Patch OpenAI streaming implementation for Langfuse compatibility.
-
-        Langfuse wraps the underlying HTTP response so that it exposes
-        ``close()`` instead of ``aclose()``.  OpenAI's
-        ``AsyncChatCompletionStream.close`` calls
-        ``self._response.aclose()`` which raises ``AttributeError``.
-
-        This patch replaces ``AsyncChatCompletionStream.close`` with a
-        version that prefers ``aclose()`` when available and falls back
-        to ``close()``, awaiting the result if necessary.
-
-        See ``docs/*/framework/langfuse.md`` (*Streaming compatibility patch*)
-        for background; some Langfuse/OpenAI version pairs need this guard.
-        """
-        try:
-            from openai.lib.streaming.chat._completions import AsyncChatCompletionStream
-        except Exception:  # pragma: no cover
-            logger.warning("Failed to import OpenAI chat streaming module for Langfuse patch")
-            return
-
-        if getattr(AsyncChatCompletionStream.close, "_langfuse_patched", False):
-            return
-
-        async def safe_close(self) -> None:  # type: ignore[override]
-            response = getattr(self, "_response", None)
-            if response is None:
-                return
-
-            close_method = getattr(response, "aclose", None) or getattr(response, "close", None)
-            if close_method is None:
-                return
-
-            result = close_method()
-            if inspect.isawaitable(result):
-                await result
-
-        safe_close._langfuse_patched = True  # type: ignore[attr-defined]
-        AsyncChatCompletionStream.close = safe_close  # type: ignore[assignment]
-
-    @classmethod
     def _create_client(cls, llm_config: LLMConfig) -> AsyncOpenAI:
         """Create OpenAI client from configuration.
 
@@ -96,7 +54,6 @@ class AgentFactory:
                     LangfuseClient(**lf_cfg.to_langfuse_client_kwargs())
                     logger.info("Langfuse initialized with explicit credentials from config")
                 LangfuseAsyncOpenAI = getattr(import_module("langfuse.openai"), "AsyncOpenAI")
-                cls._patch_langfuse_stream_close()
                 logger.info("Creating Langfuse AsyncOpenAI client (langfuse.enabled=True)")
                 return LangfuseAsyncOpenAI(**client_kwargs)
             except ImportError as exc:
