@@ -21,7 +21,8 @@ Agent = TypeVar("Agent", bound=BaseAgent)
 
 
 class LangfuseImportError(RuntimeError):
-    """Raised when Langfuse is enabled in config but the ``langfuse`` package cannot be imported."""
+    """Raised when Langfuse is enabled in config but the ``langfuse`` package
+    cannot be imported."""
 
 
 class AgentFactory:

@@ -161,7 +161,8 @@ class LangfuseConfig(BaseModel):
         return v
 
     def has_explicit_sdk_fields(self) -> bool:
-        """Return True if any credential or host is set for explicit Langfuse SDK init."""
+        """Return True if any credential or host is set for explicit Langfuse
+        SDK init."""
         return bool(self.to_langfuse_client_kwargs())
 
     def to_langfuse_client_kwargs(self) -> dict[str, str]:

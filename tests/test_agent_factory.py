@@ -438,7 +438,8 @@ class TestAgentFactoryClientCreation:
         assert client.kwargs["base_url"] == "https://api.openai.com/v1"
 
     def test_create_client_raises_when_langfuse_missing(self):
-        """Test that _create_client raises if Langfuse is enabled but package is missing."""
+        """Test that _create_client raises if Langfuse is enabled but package
+        is missing."""
         mock_config = Mock()
         mock_config.langfuse = LangfuseConfig(enabled=True)
 

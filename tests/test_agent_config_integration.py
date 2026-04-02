@@ -95,7 +95,8 @@ class TestLangfuseConfiguration:
         assert config.langfuse.enabled is False
 
     def test_langfuse_enabled_from_env(self, monkeypatch):
-        """Test that langfuse.enabled can be enabled via nested env variable."""
+        """Test that langfuse.enabled can be enabled via nested env
+        variable."""
         from sgr_agent_core import agent_config as agent_config_module
 
         agent_config_module.GlobalConfig._instance = None
