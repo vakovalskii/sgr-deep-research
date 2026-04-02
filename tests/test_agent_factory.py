@@ -18,7 +18,7 @@ from sgr_agent_core.agent_definition import (
     PromptsConfig,
     ToolDefinition,
 )
-from sgr_agent_core.agent_factory import AgentFactory
+from sgr_agent_core.agent_factory import AgentFactory, LangfuseImportError
 from sgr_agent_core.agents import (
     DialogAgent,
     SGRAgent,
@@ -42,7 +42,6 @@ def mock_global_config():
     mock_config.execution = ExecutionConfig()
     mock_config.search = None
     mock_config.langfuse = LangfuseConfig()
-    mock_config.langfuse_enabled = False
     mock_config.tools = {}
     # Create a mock MCP config that has model_copy and model_dump methods
     mock_mcp = Mock()
@@ -419,7 +418,6 @@ class TestAgentFactoryClientCreation:
                 self.kwargs = kwargs
 
         mock_config = Mock()
-        mock_config.langfuse_enabled = True
         mock_config.langfuse = LangfuseConfig(enabled=True)  # no credentials
 
         with (
@@ -439,11 +437,9 @@ class TestAgentFactoryClientCreation:
         assert client.kwargs["api_key"] == "test-key"
         assert client.kwargs["base_url"] == "https://api.openai.com/v1"
 
-    def test_create_client_falls_back_when_langfuse_missing(self):
-        """Test that _create_client falls back to OpenAI client if Langfuse is
-        not available."""
+    def test_create_client_raises_when_langfuse_missing(self):
+        """Test that _create_client raises if Langfuse is enabled but package is missing."""
         mock_config = Mock()
-        mock_config.langfuse_enabled = True
         mock_config.langfuse = LangfuseConfig(enabled=True)
 
         with (
@@ -454,10 +450,8 @@ class TestAgentFactoryClientCreation:
                 api_key="test-key",
                 base_url="https://api.openai.com/v1",
             )
-            client = AgentFactory._create_client(llm_config)
-
-        assert isinstance(client, AsyncOpenAI)
-        assert client.api_key == "test-key"
+            with pytest.raises(LangfuseImportError):
+                AgentFactory._create_client(llm_config)
 
     def test_create_client_inits_langfuse_with_credentials(self):
         """Test that Langfuse() is initialized with explicit credentials from
@@ -476,7 +470,6 @@ class TestAgentFactoryClientCreation:
         dummy_openai_module = SimpleNamespace(AsyncOpenAI=DummyAsyncOpenAI)
 
         mock_config = Mock()
-        mock_config.langfuse_enabled = True
         mock_config.langfuse = LangfuseConfig(
             enabled=True,
             public_key="pk-test",

@@ -13,6 +13,7 @@ import pytest
 import yaml
 
 from sgr_agent_core.agent_config import GlobalConfig
+from sgr_agent_core.agent_definition import LangfuseConfig
 from sgr_agent_core.agents import SGRAgent, SGRToolCallingAgent
 from sgr_agent_core.server.settings import ServerConfig, setup_logging
 from tests.conftest import create_test_agent
@@ -81,7 +82,7 @@ class TestLangfuseConfiguration:
     """Tests for Langfuse-related configuration flags."""
 
     def test_langfuse_enabled_default_false(self, monkeypatch):
-        """Test that langfuse_enabled is False by default."""
+        """Test that langfuse.enabled is False by default."""
         from sgr_agent_core import agent_config as agent_config_module
 
         agent_config_module.GlobalConfig._instance = None
@@ -91,12 +92,10 @@ class TestLangfuseConfiguration:
 
         config = GlobalConfig()
 
-        assert hasattr(config, "langfuse_enabled")
-        assert config.langfuse_enabled is False
+        assert config.langfuse.enabled is False
 
     def test_langfuse_enabled_from_env(self, monkeypatch):
-        """Test that langfuse_enabled can be enabled via nested env
-        variable."""
+        """Test that langfuse.enabled can be enabled via nested env variable."""
         from sgr_agent_core import agent_config as agent_config_module
 
         agent_config_module.GlobalConfig._instance = None
@@ -106,7 +105,7 @@ class TestLangfuseConfiguration:
 
         config = GlobalConfig()
 
-        assert config.langfuse_enabled is True
+        assert config.langfuse.enabled is True
 
     def test_langfuse_enabled_from_env_shorthand(self, monkeypatch):
         """Test backward-compat: SGR__LANGFUSE=true still works."""
@@ -120,10 +119,10 @@ class TestLangfuseConfiguration:
 
         config = GlobalConfig()
 
-        assert config.langfuse_enabled is True
+        assert config.langfuse.enabled is True
 
     def test_langfuse_enabled_from_yaml(self, tmp_path, monkeypatch):
-        """Test that langfuse_enabled can be enabled via nested config.yaml."""
+        """Test that langfuse.enabled can be enabled via nested config.yaml."""
         from sgr_agent_core import agent_config as agent_config_module
 
         agent_config_module.GlobalConfig._instance = None
@@ -145,7 +144,7 @@ class TestLangfuseConfiguration:
 
         config = GlobalConfig.from_yaml(str(config_path))
 
-        assert config.langfuse_enabled is True
+        assert config.langfuse.enabled is True
 
     def test_langfuse_yaml_with_credentials(self, tmp_path, monkeypatch):
         """Test that Langfuse credentials are parsed from config.yaml."""
@@ -173,10 +172,41 @@ class TestLangfuseConfiguration:
 
         config = GlobalConfig.from_yaml(str(config_path))
 
-        assert config.langfuse_enabled is True
+        assert config.langfuse.enabled is True
         assert config.langfuse.public_key == "pk-lf-test"
         assert config.langfuse.secret_key == "sk-lf-test"
         assert config.langfuse.host == "http://localhost:3000"
+
+
+class TestLangfuseConfigModel:
+    """Unit tests for LangfuseConfig helpers."""
+
+    def test_has_explicit_sdk_fields_false_when_empty(self):
+        """No credentials means no explicit SDK init kwargs."""
+        cfg = LangfuseConfig(enabled=True)
+        assert cfg.has_explicit_sdk_fields() is False
+        assert cfg.to_langfuse_client_kwargs() == {}
+
+    def test_has_explicit_sdk_fields_true_when_any_credential(self):
+        """Any of public_key, secret_key, host triggers explicit init."""
+        assert LangfuseConfig(public_key="pk").has_explicit_sdk_fields() is True
+        assert LangfuseConfig(secret_key="sk").has_explicit_sdk_fields() is True
+        assert LangfuseConfig(host="http://h").has_explicit_sdk_fields() is True
+
+    def test_to_langfuse_client_kwargs_partial(self):
+        """Only set fields appear in kwargs."""
+        cfg = LangfuseConfig(public_key="pk-x", secret_key=None, host="http://localhost")
+        assert cfg.to_langfuse_client_kwargs() == {
+            "public_key": "pk-x",
+            "host": "http://localhost",
+        }
+
+    def test_empty_strings_normalized_to_none(self):
+        """Empty strings are treated as unset."""
+        cfg = LangfuseConfig(public_key="", secret_key="sk")
+        assert cfg.public_key is None
+        assert cfg.has_explicit_sdk_fields() is True
+        assert cfg.to_langfuse_client_kwargs() == {"secret_key": "sk"}
 
 
 class TestMultipleAgentConfigurationConsistency:
