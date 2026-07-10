@@ -22,9 +22,10 @@ from acp.schema import (
     NewSessionResponse,
     PromptCapabilities,
     PromptResponse,
+    SessionConfigOptionSelect,
+    SessionConfigSelectOption,
     SessionInfo,
     SetSessionConfigOptionResponse,
-    SetSessionModelResponse,
     SetSessionModeResponse,
     SseMcpServer,
     TextContentBlock,
@@ -58,6 +59,8 @@ class _ACPSession:
 
     session_id: str
     cwd: str
+    agent_name: str
+    model: str
     agent: BaseAgent | None = None
     execute_task: asyncio.Task | None = None
 
@@ -66,6 +69,8 @@ class SGRACPBridge:
     """Routes ACP JSON-RPC methods to SGR agents loaded from GlobalConfig."""
 
     _SUPPORTED_PROTOCOL = 1
+    _AGENT_CONFIG_ID = "agent"
+    _MODEL_CONFIG_ID = "model"
 
     def __init__(self, default_agent_name: str | None = None) -> None:
         self._default_agent_name = default_agent_name
@@ -76,7 +81,9 @@ class SGRACPBridge:
         """Store the client connection for outbound session updates."""
         self._client = conn
 
-    def _resolve_agent_definition(self) -> AgentDefinition:
+    def _resolve_agent_name(self) -> str:
+        """Pick the default agent name from constructor arg, config, or the
+        first defined agent."""
         gc = GlobalConfig()
         name = self._default_agent_name
         if not name and gc.acp and gc.acp.agent:
@@ -87,7 +94,72 @@ class SGRACPBridge:
             raise ValueError(
                 "No agent definition selected for ACP. Set acp.agent in config or pass default_agent_name."
             )
-        return gc.agents[name]
+        return name
+
+    def _resolve_agent_definition(self) -> AgentDefinition:
+        return GlobalConfig().agents[self._resolve_agent_name()]
+
+    def _agent_definition_for_session(self, sess: _ACPSession) -> AgentDefinition:
+        """Resolve the session's agent definition and apply its model override."""
+        gc = GlobalConfig()
+        name = sess.agent_name if sess.agent_name in gc.agents else self._resolve_agent_name()
+        agent_def = gc.agents[name]
+        if sess.model and sess.model != agent_def.llm.model:
+            agent_def = agent_def.model_copy(deep=True)
+            agent_def.llm.model = sess.model
+        return agent_def
+
+    def _agent_names(self) -> list[str]:
+        return list(GlobalConfig().agents.keys())
+
+    def _model_choices(self) -> list[str]:
+        """All selectable model ids: each agent definition's model plus any
+        extra models declared under ``acp.models``, de-duplicated in order."""
+        gc = GlobalConfig()
+        choices: list[str] = []
+        if gc.acp and gc.acp.models:
+            choices.extend(gc.acp.models)
+        for agent_def in gc.agents.values():
+            model = agent_def.llm.model
+            if model:
+                choices.append(model)
+        seen: set[str] = set()
+        return [m for m in choices if not (m in seen or seen.add(m))]
+
+    def _build_config_options(self, sess: _ACPSession) -> list[SessionConfigOptionSelect]:
+        """Expose the active agent and model as ACP session config selectors so
+        clients let the user switch them at runtime."""
+        agent_option = SessionConfigOptionSelect(
+            id=self._AGENT_CONFIG_ID,
+            name="Agent",
+            description="SGR agent definition to run",
+            category="_agent",
+            type="select",
+            current_value=sess.agent_name,
+            options=[SessionConfigSelectOption(value=name, name=name) for name in self._agent_names()],
+        )
+        models = self._model_choices()
+        if sess.model not in models:
+            models = [sess.model, *models]
+        model_option = SessionConfigOptionSelect(
+            id=self._MODEL_CONFIG_ID,
+            name="Model",
+            description="LLM model used for generation",
+            category="model",
+            type="select",
+            current_value=sess.model,
+            options=[SessionConfigSelectOption(value=model, name=model) for model in models],
+        )
+        return [agent_option, model_option]
+
+    def _reset_agent_if_idle(self, sess: _ACPSession) -> None:
+        """Drop the cached agent so the next turn is rebuilt with the updated
+        agent/model. In-flight turns are left untouched."""
+        task = sess.execute_task
+        if task is not None and not task.done():
+            return
+        sess.agent = None
+        sess.execute_task = None
 
     async def initialize(
         self,
@@ -125,11 +197,13 @@ class SGRACPBridge:
         mcp_servers: list[HttpMcpServer | SseMcpServer | McpServerStdio] | None = None,
         **kwargs: Any,
     ) -> NewSessionResponse:
-        """Create a new session id (working directory is stored for future
-        use)."""
+        """Create a new session id and advertise the agent/model selectors."""
         session_id = f"sgr_{uuid.uuid4().hex}"
-        self._sessions[session_id] = _ACPSession(session_id=session_id, cwd=cwd)
-        return NewSessionResponse(session_id=session_id)
+        agent_name = self._resolve_agent_name()
+        model = GlobalConfig().agents[agent_name].llm.model
+        sess = _ACPSession(session_id=session_id, cwd=cwd, agent_name=agent_name, model=model)
+        self._sessions[session_id] = sess
+        return NewSessionResponse(session_id=session_id, config_options=self._build_config_options(sess))
 
     async def load_session(
         self,
@@ -160,15 +234,6 @@ class SGRACPBridge:
         """Session modes are not used."""
         return None
 
-    async def set_session_model(
-        self,
-        model_id: str,
-        session_id: str,
-        **kwargs: Any,
-    ) -> SetSessionModelResponse | None:
-        """Per-session model switching is not implemented."""
-        return None
-
     async def set_config_option(
         self,
         config_id: str,
@@ -176,8 +241,24 @@ class SGRACPBridge:
         value: str | bool,
         **kwargs: Any,
     ) -> SetSessionConfigOptionResponse | None:
-        """Dynamic session config options are not implemented."""
-        return None
+        """Switch the session's agent or model, then return the full config
+        state as required by the ACP spec."""
+        sess = self._sessions.get(session_id)
+        if sess is None:
+            raise ValueError(f"Unknown session id: {session_id}")
+
+        if config_id == self._AGENT_CONFIG_ID:
+            if not isinstance(value, str) or value not in self._agent_names():
+                raise ValueError(f"Unknown agent config value: {value!r}")
+            sess.agent_name = value
+            self._reset_agent_if_idle(sess)
+        elif config_id == self._MODEL_CONFIG_ID:
+            if not isinstance(value, str) or value not in self._model_choices():
+                raise ValueError(f"Unknown model config value: {value!r}")
+            sess.model = value
+            self._reset_agent_if_idle(sess)
+
+        return SetSessionConfigOptionResponse(config_options=self._build_config_options(sess))
 
     async def authenticate(self, method_id: str, **kwargs: Any) -> AuthenticateResponse | None:
         """Authentication is not required for this agent."""
@@ -216,7 +297,7 @@ class SGRACPBridge:
             sess.agent = None
             sess.execute_task = None
 
-        agent_def = self._resolve_agent_definition()
+        agent_def = self._agent_definition_for_session(sess)
         gen_cls = create_acp_streaming_generator_class(session_id, self._client)
         agent = await AgentFactory.create(
             agent_def,

@@ -29,7 +29,10 @@ execution:
 
 # Optional: Agent Client Protocol (stdio) via `sgracp --config config.yaml`
 # acp:
-#   agent: "sgr_agent"  # Must match a name under agents:
+#   agent: "sgr_agent"       # Default agent; must match a name under agents:
+#   models:                  # Extra models offered in the ACP "model" selector,
+#     - "gpt-4o"             # in addition to each agent's own configured model.
+#     - "o3-mini"            # Clients let the user switch agent and model at runtime.
 
 # Prompts Configuration
 # prompts:

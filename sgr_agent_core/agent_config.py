@@ -17,6 +17,13 @@ class AcpSettings(BaseModel):
         default=None,
         description="Agent definition name from the agents section to run when using sgracp",
     )
+    models: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Extra model ids to expose in the ACP 'model' session config option, "
+            "in addition to the models declared by each agent definition"
+        ),
+    )
 
 
 logger = logging.getLogger(__name__)
