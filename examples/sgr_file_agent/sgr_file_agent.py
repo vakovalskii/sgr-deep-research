@@ -1,10 +1,10 @@
 from typing import Type
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, pydantic_function_tool
+from openai.types.chat import ChatCompletionFunctionToolParam
 
 from sgr_agent_core.agent_definition import AgentConfig
-from sgr_agent_core.agents.sgr_agent import SGRAgent
-from sgr_agent_core.next_step_tool import NextStepToolsBuilder, NextStepToolStub
+from sgr_agent_core.agents.tool_calling_agent import ToolCallingAgent
 from sgr_agent_core.tools import (
     BaseTool,
     ClarificationTool,
@@ -21,9 +21,10 @@ from .tools import (
 )
 
 
-class SGRFileAgent(SGRAgent):
-    """File-first agent that uses OpenAI native function calling to work with filesystem.
-    Two-phase agent: reasoning phase + action phase.
+class SGRFileAgent(ToolCallingAgent):
+    """File-first agent using native function calling only (no separate
+    reasoning round-trip). Suited for OpenAI-compatible endpoints that handle
+    tool_choice reliably but not structured reasoning schemas.
 
     Focus: File search and analysis (read-only operations)
 
@@ -92,12 +93,9 @@ class SGRFileAgent(SGRAgent):
             working_directory = getattr(agent_config, "working_directory", ".")
         self.working_directory = working_directory
 
-    async def _prepare_tools(self) -> Type[NextStepToolStub]:
-        """Prepare available tools for current agent state and progress.
-
-        Returns NextStepToolStub class for response_format, filtering
-        tools based on agent state.
-        """
+    async def _prepare_tools(self) -> list[ChatCompletionFunctionToolParam]:
+        """Build function-calling tool list for each step (filter by iteration
+        limits)."""
         tools = set(self.toolkit)
         if self._context.iteration >= self.config.execution.max_iterations:
             tools = {
@@ -108,4 +106,4 @@ class SGRFileAgent(SGRAgent):
             tools -= {
                 ClarificationTool,
             }
-        return NextStepToolsBuilder.build_NextStepTools(list(tools))
+        return [pydantic_function_tool(tool, name=tool.tool_name) for tool in tools]

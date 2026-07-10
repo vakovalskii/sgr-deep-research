@@ -3,9 +3,9 @@
 This page answers one simple question: **What's cool about this framework?**
 Short cases and intuitive examples; for more complete and detailed docs go to:
 
-- [Main Concepts](framework/main-concepts.md)
-- [Configuration Guide](framework/configuration.md)
-- [Getting Started](getting-started/index.md)
+- [Main Concepts](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/main-concepts.md)
+- [Configuration Guide](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/configuration.md)
+- [Getting Started](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/getting-started/index.md)
 
 ---
 
@@ -69,7 +69,7 @@ The idea: you describe an agent (in code or a config file) and run it for a spec
 **-->RTFM**
 
 - install `sgr-agent-core`;
-- read the [configuration](framework/configuration.md) and [main concepts](framework/main-concepts.md) sections;
+- read the [configuration](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/configuration.md) and [main concepts](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/main-concepts.md) sections;
 - describe agents via `config.yaml` and `agents.yaml` (or any other convenient form);
 - extend base entities in code to fit your agent's logic and tools;
 - call `execute()`.
@@ -105,7 +105,7 @@ Think of it like docker compose — **one YAML that describes what to do**:
 4. An API spins up — by default at `http://localhost:8010`, Swagger at `http://localhost:8010/docs`.
 5. Send requests using the OpenAI chat/completions protocol.
 
-More details — [API Server Quick Start](sgr-api/SGR-Quick-Start.md).
+More details — [API Server Quick Start](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/sgr-api/SGR-Quick-Start.md).
 
 ---
 
@@ -184,7 +184,7 @@ docker run -d \
 
 After startup open `http://localhost:3000` — agents from your config will appear in the models list.
 
-![Open WebUI with SGR agent](../assets/images/openwebui_example.png)
+![Open WebUI with SGR agent](openwebui_example.png)
 
 > **Important:** when connecting to Open WebUI you need to switch the streaming adapter. In `config.yaml` set:
 > ```yaml
@@ -233,7 +233,7 @@ agents:
       - "final_answer_tool"
 ```
 
-Full configuration schema and examples in [Configuration Guide](framework/configuration.md).
+Full configuration schema and examples in [Configuration Guide](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/configuration.md).
 
 ---
 

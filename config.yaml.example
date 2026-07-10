@@ -10,6 +10,15 @@ llm:
   temperature: 0.4  # Temperature (0.0-1.0)
   # proxy: "socks5://127.0.0.1:1081"  # Optional proxy (socks5:// or http://)
 
+# Observability (Langfuse)
+# When enabled, AgentFactory will create Langfuse AsyncOpenAI client instead of standard AsyncOpenAI.
+# Credentials can be set here or via LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY / LANGFUSE_HOST env vars.
+langfuse:
+  enabled: false
+  # public_key: "pk-lf-xxx"
+  # secret_key: "sk-lf-xxx"
+  # host: "http://localhost:3000"
+
 # Execution Settings
 execution:
   max_clarifications: 3  # Max clarification requests
@@ -17,6 +26,13 @@ execution:
   mcp_context_limit: 15000  # Max context length from MCP server response
   logs_dir: "logs"  # Directory for saving agent execution logs
   reports_dir: "reports"  # Directory for saving agent reports
+
+# Optional: Agent Client Protocol (stdio) via `sgracp --config config.yaml`
+# acp:
+#   agent: "sgr_agent"       # Default agent; must match a name under agents:
+#   models:                  # Extra models offered in the ACP "model" selector,
+#     - "gpt-4o"             # in addition to each agent's own configured model.
+#     - "o3-mini"            # Clients let the user switch agent and model at runtime.
 
 # Prompts Configuration
 # prompts:

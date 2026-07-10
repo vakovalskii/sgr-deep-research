@@ -67,7 +67,56 @@ config = GlobalConfig.from_yaml("config.yaml")
 
 Пример можно найти в [`config.yaml.example`](https://github.com/vamplabAI/sgr-agent-core/blob/main/config.yaml.example).
 
+### Agent Client Protocol (`sgracp`)
 
+Необязательная секция верхнего уровня `acp` задаёт параметры для stdio-входа [`sgracp`](https://github.com/vamplabAI/sgr-agent-core) (Agent Client Protocol поверх stdin/stdout). Используются те же определения `agents:`, что и для HTTP API.
+
+| Поле | Описание |
+| ---- | -------- |
+| `agent` | Имя записи в `agents:`, используемое **по умолчанию** при подключении клиента. Если не задано, берётся первый агент из `agents:`. |
+| `models` | Необязательный список дополнительных id моделей для селектора модели в ACP — в дополнение к модели, объявленной у каждого агента. |
+
+Пример:
+
+```yaml
+acp:
+  agent: sgr_agent
+  models:
+    - gpt-4o
+    - o3-mini
+```
+
+Переменную окружения можно задать как `SGR__ACP__AGENT` (см. правила вложенных переменных в `pydantic-settings` для вашей версии).
+
+#### Смена агента и модели во время сессии
+
+Мост публикует активные **агента** и **модель** как [session config options ACP](https://agentclientprotocol.com/protocol/v1/session-config-options), поэтому совместимые клиенты (Zed и др.) позволяют пользователю переключать их из интерфейса прямо во время сессии:
+
+- Селектор **Agent** перечисляет все записи из `agents:`; выбранный агент используется на следующем шаге.
+- Селектор **Model** перечисляет модель каждого агента плюс значения из `acp.models`; выбранная модель переопределяет `llm.model` только для этой сессии (определение агента не меняется).
+
+Изменения применяются со следующего шага; уже идущий шаг доигрывает со старыми настройками. Это заменяет удалённый метод `session/set_model` — выбор модели теперь идёт через `session/set_config_option`.
+
+### Наблюдаемость и интеграция с Langfuse
+
+SGR Agent Core поддерживает опциональную интеграцию с [Langfuse](https://langfuse.com) для трассировки LLM-вызовов:
+
+```yaml
+langfuse:
+  enabled: true
+  public_key: "pk-lf-..."
+  secret_key: "sk-lf-..."
+  host: "https://cloud.langfuse.com"  # или ваш self-hosted URL
+```
+
+Сокращённая форма (когда ключи уже заданы в `LANGFUSE_*` env):
+
+```yaml
+langfuse: true
+```
+
+Подробнее о всех сценариях подключения (Langfuse Cloud, self-hosted, LiteLLM proxy),
+переменных окружения и решении проблем — в [руководстве по интеграции с Langfuse](langfuse.md).
 
 ### Переопределение параметров
 

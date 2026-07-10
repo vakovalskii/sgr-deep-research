@@ -2,7 +2,7 @@
 
 This document describes the key entities of the SGR Deep Research Framework.
 
-![SGR Agent Core Concept](../../assets/images/sgr_concept.png)
+![SGR Agent Core Concept](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/assets/images/sgr_concept.png)
 
 ## Vibe Glossary
 
@@ -156,7 +156,7 @@ All created tools are automatically registered in `ToolRegistry`
 **MCPBaseTool** — Base class for tools integrated with MCP (Model Context Protocol) servers. Handles calls through MCP client, converts them to the framework tool format
 
 !!!tip
-    *For more details on tools and their usage: [Tools](tools.md)*
+    *For more details on tools and their usage: [Tools](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/tools.md)*
 
 ## Definition
 
@@ -170,7 +170,7 @@ Agent object - Agent+Definition: Ready agent with isolated context, history, log
 
 **AgentConfig** — centralized agent configuration combining LLM, search, execution, prompts, and MCP settings. Supports hierarchical configuration system through `GlobalConfig` and `AgentDefinition` with automatic parameter inheritance and override.
 !!!tip
-    *For more details on configuration and definitions: [Configuration Guide](configuration.md)*
+    *For more details on configuration and definitions: [Configuration Guide](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/configuration.md)*
 
 
 ## Registry

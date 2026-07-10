@@ -4,9 +4,27 @@ from pathlib import Path
 from typing import ClassVar, Self
 
 import yaml
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from sgr_agent_core.agent_definition import AgentConfig, Definitions
+
+
+class AcpSettings(BaseModel):
+    """Settings for the ``sgracp`` Agent Client Protocol stdio server."""
+
+    agent: str | None = Field(
+        default=None,
+        description="Agent definition name from the agents section to run when using sgracp",
+    )
+    models: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Extra model ids to expose in the ACP 'model' session config option, "
+            "in addition to the models declared by each agent definition"
+        ),
+    )
+
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +35,7 @@ class GlobalConfig(BaseSettings, AgentConfig, Definitions):
 
     # Directory where main config.yaml lives (if loaded via from_yaml)
     config_dir: Path | None = None
+    acp: AcpSettings | None = None
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:

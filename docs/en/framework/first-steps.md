@@ -56,7 +56,7 @@ if __name__ == "__main__":
 1. This agent uses exclusively native tool calling, making it well-suited for getting started
 2. Default parameters will be set here if you don't override some of them
 3. For the example, we'll take a minimal pair of tools that will allow getting an answer to the task and completing the agent's work.
-   Learn more about tools in the [tools documentation](tools.md)
+   Learn more about tools in the [tools documentation](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/tools.md)
 
 ???example "Example of Agent Reasoning Log"
     ```log

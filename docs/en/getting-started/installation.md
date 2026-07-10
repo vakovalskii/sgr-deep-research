@@ -135,7 +135,7 @@ docker build -t sgr-agent-core:latest .
 
 ## Configuration
 
-After installation, you'll need to configure your API keys and settings. See the [Configuration Guide](../framework/configuration.md) for detailed instructions.
+After installation, you'll need to configure your API keys and settings. See the [Configuration Guide](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/configuration.md) for detailed instructions.
 
 ### Quick Configuration
 
@@ -162,5 +162,5 @@ export SGR__LLM__MODEL="gpt-4o"
 
 ## Next Steps
 
-* **[Quick Start Guide](../framework/first-steps.md)** — Get started with your first agent
-* **[Configuration Guide](../framework/configuration.md)** — Configure your agents
+* **[Quick Start Guide](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/first-steps.md)** — Get started with your first agent
+* **[Configuration Guide](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/configuration.md)** — Configure your agents

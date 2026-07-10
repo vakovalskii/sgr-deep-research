@@ -1,6 +1,8 @@
 """Agent Factory for dynamic agent creation from definitions."""
 
+import importlib
 import logging
+from importlib import import_module
 from typing import Any, Type, TypeVar
 
 import httpx
@@ -12,11 +14,16 @@ from sgr_agent_core.agent_definition import AgentDefinition, LLMConfig, ToolDefi
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.services import AgentRegistry, MCP2ToolConverter, StreamingGeneratorRegistry
-from sgr_agent_core.stream import OpenAIStreamingGenerator
+from sgr_agent_core.stream import BaseStreamingGenerator, OpenAIStreamingGenerator
 
 logger = logging.getLogger(__name__)
 
 Agent = TypeVar("Agent", bound=BaseAgent)
+
+
+class LangfuseImportError(RuntimeError):
+    """Raised when Langfuse is enabled in config but the ``langfuse`` package
+    cannot be imported."""
 
 
 class AgentFactory:
@@ -36,9 +43,26 @@ class AgentFactory:
         Returns:
             Configured AsyncOpenAI client
         """
+        config = GlobalConfig()
         client_kwargs = {"base_url": llm_config.base_url, "api_key": llm_config.api_key}
         if llm_config.proxy:
             client_kwargs["http_client"] = httpx.AsyncClient(proxy=llm_config.proxy)
+
+        if config.langfuse.enabled:
+            try:
+                lf_cfg = config.langfuse
+                if lf_cfg.has_explicit_sdk_fields():
+                    LangfuseClient = getattr(import_module("langfuse"), "Langfuse")
+                    LangfuseClient(**lf_cfg.to_langfuse_client_kwargs())
+                    logger.info("Langfuse initialized with explicit credentials from config")
+                LangfuseAsyncOpenAI = getattr(import_module("langfuse.openai"), "AsyncOpenAI")
+                logger.info("Creating Langfuse AsyncOpenAI client (langfuse.enabled=True)")
+                return LangfuseAsyncOpenAI(**client_kwargs)
+            except ImportError as exc:
+                raise LangfuseImportError(
+                    "Langfuse is enabled in config but the 'langfuse' package could not be imported. "
+                    "Install dependencies or set langfuse.enabled to false in configuration."
+                ) from exc
 
         return AsyncOpenAI(**client_kwargs)
 
@@ -86,12 +110,19 @@ class AgentFactory:
         return toolkit, tool_configs
 
     @classmethod
-    async def create(cls, agent_def: AgentDefinition, task_messages: list[ChatCompletionMessageParam]) -> Agent:
+    async def create(
+        cls,
+        agent_def: AgentDefinition,
+        task_messages: list[ChatCompletionMessageParam],
+        *,
+        streaming_generator: type[BaseStreamingGenerator] | None = None,
+    ) -> Agent:
         """Create an agent instance from a definition.
 
         Args:
             agent_def: Agent definition with configuration (classes already resolved)
             task_messages: Task messages in OpenAI ChatCompletionMessageParam format
+            streaming_generator: Optional streaming generator class (overrides execution config)
 
         Returns:
             Created agent instance
@@ -110,8 +141,19 @@ class AgentFactory:
             # Already a class (either passed directly or resolved from ImportString by Pydantic)
             BaseClass = agent_def.base_class
         elif isinstance(agent_def.base_class, str):
-            # String - look up in registry
-            BaseClass = AgentRegistry.get(agent_def.base_class)
+            bc = agent_def.base_class
+            BaseClass = None
+            if "." in bc:
+                mod_name, _, cls_name = bc.rpartition(".")
+                try:
+                    mod = importlib.import_module(mod_name)
+                    cand = getattr(mod, cls_name, None)
+                    if isinstance(cand, type) and issubclass(cand, BaseAgent):
+                        BaseClass = cand
+                except Exception:
+                    BaseClass = None
+            if BaseClass is None:
+                BaseClass = AgentRegistry.get(bc)
 
         if BaseClass is None:
             error_msg = (
@@ -137,6 +179,7 @@ class AgentFactory:
             for key, value in agent_def.model_dump().items():
                 agent_kwargs[key] = value
 
+            gen_cls = streaming_generator or cls._resolve_streaming_generator(agent_def.execution.streaming_generator)
             agent = BaseClass(
                 task_messages=task_messages,
                 def_name=agent_def.name,
@@ -144,7 +187,7 @@ class AgentFactory:
                 tool_configs=tool_configs,
                 openai_client=cls._create_client(agent_def.llm),
                 agent_config=agent_def,
-                streaming_generator=cls._resolve_streaming_generator(agent_def.execution.streaming_generator),
+                streaming_generator=gen_cls,
                 **agent_kwargs,
             )
             logger.info(
