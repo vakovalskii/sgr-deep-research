@@ -84,6 +84,27 @@ acp:
 
 You can also set `SGR__ACP__AGENT` in the environment (see `pydantic-settings` nested env rules for your version).
 
+### Observability and Langfuse integration
+
+SGR Agent Core supports optional [Langfuse](https://langfuse.com) integration for LLM tracing:
+
+```yaml
+langfuse:
+  enabled: true
+  public_key: "pk-lf-..."
+  secret_key: "sk-lf-..."
+  host: "https://cloud.langfuse.com"  # or your self-hosted URL
+```
+
+Shorthand (when credentials are already in `LANGFUSE_*` env vars):
+
+```yaml
+langfuse: true
+```
+
+See the [Langfuse integration guide](langfuse.md) for all connection scenarios
+(Langfuse Cloud, self-hosted, LiteLLM proxy), environment variable reference, and troubleshooting.
+
 ### Parameter Override
 
 **Key Feature:** `AgentDefinition` inherits all parameters from `GlobalConfig` and overrides only those explicitly specified. This allows creating minimal configurations by specifying only necessary changes.

@@ -30,6 +30,7 @@ plugins:
             Using as Library: Использование как библиотека
             API Server Quick Start: Быстрый старт API сервера
             Configuration: Конфигурация
+            Langfuse: Langfuse
             Build your agent: Собери своего агента
             Workflow: Рабочий процесс
             Demonstration: Демонстрация
@@ -83,6 +84,7 @@ nav:
     - User Guide:
         - Using as Library: framework/first-steps.md
         - Configuration: framework/configuration.md
+        - Langfuse: framework/langfuse.md
         - Build your agent: framework/agents.md
         - Tools: framework/tools.md
     - QnA: framework/qna.md
