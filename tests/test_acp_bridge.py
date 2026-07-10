@@ -16,7 +16,8 @@ from sgr_agent_core.stream import BaseStreamingGenerator
 
 
 def _fake_bridge_config(agent_models, acp_agent=None, acp_models=None):
-    """Minimal GlobalConfig stand-in exposing the attributes the bridge reads."""
+    """Minimal GlobalConfig stand-in exposing the attributes the bridge
+    reads."""
     agents = {name: SimpleNamespace(llm=SimpleNamespace(model=model)) for name, model in agent_models.items()}
     acp = SimpleNamespace(agent=acp_agent, models=list(acp_models or []))
     return SimpleNamespace(agents=agents, acp=acp)
@@ -110,9 +111,7 @@ async def test_acp_set_config_option_switches_agent():
     bridge = SGRACPBridge()
     with _patch_bridge_config(cfg):
         out = await bridge.new_session(cwd="/tmp", mcp_servers=None)
-        resp = await bridge.set_config_option(
-            config_id="agent", session_id=out.session_id, value="tool_calling_agent"
-        )
+        resp = await bridge.set_config_option(config_id="agent", session_id=out.session_id, value="tool_calling_agent")
 
     assert bridge._sessions[out.session_id].agent_name == "tool_calling_agent"
     agent_opt = {opt.id: opt for opt in resp.config_options}["agent"]

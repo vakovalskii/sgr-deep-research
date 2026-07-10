@@ -100,7 +100,8 @@ class SGRACPBridge:
         return GlobalConfig().agents[self._resolve_agent_name()]
 
     def _agent_definition_for_session(self, sess: _ACPSession) -> AgentDefinition:
-        """Resolve the session's agent definition and apply its model override."""
+        """Resolve the session's agent definition and apply its model
+        override."""
         gc = GlobalConfig()
         name = sess.agent_name if sess.agent_name in gc.agents else self._resolve_agent_name()
         agent_def = gc.agents[name]
@@ -154,7 +155,10 @@ class SGRACPBridge:
 
     def _reset_agent_if_idle(self, sess: _ACPSession) -> None:
         """Drop the cached agent so the next turn is rebuilt with the updated
-        agent/model. In-flight turns are left untouched."""
+        agent/model.
+
+        In-flight turns are left untouched.
+        """
         task = sess.execute_task
         if task is not None and not task.done():
             return
