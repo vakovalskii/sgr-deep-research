@@ -10,15 +10,15 @@
 
 | Элемент | Категория | Описание |
 | --- | --- | --- |
-| [ReasoningTool](tools/reasoning-tool.md) | Системный | Базовый тул рассуждений для SGR-агентов, определяющий следующий шаг |
-| [FinalAnswerTool](tools/final-answer-tool.md) | Системный | Финальный тул, завершающий задачу и обновляющий состояние агента |
-| [CreateReportTool](tools/create-report-tool.md) | Системный | Тул для генерации детального исследовательского отчета с цитатами и сохранения его на диск |
-| [ClarificationTool](tools/clarification-tool.md) | Системный | Тул для запроса уточнений у пользователя и приостановки выполнения до ответа |
-| [GeneratePlanTool](tools/generate-plan-tool.md) | Системный | Тул для создания первоначального исследовательского плана и разбиения запроса на шаги |
-| [AdaptPlanTool](tools/adapt-plan-tool.md) | Системный | Тул для обновления существующего плана на основе новой информации |
-| [WebSearchTool](tools/web-search-tool.md) | Вспомогательный | Веб-поиск с использованием Tavily Search API для получения свежей информации |
-| [ExtractPageContentTool](tools/extract-page-content-tool.md) | Вспомогательный | Тул для извлечения полного содержимого с конкретных веб-страниц через Tavily Extract API |
-| [RunCommandTool](tools/run-command.md) | Вспомогательный | Тул для выполнения shell-команд в безопасном или небезопасном режиме в пределах рабочей директории |
+| [ReasoningTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/tools/reasoning-tool.md) | Системный | Базовый тул рассуждений для SGR-агентов, определяющий следующий шаг |
+| [FinalAnswerTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/tools/final-answer-tool.md) | Системный | Финальный тул, завершающий задачу и обновляющий состояние агента |
+| [CreateReportTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/tools/create-report-tool.md) | Системный | Тул для генерации детального исследовательского отчета с цитатами и сохранения его на диск |
+| [ClarificationTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/tools/clarification-tool.md) | Системный | Тул для запроса уточнений у пользователя и приостановки выполнения до ответа |
+| [GeneratePlanTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/tools/generate-plan-tool.md) | Системный | Тул для создания первоначального исследовательского плана и разбиения запроса на шаги |
+| [AdaptPlanTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/tools/adapt-plan-tool.md) | Системный | Тул для обновления существующего плана на основе новой информации |
+| [WebSearchTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/tools/web-search-tool.md) | Вспомогательный | Веб-поиск с использованием Tavily Search API для получения свежей информации |
+| [ExtractPageContentTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/tools/extract-page-content-tool.md) | Вспомогательный | Тул для извлечения полного содержимого с конкретных веб-страниц через Tavily Extract API |
+| [RunCommandTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/tools/run-command.md) | Вспомогательный | Тул для выполнения shell-команд в безопасном или небезопасном режиме в пределах рабочей директории |
 
 ## BaseTool
 

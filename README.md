@@ -173,7 +173,7 @@ If you have any questions - feel free to join our [community chat](https://t.me/
 
 This project is developed by the **neuraldeep** community. It is inspired by the Schema-Guided Reasoning (SGR) work and [SGR Agent Demo](https://abdullin.com/schema-guided-reasoning/demo)↗️ delivered by "LLM Under the Hood" community and AI R&D Hub of [TIMETOACT GROUP Österreich](https://www.timetoact-group.at)↗️
 
-![](./docs/assets/images/rmr750x200.png)
+![](rmr750x200.png)
 
 This project is supported by the AI R&D team at red_mad_robot, providing research capacity, engineering expertise, infrastructure, and operational support.
 

@@ -10,15 +10,15 @@ Tools are divided into two categories:
 
 | Item | Category | Description |
 | --- | --- | --- |
-| [ReasoningTool](tools/reasoning-tool.md) | System | Core tool for Schema-Guided Reasoning agents that determines the next reasoning step |
-| [FinalAnswerTool](tools/final-answer-tool.md) | System | Final answer tool that completes the research task and updates agent state |
-| [CreateReportTool](tools/create-report-tool.md) | System | Tool for generating a detailed research report with inline citations and saving it to disk |
-| [ClarificationTool](tools/clarification-tool.md) | System | Tool for asking clarification questions and pausing execution until user response |
-| [GeneratePlanTool](tools/generate-plan-tool.md) | System | Tool for creating an initial research plan and breaking a request into steps |
-| [AdaptPlanTool](tools/adapt-plan-tool.md) | System | Tool for updating an existing research plan based on new information |
-| [WebSearchTool](tools/web-search-tool.md) | Auxiliary | Web search tool powered by Tavily Search API for fresh information |
-| [ExtractPageContentTool](tools/extract-page-content-tool.md) | Auxiliary | Tool for extracting full content from specific web pages using Tavily Extract API |
-| [RunCommandTool](tools/run-command.md) | Auxiliary | Tool for executing shell commands in safe or unsafe mode inside a workspace boundary |
+| [ReasoningTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/tools/reasoning-tool.md) | System | Core tool for Schema-Guided Reasoning agents that determines the next reasoning step |
+| [FinalAnswerTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/tools/final-answer-tool.md) | System | Final answer tool that completes the research task and updates agent state |
+| [CreateReportTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/tools/create-report-tool.md) | System | Tool for generating a detailed research report with inline citations and saving it to disk |
+| [ClarificationTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/tools/clarification-tool.md) | System | Tool for asking clarification questions and pausing execution until user response |
+| [GeneratePlanTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/tools/generate-plan-tool.md) | System | Tool for creating an initial research plan and breaking a request into steps |
+| [AdaptPlanTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/tools/adapt-plan-tool.md) | System | Tool for updating an existing research plan based on new information |
+| [WebSearchTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/tools/web-search-tool.md) | Auxiliary | Web search tool powered by Tavily Search API for fresh information |
+| [ExtractPageContentTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/tools/extract-page-content-tool.md) | Auxiliary | Tool for extracting full content from specific web pages using Tavily Extract API |
+| [RunCommandTool](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/tools/run-command.md) | Auxiliary | Tool for executing shell commands in safe or unsafe mode inside a workspace boundary |
 
 ## BaseTool
 

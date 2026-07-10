@@ -55,7 +55,7 @@ If you want to use SGR Agent Core as a Python library (framework):
 pip install sgr-agent-core
 ```
 
-See the [Installation Guide](installation.md) for detailed instructions and the [Using as Library](../framework/first-steps.md) guide to get started.
+See the [Installation Guide](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/getting-started/installation.md) for detailed instructions and the [Using as Library](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/first-steps.md) guide to get started.
 
 ### CLI Tool (`sgrsh`)
 
@@ -115,11 +115,11 @@ if __name__ == "__main__":
 
 ## Documentation
 
-- **[Highlights](../highlights.md)** — What's cool about this framework: short cases and intuitive examples
-- **[Installation](installation.md)** — Detailed installation instructions for pip and Docker
-- **[Agent Core Framework](../framework/main-concepts.md)** — Understand the core concepts and architecture
-- **[Using as Library](../framework/first-steps.md)** — Learn how to use SGR Agent Core as a Python library
-- **[API Server Quick Start](../sgr-api/SGR-Quick-Start.md)** — Get started with the REST API service
+- **[Highlights](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/highlights.md)** — What's cool about this framework: short cases and intuitive examples
+- **[Installation](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/getting-started/installation.md)** — Detailed installation instructions for pip and Docker
+- **[Agent Core Framework](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/main-concepts.md)** — Understand the core concepts and architecture
+- **[Using as Library](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/first-steps.md)** — Learn how to use SGR Agent Core as a Python library
+- **[API Server Quick Start](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/sgr-api/SGR-Quick-Start.md)** — Get started with the REST API service
 
 ## Contact & Community
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
 **Community Chat**: We answer questions in [Telegram chat](https://t.me/sgragentcore) (ru/en)
 
-![](../../assets/images/rmr750x200.png)
+![](rmr750x200.png)
 
 This project is supported by the AI R&D team at red_mad_robot, providing research capacity, engineering expertise, infrastructure, and operational support.
 

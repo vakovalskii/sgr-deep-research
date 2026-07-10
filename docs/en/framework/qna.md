@@ -21,7 +21,7 @@
 
 **4. Wrapper and infrastructure**
 
-- **`AgentDefinition` and `AgentConfig`** — the [documentation](configuration.md) already explains why it's so complex
+- **`AgentDefinition` and `AgentConfig`** — the [documentation](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/configuration.md) already explains why it's so complex
 - **`services/registry` + `agent_factory`** — the final picture of how everything works will come together
 
 **5. Remaining topics**
