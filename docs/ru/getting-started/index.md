@@ -55,7 +55,7 @@ API сервер будет доступен по адресу `http://localhost
 pip install sgr-agent-core
 ```
 
-См. [Руководство по установке](installation.md) для подробных инструкций и [Использование как библиотека](../framework/first-steps.md) для начала работы.
+См. [Руководство по установке](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/getting-started/installation.md) для подробных инструкций и [Использование как библиотека](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/first-steps.md) для начала работы.
 
 ### CLI утилита (`sgrsh`)
 
@@ -115,11 +115,11 @@ if __name__ == "__main__":
 
 ## Документация
 
-- **[Highlights](../highlights.md)** — Что крутого во фреймворке: короткие кейсы и интуитивные примеры
-- **[Установка](installation.md)** — Подробные инструкции по установке через pip и Docker
-- **[Agent Core Framework](../framework/main-concepts.md)** — Поймите основные концепции и архитектуру
-- **[Использование как библиотека](../framework/first-steps.md)** — Узнайте, как использовать SGR Agent Core как Python библиотеку
-- **[Быстрый старт API сервера](../sgr-api/SGR-Quick-Start.md)** — Начните работу с REST API сервисом
+- **[Highlights](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/highlights.md)** — Что крутого во фреймворке: короткие кейсы и интуитивные примеры
+- **[Установка](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/getting-started/installation.md)** — Подробные инструкции по установке через pip и Docker
+- **[Agent Core Framework](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/main-concepts.md)** — Поймите основные концепции и архитектуру
+- **[Использование как библиотека](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/first-steps.md)** — Узнайте, как использовать SGR Agent Core как Python библиотеку
+- **[Быстрый старт API сервера](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/sgr-api/SGR-Quick-Start.md)** — Начните работу с REST API сервисом
 
 ## Контакты и сообщество
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
 
 **Чат сообщества**: Отвечаем на вопросы в [Telegram чате](https://t.me/sgragentcore) (ru/en)
 
-![](../../assets/images/rmr750x200.png)
+![](rmr750x200.png)
 
 Проект разрабатывается с поддержкой команды AI R&D в red_mad_robot, которая предоставляет исследовательские ресурсы, инженерную экспертизу, инфраструктуру и операционную поддержку.
 

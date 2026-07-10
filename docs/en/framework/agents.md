@@ -3,7 +3,7 @@
 This section dives into the technical implementation of agents and explores how to adapt them to your needs.
 
 !!! Tip "Agent Architecture"
-    Information about available agents and their differences can be found in [Main Concepts](main-concepts.md#agent).
+    Information about available agents and their differences can be found in [Main Concepts](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/main-concepts.md#agent).
 
 
 *For a detailed understanding of the full logic, it's better to familiarize yourself with the [source code](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/base_agent.py).*
@@ -137,7 +137,7 @@ When creating custom solutions, pay attention first and foremost to these method
 Stores all agent settings: LLM parameters, search, execution, prompts, and MCP configuration.
 
 !!! Tip "More about configuration"
-    Full description of the configuration system, settings hierarchy, and usage examples can be found in the [configuration guide](configuration.md).
+    Full description of the configuration system, settings hierarchy, and usage examples can be found in the [configuration guide](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/en/framework/configuration.md).
 
 #### Extending Configuration
 

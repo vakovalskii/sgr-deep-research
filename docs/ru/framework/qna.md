@@ -21,7 +21,7 @@
 
 **4. Обвязка и инфраструктура**
 
-- **`AgentDefinition` и `AgentConfig`** — в [документации](configuration.md) уже готово, для чего оно так сложно
+- **`AgentDefinition` и `AgentConfig`** — в [документации](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/configuration.md) уже готово, для чего оно так сложно
 - **`services/registry` + `agent_factory`** — окончательно сложится картинка, как всё работает
 
 **5. Оставшиеся темы**

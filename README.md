@@ -126,6 +126,23 @@ The `sgrsh` command:
 
 For more examples and detailed usage instructions, see the [examples/](examples/) directory.
 
+### Agent Client Protocol (`sgracp`)
+
+Editors and tools that speak the [Agent Client Protocol](https://agentclientprotocol.com/) can run SGR agents over **stdio** (newline-delimited JSON-RPC), using the same YAML configuration as the HTTP server.
+
+```bash
+sgracp --config examples/sgr_deep_research/config.yaml
+```
+
+Optional `acp` block in `config.yaml` selects which `agents:` entry to expose (if omitted, the first agent definition is used):
+
+```yaml
+acp:
+  agent: sgr_agent
+```
+
+Protocol details follow the official ACP specification, the [Python SDK](https://agentclientprotocol.github.io/python-sdk/), and the `agent-client-protocol` package used by this binary.
+
 ## Benchmarking
 
 ![SimpleQA Benchmark Comparison](https://github.com/vamplabAI/sgr-agent-core/blob/main/docs/assets/images/simpleqa_benchmark_comparison.png)
@@ -156,7 +173,7 @@ If you have any questions - feel free to join our [community chat](https://t.me/
 
 This project is developed by the **neuraldeep** community. It is inspired by the Schema-Guided Reasoning (SGR) work and [SGR Agent Demo](https://abdullin.com/schema-guided-reasoning/demo)↗️ delivered by "LLM Under the Hood" community and AI R&D Hub of [TIMETOACT GROUP Österreich](https://www.timetoact-group.at)↗️
 
-![](./docs/assets/images/rmr750x200.png)
+![](rmr750x200.png)
 
 This project is supported by the AI R&D team at red_mad_robot, providing research capacity, engineering expertise, infrastructure, and operational support.
 

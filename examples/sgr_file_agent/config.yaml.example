@@ -1,55 +1,26 @@
-# SGR File Agent - Configuration Template
-# Copy this file to config.yaml and fill in your data
+# Smoke test for sgracp + sgr_file_agent (see scripts/smoke_acp_file_agent.py)
+# LLM matches OpenAI-compatible endpoint; paths are relative to this file.
 
-# LLM Configuration
 llm:
-  api_key: "your-openai-api-key-here"  # Your OpenAI API key
-  base_url: "https://api.openai.com/v1"  # API base URL
-  model: "gpt-4o-mini"  # Model name
-  max_tokens: 8000  # Max output tokens
-  temperature: 0.4  # Temperature (0.0-1.0)
-  # proxy: "socks5://127.0.0.1:1081"  # Optional proxy (socks5:// or http://)
+  api_key: "https://t.me/evilfreelancer"
+  base_url: "https://api.rpa.icu/v1"
+  model: "gpt-oss:120b"
+  max_tokens: 4000
+  temperature: 0.3
 
-# Execution Settings
 execution:
-  max_clarifications: 3  # Max clarification requests
-  max_iterations: 10  # Max agent iterations
-  mcp_context_limit: 15000  # Max context length from MCP server response
-  logs_dir: "logs"  # Directory for saving agent execution logs
-  reports_dir: "reports"  # Directory for saving agent reports
+  max_clarifications: 1
+  max_iterations: 3
+  mcp_context_limit: 15000
+  logs_dir: "logs"
+  reports_dir: "reports"
 
-# Prompts Configuration
-# prompts:
-#   # Option 1: Use file paths (absolute or relative to project root)
-#   system_prompt_file: "path/to/your/system_prompt.txt"
-#   initial_user_request_file: "path/to/your/initial_user_request.txt"
-#   clarification_response_file: "path/to/your/clarification_response.txt"
-#
-#  # Option 2: Provide prompts directly as strings
-#   system_prompt_str: "Your custom system prompt here..."
-#   initial_user_request_str: "Your custom initial request template..."
-#   clarification_response_str: "Your custom clarification template..."
-
-  # Note: If both file and string are provided, string takes precedence
-
-# MCP (Model Context Protocol) Configuration
 mcp:
   mcpServers: {}
-  # Add MCP servers here if needed:
-  # deepwiki:
-  #   url: "https://mcp.deepwiki.com/mcp"
 
-# Tool Definitions
 tools:
-  # Core tools (base_class defaults to sgr_agent_core.tools.*)
-  reasoning_tool:
-    # base_class defaults to sgr_agent_core.tools.ReasoningTool
-  clarification_tool:
-    # base_class defaults to sgr_agent_core.tools.ClarificationTool
-  final_answer_tool:
-    # base_class defaults to sgr_agent_core.tools.FinalAnswerTool
-
-  # File system tools - using relative imports (relative to config.yaml location)
+  clarification_tool: {}
+  final_answer_tool: {}
   get_system_paths_tool:
     base_class: "tools.GetSystemPathsTool"
   list_directory_tool:
@@ -61,30 +32,17 @@ tools:
   find_files_fast_tool:
     base_class: "tools.FindFilesFastTool"
 
-# Agent Definitions
 agents:
   sgr_file_agent:
-    base_class: "sgr_file_agent.SGRFileAgent"  # Relative to config.yaml location
-    # Optional: Override LLM settings for this agent
-    llm:
-      model: "gpt-4o-mini"
-      temperature: 0.4
-      max_tokens: 8000
-
-    # Execution configuration
+    base_class: "sgr_file_agent.SGRFileAgent"
     execution:
-      max_iterations: 15
-      max_clarifications: 3
-      max_searches: 0  # File agent doesn't use web search
+      max_iterations: 3
+      max_clarifications: 1
+      max_searches: 0
       logs_dir: "logs/file_agent"
       reports_dir: "reports/file_agent"
-
-    # Agent-specific parameters (for SGRFileAgent)
-    working_directory: "."  # Working directory for file operations (default: current directory)
-
-    # Tools this agent can use (names from tools section above)
+    working_directory: "."
     tools:
-      - "reasoning_tool"
       - "clarification_tool"
       - "final_answer_tool"
       - "get_system_paths_tool"
@@ -92,3 +50,6 @@ agents:
       - "read_file_tool"
       - "search_in_files_tool"
       - "find_files_fast_tool"
+
+acp:
+  agent: sgr_file_agent

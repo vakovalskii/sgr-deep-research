@@ -2,7 +2,7 @@
 
 Этот документ описывает ключевые сущности SGR Deep Research Framework.
 
-![SGR Agent Core Concept](../../assets/images/sgr_concept.png)
+![SGR Agent Core Concept](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/assets/images/sgr_concept.png)
 
 ## Vibe-Глоссарий
 
@@ -95,7 +95,7 @@
 **MCPBaseTool** — Базовый класс для тулов, интегрированных с MCP (Model Context Protocol) серверами. Обрабатывает вызовы через MCP клиент, переводит их в формат тулов фреймворка
 
 !!!tip
-    *Подробнее о тулах и их использовании: [Tools](tools.md)*
+    *Подробнее о тулах и их использовании: [Tools](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/tools.md)*
 
 ## Definition
 
@@ -109,7 +109,7 @@ Agent object - Agent+Definition: Готовый агент, имеющий из�
 
 **AgentConfig** — централизованная конфигурация агента, объединяющая настройки LLM, поиска, выполнения, промптов и MCP. Поддерживает иерархическую систему конфигурации через `GlobalConfig` и `AgentDefinition` с автоматическим наследованием и переопределением параметров.
 !!!tip
-    *Подробнее о конфигурации и дефинициях: [Configuration Guide](configuration.md)*
+    *Подробнее о конфигурации и дефинициях: [Configuration Guide](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/configuration.md)*
 
 
 ## Registry

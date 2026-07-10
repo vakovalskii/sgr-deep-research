@@ -67,6 +67,36 @@ config = GlobalConfig.from_yaml("config.yaml")
 
 An example can be found in [`config.yaml.example`](https://github.com/vamplabAI/sgr-agent-core/blob/main/config.yaml.example).
 
+### Agent Client Protocol (`sgracp`)
+
+The optional top-level `acp` section configures the [`sgracp`](https://github.com/vamplabAI/sgr-agent-core) stdio entrypoint (Agent Client Protocol over stdin/stdout). It uses the same `agents:` definitions as the rest of the stack.
+
+| Field | Description |
+| ----- | ----------- |
+| `agent` | Name of an entry under `agents:` used as the **default** when a client connects. If omitted, the first agent in `agents:` is used. |
+| `models` | Optional list of extra model ids offered in the ACP model selector, in addition to the model each agent already declares. |
+
+Example:
+
+```yaml
+acp:
+  agent: sgr_agent
+  models:
+    - gpt-4o
+    - o3-mini
+```
+
+You can also set `SGR__ACP__AGENT` in the environment (see `pydantic-settings` nested env rules for your version).
+
+#### Switching agent and model at runtime
+
+The bridge exposes the active **agent** and **model** as [ACP session config options](https://agentclientprotocol.com/protocol/v1/session-config-options), so compatible clients (Zed, etc.) let the user switch them from the UI during a session:
+
+- The **Agent** selector lists every entry under `agents:`; the chosen one is used for the next turn.
+- The **Model** selector lists each agent's configured model plus anything in `acp.models`; the chosen model overrides `llm.model` for that session only (the agent definition is left untouched).
+
+Changes apply to the next turn; an in-flight turn keeps its current settings. This replaces the removed `session/set_model` method — model selection now goes through `session/set_config_option`.
+
 ### Observability and Langfuse integration
 
 SGR Agent Core supports optional [Langfuse](https://langfuse.com) integration for LLM tracing:

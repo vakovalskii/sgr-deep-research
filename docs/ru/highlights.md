@@ -3,9 +3,9 @@
 Эта страница отвечает на простой вопрос: **Чего крутого мы заложили во фреймворк**.
 Здесь — короткие кейсы и интуитивные примеры; за более полной и строгой документацией лучше идти в:
 
-- [Основные концепции](framework/main-concepts.md)
-- [Руководство по конфигурации](framework/configuration.md)
-- [Getting Started](getting-started/index.md)
+- [Основные концепции](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/main-concepts.md)
+- [Руководство по конфигурации](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/configuration.md)
+- [Getting Started](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/getting-started/index.md)
 
 ---
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 **-->RTFM**
 
 - ставите пакет `sgr-agent-core`;
-- читаете разделы про [конфигурацию](framework/configuration.md) и [основные концепции](framework/main-concepts.md);
+- читаете разделы про [конфигурацию](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/configuration.md) и [основные концепции](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/main-concepts.md);
 - описываете агентов через `config.yaml` и `agents.yaml` (или в любом другом удобном виде);
 - в коде расширяете базовые сущности под нужную вам логику агента, его тулов
 - вызываете `execute()`.
@@ -107,7 +107,7 @@ await agent.execute()
 
 4. Поднимается API — по умолчанию на `http://localhost:8010`, Swagger доступен по адресу `http://localhost:8010/docs`.
 5. Отправляете запрос по схеме (совместимо с OpenAI chat/completions протоколом)
-Подробнее — в [Быстрый старт API сервера](sgr-api/SGR-Quick-Start.md).
+Подробнее — в [Быстрый старт API сервера](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/sgr-api/SGR-Quick-Start.md).
 
 ---
 
@@ -186,7 +186,7 @@ docker run -d \
 
 После запуска откройте `http://localhost:3000` — агенты из вашего конфига появятся в списке моделей.
 
-![Open WebUI с SGR агентом](../assets/images/openwebui_example.png)
+![Open WebUI с SGR агентом](openwebui_example.png)
 
 > **Важно:** при подключении к Open WebUI необходимо сменить стриминг-адаптер В `config.yaml` укажите:
 > ```yaml
@@ -235,7 +235,7 @@ agents:
       - "adapt_plan_tool"
       - "final_answer_tool"
 ```
-Подробная схема конфигурации и примеры уже описаны в [Configuration Guide](framework/configuration.md).
+Подробная схема конфигурации и примеры уже описаны в [Configuration Guide](Соцсети/_архив/AiConf/aiconf/sgr-agent-core/docs/ru/framework/configuration.md).
 
 ---
 
