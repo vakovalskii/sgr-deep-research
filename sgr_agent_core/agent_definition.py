@@ -144,6 +144,33 @@ class ExecutionConfig(BaseModel, extra="allow"):
     reports_dir: str = Field(default="reports", description="Directory for saving reports")
 
 
+class LangfuseConfig(BaseModel):
+    """Langfuse observability configuration."""
+
+    enabled: bool = Field(default=False, description="Enable Langfuse integration")
+    public_key: str | None = Field(default=None, description="Langfuse public key (pk-lf-...)")
+    secret_key: str | None = Field(default=None, description="Langfuse secret key (sk-lf-...)")
+    host: str | None = Field(default=None, description="Langfuse host URL (e.g. http://localhost:3000)")
+
+    @field_validator("public_key", "secret_key", "host", mode="before")
+    @classmethod
+    def empty_str_to_none(cls, v: Any) -> Any:
+        """Treat empty strings as unset so SDK kwargs omit them."""
+        if v == "":
+            return None
+        return v
+
+    def has_explicit_sdk_fields(self) -> bool:
+        """Return True if any credential or host is set for explicit Langfuse
+        SDK init."""
+        return bool(self.to_langfuse_client_kwargs())
+
+    def to_langfuse_client_kwargs(self) -> dict[str, str]:
+        """Build kwargs for ``Langfuse(...)`` with only non-empty fields."""
+        raw = self.model_dump(include={"public_key", "secret_key", "host"}, exclude_none=True)
+        return {k: v for k, v in raw.items() if isinstance(v, str) and v != ""}
+
+
 class AgentConfig(BaseModel, extra="allow"):
     """Agent configuration with all settings.
 
@@ -151,10 +178,21 @@ class AgentConfig(BaseModel, extra="allow"):
     parameters (e.g., working_directory for file agents).
     """
 
+    langfuse: LangfuseConfig = Field(default_factory=LangfuseConfig, description="Langfuse observability settings")
     llm: LLMConfig = Field(default_factory=LLMConfig, description="LLM settings")
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig, description="Execution settings")
     prompts: PromptsConfig = Field(default_factory=PromptsConfig, description="Prompts settings")
     mcp: MCPConfig = Field(default_factory=MCPConfig, description="MCP settings")
+
+    @field_validator("langfuse", mode="before")
+    @classmethod
+    def normalize_langfuse(cls, v):
+        """Accept bool shorthand: langfuse: true → LangfuseConfig(enabled=True)."""
+        if isinstance(v, bool):
+            return {"enabled": v}
+        if isinstance(v, str):
+            return {"enabled": v.lower() in ("true", "1", "yes")}
+        return v
 
 
 class ToolDefinition(BaseModel, extra="allow"):

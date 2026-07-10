@@ -68,6 +68,26 @@ config = GlobalConfig.from_yaml("config.yaml")
 Пример можно найти в [`config.yaml.example`](https://github.com/vamplabAI/sgr-agent-core/blob/main/config.yaml.example).
 
 
+### Наблюдаемость и интеграция с Langfuse
+
+SGR Agent Core поддерживает опциональную интеграцию с [Langfuse](https://langfuse.com) для трассировки LLM-вызовов:
+
+```yaml
+langfuse:
+  enabled: true
+  public_key: "pk-lf-..."
+  secret_key: "sk-lf-..."
+  host: "https://cloud.langfuse.com"  # или ваш self-hosted URL
+```
+
+Сокращённая форма (когда ключи уже заданы в `LANGFUSE_*` env):
+
+```yaml
+langfuse: true
+```
+
+Подробнее о всех сценариях подключения (Langfuse Cloud, self-hosted, LiteLLM proxy),
+переменных окружения и решении проблем — в [руководстве по интеграции с Langfuse](langfuse.md).
 
 ### Переопределение параметров
 
