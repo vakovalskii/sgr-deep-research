@@ -12,7 +12,7 @@ from openai import AsyncOpenAI
 from sgr_agent_core.agents import SGRAgent
 from sgr_agent_core.models import AgentStatesEnum
 from sgr_agent_core.next_step_tool import NextStepToolsBuilder
-from sgr_agent_core.skills import Skill, SkillMetadata
+from sgr_agent_core.skills import BaseSkill, SkillMetadata
 from sgr_agent_core.tools import FinalAnswerTool, SkillTool
 from tests.conftest import create_test_agent
 from tests.test_agent_e2e import MockStream
@@ -46,7 +46,7 @@ def _mock_client_use_skill_then_finish() -> AsyncOpenAI:
     resp2 = _next_step(
         FinalAnswerTool,
         {
-            "reasoning": "Skill loaded; answering",
+            "reasoning": "BaseSkill loaded; answering",
             "completed_steps": ["Loaded greet skill"],
             "answer": "Hello there!",
             "status": AgentStatesEnum.COMPLETED,
@@ -68,7 +68,7 @@ def _mock_client_use_skill_then_finish() -> AsyncOpenAI:
 async def test_agent_autonomously_invokes_skill():
     """The agent picks use_skill from the catalog and the skill body enters the
     conversation before it finishes."""
-    skill = Skill(
+    skill = BaseSkill(
         metadata=SkillMetadata(name="greet", description="Greets people warmly."),
         body="Always greet the user by name and offer help.",
     )

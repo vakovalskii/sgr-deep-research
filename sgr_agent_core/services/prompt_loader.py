@@ -7,7 +7,7 @@ from sgr_agent_core.skills.rendering import render_available_skills
 
 if TYPE_CHECKING:
     from sgr_agent_core import BaseTool, PromptsConfig
-    from sgr_agent_core.skills import Skill
+    from sgr_agent_core.skills import BaseSkill
 
 
 class PromptLoader:
@@ -16,14 +16,13 @@ class PromptLoader:
         cls,
         available_tools: list[type["BaseTool"]],
         prompts_config: "PromptsConfig",
-        available_skills: "list[Skill] | None" = None,
-        max_skill_desc_chars: int = 500,
+        available_skills: "list[BaseSkill]" = (),
     ) -> str:
         template = prompts_config.system_prompt
         available_tools_str_list = [
             f"{i}. {tool.tool_name}: {tool.description}" for i, tool in enumerate(available_tools, start=1)
         ]
-        skills_block = render_available_skills(available_skills or [], max_desc_chars=max_skill_desc_chars)
+        skills_block = render_available_skills(available_skills or [])
 
         try:
             rendered = template.format(

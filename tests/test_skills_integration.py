@@ -15,14 +15,14 @@ from sgr_agent_core.agent_definition import (
 )
 from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.agents import SGRToolCallingAgent
-from sgr_agent_core.skills import Skill, SkillMetadata, SkillsConfig
+from sgr_agent_core.skills import BaseSkill, SkillMetadata, SkillsConfig
 from sgr_agent_core.tools.reasoning_tool import ReasoningTool
 from sgr_agent_core.tools.skill_tool import SkillTool
 from tests.conftest import create_test_agent
 
 
 def _skill(name, description="A skill.", body="BODY"):
-    return Skill(metadata=SkillMetadata(name=name, description=description), body=body)
+    return BaseSkill(metadata=SkillMetadata(name=name, description=description), body=body)
 
 
 def _write_skill(root, name, description="A skill.", body="Do the thing."):
@@ -33,8 +33,8 @@ def _write_skill(root, name, description="A skill.", body="Do the thing."):
 
 @pytest.fixture(autouse=True)
 def _isolate_default_skill_roots(monkeypatch):
-    """Keep tests hermetic: only use skills.paths, never the machine's global
-    ~/.sgr/skills or <config_dir>/skills locations."""
+    """Keep tests hermetic: only scan skills.paths, never the machine's global
+    ./.agent/skills or ~/.agent/skills locations."""
     monkeypatch.setattr(
         AgentFactory,
         "_default_skill_roots",
@@ -44,10 +44,10 @@ def _isolate_default_skill_roots(monkeypatch):
 
 class TestAgentConfigSkills:
     def test_agent_config_accepts_skills(self):
-        cfg = AgentConfig(skills={"enabled": True, "paths": ["./skills"], "max_desc_chars": 300})
+        cfg = AgentConfig(skills={"enabled": True, "paths": ["./skills"], "include": ["a"]})
         assert isinstance(cfg.skills, SkillsConfig)
         assert cfg.skills.paths == ["./skills"]
-        assert cfg.skills.max_desc_chars == 300
+        assert cfg.skills.include == ["a"]
 
     def test_agent_config_skills_default_none(self):
         assert AgentConfig().skills is None

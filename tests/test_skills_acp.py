@@ -10,11 +10,11 @@ import pytest
 from acp.schema import AvailableCommandsUpdate
 
 from sgr_agent_core.acp.bridge import SGRACPBridge
-from sgr_agent_core.skills import Skill, SkillMetadata
+from sgr_agent_core.skills import BaseSkill, SkillMetadata
 
 
 def _skill(name, description="A skill.", body="BODY", **kw):
-    return Skill(metadata=SkillMetadata(name=name, description=description, **kw), body=body)
+    return BaseSkill(metadata=SkillMetadata(name=name, description=description, **kw), body=body)
 
 
 def _fake_cfg(agent_models):

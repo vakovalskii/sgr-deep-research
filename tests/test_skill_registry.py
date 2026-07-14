@@ -2,12 +2,12 @@
 
 from pathlib import Path
 
-from sgr_agent_core.skills import Skill, SkillMetadata, SkillRegistry
+from sgr_agent_core.skills import BaseSkill, SkillMetadata, SkillRegistry
 from sgr_agent_core.skills.config import SkillsConfig
 
 
-def _skill(name: str, description: str = "A skill.") -> Skill:
-    return Skill(metadata=SkillMetadata(name=name, description=description))
+def _skill(name: str, description: str = "A skill.") -> BaseSkill:
+    return BaseSkill(metadata=SkillMetadata(name=name, description=description))
 
 
 def _write_skill(root: Path, name: str, description: str) -> None:
@@ -79,14 +79,10 @@ class TestSkillsConfig:
         assert cfg.paths == []
         assert cfg.include is None
         assert cfg.exclude is None
-        assert cfg.max_desc_chars == 500
 
     def test_from_dict(self):
-        cfg = SkillsConfig.model_validate(
-            {"enabled": False, "paths": ["./skills"], "include": ["a"], "exclude": ["b"], "max_desc_chars": 200}
-        )
+        cfg = SkillsConfig.model_validate({"enabled": False, "paths": ["./skills"], "include": ["a"], "exclude": ["b"]})
         assert cfg.enabled is False
         assert cfg.paths == ["./skills"]
         assert cfg.include == ["a"]
         assert cfg.exclude == ["b"]
-        assert cfg.max_desc_chars == 200

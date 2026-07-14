@@ -36,7 +36,7 @@ from sgr_agent_core.services import (
     ToolRegistry,
 )
 from sgr_agent_core.skills import (
-    Skill,
+    BaseSkill,
     SkillError,
     SkillLoader,
     SkillMetadata,
@@ -78,7 +78,7 @@ __all__ = [
     # Factory
     "AgentFactory",
     # Skills
-    "Skill",
+    "BaseSkill",
     "SkillMetadata",
     "SkillLoader",
     "SkillRegistry",

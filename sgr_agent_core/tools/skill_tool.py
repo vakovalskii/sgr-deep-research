@@ -39,7 +39,7 @@ class SkillTool(SystemBaseTool):
         skill = next((s for s in skills if s.name == self.skill_name), None)
         if skill is None:
             available = ", ".join(sorted(s.name for s in skills)) or "(none)"
-            return f"Skill '{self.skill_name}' not found. Available skills: {available}"
+            return f"BaseSkill '{self.skill_name}' not found. Available skills: {available}"
         body = skill.body.strip() or "(this skill has no additional instructions)"
         # Neutralize any stray closing delimiter so a skill body cannot break out
         # of its wrapper (skills are trusted content, but be defensive).

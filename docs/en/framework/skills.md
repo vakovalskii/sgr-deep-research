@@ -4,7 +4,8 @@ Skills are reusable, on-demand instruction packages (the Anthropic *Agent
 Skills* model). Each skill is a directory with a `SKILL.md` file — YAML
 frontmatter plus a markdown body. SGR Agent Core auto-registers skill
 `name` + `description` into the agent system prompt so the agent can invoke a
-skill autonomously, and also surfaces skills as **commands** over ACP and MCP.
+skill autonomously, and also surfaces skills as **commands** over ACP, the CLI,
+and the HTTP server.
 
 ## What a skill looks like
 
@@ -54,7 +55,14 @@ If `name` is omitted it defaults to the directory name.
 
 ## Enabling skills
 
-Add a `skills` block to an agent (or globally) in `config.yaml`:
+Skills work out of the box: **by default** the agent scans
+
+1. `./.agent/skills` (project, relative to the current working directory)
+2. `~/.agent/skills` (personal)
+
+If those folders are missing or empty, nothing breaks — the agent runs normally
+with no skills. To customize, add a `skills` block to an agent (or globally, at
+the top level) in `config.yaml`:
 
 ```yaml
 agents:
@@ -63,19 +71,16 @@ agents:
     tools:
       - reasoningtool
     skills:
-      enabled: true            # default true
-      paths:                   # extra skill roots (relative to config.yaml)
-        - ./skills
-      include: null            # optional allowlist of skill names
+      enabled: true            # default true; set false to disable skills
+      paths:                   # override the default roots (relative to CWD)
+        - ./my-skills
+      include: null            # optional allowlist of skill names to activate
       exclude: null            # optional denylist of skill names
-      max_desc_chars: 500      # per-entry description budget in the prompt
 ```
 
-Skill roots are scanned in this order (later overrides earlier by name):
-
-1. `~/.sgr/skills` (personal)
-2. `<config dir>/skills` (project)
-3. every path in `skills.paths`
+`skills.paths`, when set, **replaces** the default roots. Later roots override
+earlier ones by name. The per-entry description budget in the prompt listing is
+a global setting: `execution.max_skill_desc_chars` (default 500).
 
 When any skill is available, the agent's toolkit automatically gains the
 `use_skill` tool.
@@ -92,10 +97,8 @@ skill's body into the conversation.
 - **ACP** (`sgracp`): user-invocable skills are advertised to the client as
   `available_commands` (slash commands). Typing `/citation-style ...` expands the
   skill body into the turn.
-- **MCP**: `python -m sgr_agent_core.skills.mcp_server --config config.yaml`
-  serves skills as MCP **prompts** (`prompts/list` / `prompts/get`), which MCP
-  clients render as slash commands.
-- **CLI**: `sgrsh --list-skills -c config.yaml` prints the available skills.
+- **CLI**: `sgrsh --list-skills -c config.yaml` prints the available skills; a
+  `/skill-name ...` message in query or chat mode expands the skill.
 - **HTTP server**: `GET /v1/skills` (optional `?model=<agent>`) lists skills per
   agent.
 
@@ -103,11 +106,11 @@ skill's body into the conversation.
 
 Skills are **trusted content**, on the same level as `config.yaml` and custom
 tool code: a skill body is injected verbatim into the model context when
-invoked. Once an agent enables `skills`, the roots `~/.sgr/skills` and
-`<config dir>/skills` are always scanned, so opening a repository that ships a
-`skills/` directory will auto-load its authors' instructions. Only enable skills
-from sources you trust, and review third-party `SKILL.md` files before use. The
-loader caps each `SKILL.md` at 1 MiB and skips unreadable files.
+invoked. The default roots `./.agent/skills` and `~/.agent/skills` are scanned
+automatically, so opening a repository that ships a `.agent/skills/` directory
+will auto-load its authors' instructions. Only run skills from sources you
+trust, and review third-party `SKILL.md` files before use. The loader caps each
+`SKILL.md` at 1 MiB and skips unreadable files.
 
 ## Authoring tips
 

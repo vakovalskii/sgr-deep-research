@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from sgr_agent_core.skills import Skill, SkillError, SkillLoader, SkillMetadata
+from sgr_agent_core.skills import BaseSkill, SkillError, SkillLoader, SkillMetadata
 
 
 def _write_skill(root: Path, name: str, frontmatter: str, body: str = "Body text") -> Path:
@@ -84,12 +84,12 @@ class TestSkillMetadata:
 
 
 class TestSkillLoaderParse:
-    """Parsing SKILL.md text into a Skill."""
+    """Parsing SKILL.md text into a BaseSkill."""
 
     def test_parse_frontmatter_and_body(self):
         text = "---\nname: greet\ndescription: Greets people warmly.\n---\n\n# Greet\n\nSay hi.\n"
         skill = SkillLoader.parse(text)
-        assert isinstance(skill, Skill)
+        assert isinstance(skill, BaseSkill)
         assert skill.name == "greet"
         assert skill.description == "Greets people warmly."
         assert "Say hi." in skill.body

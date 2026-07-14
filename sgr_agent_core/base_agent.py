@@ -23,7 +23,7 @@ from sgr_agent_core.tools import (
 )
 
 if TYPE_CHECKING:
-    from sgr_agent_core.skills import Skill
+    from sgr_agent_core.skills import BaseSkill
 
 
 class AgentRegistryMixin:
@@ -47,7 +47,7 @@ class BaseAgent(AgentRegistryMixin):
         def_name: str | None = None,
         streaming_generator: type[BaseStreamingGenerator] = OpenAIStreamingGenerator,
         tool_configs: dict[str, ToolDefinition] | None = None,
-        skills: list["Skill"] | None = None,
+        skills: list["BaseSkill"] = (),
         **kwargs: dict,
     ):
         self.id = f"{def_name or self.name}_{uuid.uuid4()}"
@@ -59,9 +59,7 @@ class BaseAgent(AgentRegistryMixin):
         self.task_messages = task_messages
         self.toolkit = toolkit
         self.tool_configs = tool_configs or {}
-        self.available_skills = skills or []
-        skills_config = getattr(agent_config, "skills", None)
-        self._skills_max_desc_chars = skills_config.max_desc_chars if skills_config else 500
+        self.available_skills: list[BaseSkill] = list(skills or [])
 
         self._context = AgentContext(available_skills=self.available_skills)
         self.conversation = []
@@ -195,7 +193,6 @@ class BaseAgent(AgentRegistryMixin):
                     self.toolkit,
                     self.config.prompts,
                     available_skills=self.available_skills,
-                    max_skill_desc_chars=self._skills_max_desc_chars,
                 ),
             },
             *self.task_messages,

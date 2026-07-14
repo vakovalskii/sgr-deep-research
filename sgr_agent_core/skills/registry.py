@@ -11,28 +11,28 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from sgr_agent_core.skills.loader import SkillLoader
-from sgr_agent_core.skills.models import Skill
+from sgr_agent_core.skills.models import BaseSkill
 
 
 class SkillRegistry:
-    """Ordered, name-keyed catalog of :class:`Skill` objects.
+    """Ordered, name-keyed catalog of :class:`BaseSkill` objects.
 
     Registering a skill with an existing name overrides the previous
     one, so later skill roots take precedence over earlier ones
     (personal over builtin, project over personal, explicit paths last).
     """
 
-    def __init__(self, skills: Iterable[Skill] | None = None) -> None:
-        self._skills: dict[str, Skill] = {}
+    def __init__(self, skills: Iterable[BaseSkill] | None = None) -> None:
+        self._skills: dict[str, BaseSkill] = {}
         if skills:
             for skill in skills:
                 self.register(skill)
 
-    def register(self, skill: Skill) -> None:
+    def register(self, skill: BaseSkill) -> None:
         """Add or replace a skill by name."""
         self._skills[skill.name] = skill
 
-    def get(self, name: str) -> Skill | None:
+    def get(self, name: str) -> BaseSkill | None:
         """Return the skill with ``name`` or ``None`` if not registered."""
         return self._skills.get(name)
 
@@ -40,7 +40,7 @@ class SkillRegistry:
         """Return all registered skill names, sorted."""
         return sorted(self._skills.keys())
 
-    def list_items(self) -> list[Skill]:
+    def list_items(self) -> list[BaseSkill]:
         """Return all registered skills, sorted by name."""
         return [self._skills[name] for name in self.names()]
 
@@ -51,7 +51,7 @@ class SkillRegistry:
         same-named skills from earlier roots.
 
         Args:
-            paths: Skill root directories to scan.
+            paths: BaseSkill root directories to scan.
         """
         for path in paths:
             for skill in SkillLoader.discover(Path(path)):

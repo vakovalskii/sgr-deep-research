@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from sgr_agent_core.skills.models import Skill
+from sgr_agent_core.skills.models import BaseSkill
 
 DEFAULT_MAX_DESC_CHARS = 500
 
@@ -23,7 +23,17 @@ def _truncate(text: str, max_chars: int) -> str:
     return text
 
 
-def render_available_skills(skills: Iterable[Skill], max_desc_chars: int = DEFAULT_MAX_DESC_CHARS) -> str:
+def _global_max_desc_chars() -> int:
+    """Read the description budget from global execution settings (lazy)."""
+    try:
+        from sgr_agent_core.agent_config import GlobalConfig
+
+        return GlobalConfig().execution.max_skill_desc_chars
+    except Exception:  # noqa: BLE001 - fall back to the default outside a loaded config
+        return DEFAULT_MAX_DESC_CHARS
+
+
+def render_available_skills(skills: Iterable[BaseSkill], max_desc_chars: int | None = None) -> str:
     """Render the skills listing block injected into the system prompt.
 
     Only model-invocable skills are listed. Returns an empty string when there
@@ -31,11 +41,14 @@ def render_available_skills(skills: Iterable[Skill], max_desc_chars: int = DEFAU
 
     Args:
         skills: Skills available to the agent.
-        max_desc_chars: Per-entry description cap (level-1 budget).
+        max_desc_chars: Per-entry description cap (level-1 budget). Defaults to
+            the global ``execution.max_skill_desc_chars`` setting.
 
     Returns:
         A markdown block (or empty string).
     """
+    if max_desc_chars is None:
+        max_desc_chars = _global_max_desc_chars()
     listed = [s for s in skills if s.metadata.model_invocable]
     if not listed:
         return ""

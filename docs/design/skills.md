@@ -132,10 +132,9 @@ A skill dir is any immediate subdirectory that contains a `SKILL.md`.
   `AvailableCommand(name, description, input=UnstructuredCommandInput(...))`.
   A prompt of the form `/skill-name args...` is mapped to invoking that skill
   (prepend the skill body / run `use_skill`).
-- **MCP (optional/stretch)**: a `SkillsMCPServer` (FastMCP) exposing each skill
-  as an MCP **prompt** (`@mcp.prompt`) — the MCP primitive clients render as
-  slash commands (`prompts/list`, `prompts/get`). Symmetric inverse of
-  `MCP2ToolConverter`.
+- **MCP**: considered (skills as MCP prompts) but **dropped** — the ACP
+  `available_commands` surface already covers "skills as commands", and MCP
+  prompts added a parallel server for little extra value.
 - **CLI**: `sgrsh --list-skills` prints discovered skills; `/skill` handling in
   chat loop (nice-to-have).
 - **Server**: `GET /v1/skills` lists discovered skills (OpenAI-adjacent).

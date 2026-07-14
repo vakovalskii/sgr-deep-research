@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from sgr_agent_core.skills.models import Skill
+from sgr_agent_core.skills.models import BaseSkill
 
 
-def expand_skill_command(text: str, skills: Iterable[Skill]) -> str | None:
+def expand_skill_command(text: str, skills: Iterable[BaseSkill]) -> str | None:
     """Expand a ``/skill-name args`` message into the skill body + args.
 
     Args:

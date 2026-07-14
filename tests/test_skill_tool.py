@@ -3,12 +3,12 @@
 import pytest
 
 from sgr_agent_core.models import AgentContext
-from sgr_agent_core.skills import Skill, SkillMetadata
+from sgr_agent_core.skills import BaseSkill, SkillMetadata
 from sgr_agent_core.tools.skill_tool import SkillTool
 
 
 def _skill(name, description="A skill.", body="BODY"):
-    return Skill(metadata=SkillMetadata(name=name, description=description), body=body)
+    return BaseSkill(metadata=SkillMetadata(name=name, description=description), body=body)
 
 
 class TestSkillTool:

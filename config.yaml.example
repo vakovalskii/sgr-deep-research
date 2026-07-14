@@ -131,12 +131,14 @@ agents:
     # Optional: Skills (Anthropic Agent Skills model)
     # Each skill is a directory with a SKILL.md (frontmatter: name, description).
     # Skill name + description are auto-registered into the system prompt so the
-    # agent can invoke a skill on its own via the `use_skill` tool. Skills are
-    # also exposed as commands over ACP (available_commands) and MCP (prompts).
+    # agent can invoke a skill on its own via the `use_skill` tool; skills are
+    # also exposed as commands over ACP (available_commands).
+    # By default skills are read from ./.agent/skills (CWD) and ~/.agent/skills;
+    # missing/empty folders are fine. Use the block below to customize.
     # skills:
     #   enabled: true
-    #   paths:
-    #     - "./skills"          # extra skill roots (relative to this config)
-    #   include: null            # optional allowlist of skill names
+    #   paths:                   # overrides the default roots (relative to CWD)
+    #     - "./.agent/skills"
+    #   include: null            # optional allowlist of skill names to activate
     #   exclude: null            # optional denylist of skill names
-    #   max_desc_chars: 500      # per-entry description budget in the prompt
+    # The prompt listing budget is global: execution.max_skill_desc_chars (500).

@@ -1,11 +1,11 @@
 """Tests for the system-prompt skills listing renderer (Layer 3)."""
 
-from sgr_agent_core.skills import Skill, SkillMetadata
+from sgr_agent_core.skills import BaseSkill, SkillMetadata
 from sgr_agent_core.skills.rendering import render_available_skills
 
 
 def _skill(name, description, **kw):
-    return Skill(metadata=SkillMetadata(name=name, description=description, **kw))
+    return BaseSkill(metadata=SkillMetadata(name=name, description=description, **kw))
 
 
 class TestRenderAvailableSkills:

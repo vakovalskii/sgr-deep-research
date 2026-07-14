@@ -22,12 +22,12 @@ from sgr_agent_core.skills import expand_skill_command
 
 if TYPE_CHECKING:
     from sgr_agent_core.base_agent import BaseAgent
-    from sgr_agent_core.skills import Skill
+    from sgr_agent_core.skills import BaseSkill
 
 logger = logging.getLogger(__name__)
 
 
-def format_skills_listing(skills: "list[Skill]") -> str:
+def format_skills_listing(skills: "list[BaseSkill]") -> str:
     """Format a human-readable listing of skills for the CLI --list-skills
     flag.
 

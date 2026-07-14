@@ -1,14 +1,14 @@
-"""Tests for the shared slash-command expansion helper and skill-root ordering."""
+"""Tests for the shared slash-command expansion helper and skill-root
+ordering."""
 
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 from sgr_agent_core.agent_factory import AgentFactory
-from sgr_agent_core.skills import Skill, SkillMetadata, SkillsConfig, expand_skill_command
+from sgr_agent_core.skills import BaseSkill, SkillMetadata, SkillsConfig, expand_skill_command
 
 
 def _skill(name, description="A skill.", body="BODY", **kw):
-    return Skill(metadata=SkillMetadata(name=name, description=description, **kw), body=body)
+    return BaseSkill(metadata=SkillMetadata(name=name, description=description, **kw), body=body)
 
 
 class TestExpandSkillCommand:
@@ -32,17 +32,12 @@ class TestExpandSkillCommand:
 
 
 class TestDefaultSkillRoots:
-    def test_root_ordering_user_then_project_then_explicit(self, tmp_path):
-        config_dir = tmp_path / "cfg"
-        config_dir.mkdir()
-        cfg = SkillsConfig(paths=["extra", str(tmp_path / "abs")])
-        fake_global = Mock()
-        fake_global.config_dir = config_dir
-        with patch("sgr_agent_core.agent_config.GlobalConfig", return_value=fake_global):
-            roots = AgentFactory._default_skill_roots(cfg)
+    def test_defaults_when_no_paths(self):
+        roots = AgentFactory._default_skill_roots(SkillsConfig())
+        assert roots == [Path.cwd() / ".agent" / "skills", Path.home() / ".agent" / "skills"]
 
-        assert roots[0] == Path.home() / ".sgr" / "skills"
-        assert roots[1] == config_dir / "skills"
-        # Relative explicit path resolved against config_dir; absolute kept as-is.
-        assert roots[2] == config_dir / "extra"
-        assert roots[3] == tmp_path / "abs"
+    def test_explicit_paths_override_defaults(self, tmp_path):
+        cfg = SkillsConfig(paths=["extra", str(tmp_path / "abs")])
+        roots = AgentFactory._default_skill_roots(cfg)
+        # Relative path resolved against CWD; absolute kept as-is; defaults dropped.
+        assert roots == [Path.cwd() / "extra", tmp_path / "abs"]

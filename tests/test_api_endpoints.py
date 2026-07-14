@@ -694,13 +694,13 @@ class TestSkillsEndpoint:
     @patch("sgr_agent_core.server.endpoints.AgentFactory")
     @pytest.mark.asyncio
     async def test_lists_skills_per_model(self, mock_factory):
-        from sgr_agent_core.skills import Skill, SkillMetadata
+        from sgr_agent_core.skills import BaseSkill, SkillMetadata
 
         mock_def = Mock()
         mock_def.name = "sgr_agent"
         mock_factory.get_definitions_list.return_value = [mock_def]
         mock_factory._resolve_skills.return_value = [
-            Skill(metadata=SkillMetadata(name="greet", description="Greets people."))
+            BaseSkill(metadata=SkillMetadata(name="greet", description="Greets people."))
         ]
 
         result = await get_available_skills()

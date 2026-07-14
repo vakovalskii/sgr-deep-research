@@ -8,7 +8,7 @@ import pytest
 
 from sgr_agent_core.cli.sgrsh import chat_loop, find_config_file, format_skills_listing, main, run_agent
 from sgr_agent_core.models import AgentStatesEnum
-from sgr_agent_core.skills import Skill, SkillMetadata
+from sgr_agent_core.skills import BaseSkill, SkillMetadata
 
 
 class TestFormatSkillsListing:
@@ -18,15 +18,15 @@ class TestFormatSkillsListing:
         assert "No skills" in format_skills_listing([])
 
     def test_lists_name_and_description(self):
-        skills = [Skill(metadata=SkillMetadata(name="greet", description="Greets people."))]
+        skills = [BaseSkill(metadata=SkillMetadata(name="greet", description="Greets people."))]
         out = format_skills_listing(skills)
         assert "greet" in out
         assert "Greets people." in out
 
     def test_excludes_non_user_invocable(self):
         skills = [
-            Skill(metadata=SkillMetadata(name="shown", description="Shown.")),
-            Skill(metadata=SkillMetadata(name="hidden", description="Hidden.", user_invocable=False)),
+            BaseSkill(metadata=SkillMetadata(name="shown", description="Shown.")),
+            BaseSkill(metadata=SkillMetadata(name="hidden", description="Hidden.", user_invocable=False)),
         ]
         out = format_skills_listing(skills)
         assert "shown" in out

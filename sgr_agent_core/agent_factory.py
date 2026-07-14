@@ -15,12 +15,12 @@ from sgr_agent_core.agent_definition import AgentDefinition, LLMConfig, ToolDefi
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.services import AgentRegistry, MCP2ToolConverter, StreamingGeneratorRegistry
-from sgr_agent_core.skills import SkillRegistry
+from sgr_agent_core.skills import SkillRegistry, SkillsConfig
 from sgr_agent_core.stream import BaseStreamingGenerator, OpenAIStreamingGenerator
 from sgr_agent_core.tools.skill_tool import SkillTool
 
 if TYPE_CHECKING:
-    from sgr_agent_core.skills import Skill
+    from sgr_agent_core.skills import BaseSkill
 
 logger = logging.getLogger(__name__)
 
@@ -116,33 +116,27 @@ class AgentFactory:
         return toolkit, tool_configs
 
     @classmethod
-    def _default_skill_roots(cls, skills_config) -> list[Path]:
-        """Resolve skill root directories in override order (earlier < later).
+    def _default_skill_roots(cls, skills_config: SkillsConfig) -> list[Path]:
+        """Resolve skill root directories to scan.
 
-        Order: user (~/.sgr/skills) < project (<config_dir>/skills) <
-        explicit ``skills.paths`` (relative paths resolved against config_dir).
+        When ``skills.paths`` is set it overrides the defaults (relative paths
+        resolved against the current working directory). Otherwise the defaults
+        are ``./.agent/skills`` (project, relative to CWD) and
+        ``~/.agent/skills`` (personal). Missing/empty roots are simply skipped.
         """
-        from sgr_agent_core.agent_config import GlobalConfig
-
-        roots: list[Path] = [Path.home() / ".sgr" / "skills"]
-        config_dir = getattr(GlobalConfig(), "config_dir", None)
-        if isinstance(config_dir, (str, Path)):
-            config_dir = Path(config_dir)
-            roots.append(config_dir / "skills")
-        else:
-            config_dir = None
-        for raw in skills_config.paths:
-            path = Path(raw)
-            if not path.is_absolute() and config_dir is not None:
-                path = config_dir / path
-            roots.append(path)
-        return roots
+        if skills_config.paths:
+            return [p if (p := Path(raw)).is_absolute() else Path.cwd() / p for raw in skills_config.paths]
+        return [Path.cwd() / ".agent" / "skills", Path.home() / ".agent" / "skills"]
 
     @classmethod
-    def _resolve_skills(cls, agent_def: AgentDefinition) -> list["Skill"]:
-        """Discover and filter skills for an agent from its skills config."""
-        skills_config = getattr(agent_def, "skills", None)
-        if skills_config is None or not skills_config.enabled:
+    def _resolve_skills(cls, agent_def: AgentDefinition) -> list["BaseSkill"]:
+        """Discover and filter skills for an agent.
+
+        Skills are scanned from the default roots even without a ``skills:``
+        block; a ``skills:`` config overrides the roots and activation filters.
+        """
+        skills_config = getattr(agent_def, "skills", None) or SkillsConfig()
+        if not skills_config.enabled:
             return []
         registry = SkillRegistry()
         registry.load_from_paths(cls._default_skill_roots(skills_config))
@@ -229,7 +223,7 @@ class AgentFactory:
             agent_kwargs = {}
             for key, value in agent_def.model_dump().items():
                 agent_kwargs[key] = value
-            # 'skills' is resolved into Skill objects below; drop the raw config dump.
+            # 'skills' is resolved into BaseSkill objects below; drop the raw config dump.
             agent_kwargs.pop("skills", None)
 
             gen_cls = streaming_generator or cls._resolve_streaming_generator(agent_def.execution.streaming_generator)

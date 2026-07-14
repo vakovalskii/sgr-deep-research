@@ -167,9 +167,9 @@ class TestPromptLoader:
     def test_get_system_prompt_with_skills(self):
         """Skills are auto-registered into the system prompt via
         {available_skills}."""
-        from sgr_agent_core.skills import Skill, SkillMetadata
+        from sgr_agent_core.skills import BaseSkill, SkillMetadata
 
-        skills = [Skill(metadata=SkillMetadata(name="greet", description="Greets people warmly."))]
+        skills = [BaseSkill(metadata=SkillMetadata(name="greet", description="Greets people warmly."))]
 
         with tempfile.TemporaryDirectory() as tmpdir:
             template_file = os.path.join(tmpdir, "system_prompt.txt")
@@ -215,9 +215,9 @@ class TestPromptLoader:
         """A custom template without {available_skills} still gets the skills
         catalog appended, so autonomous discovery works regardless of
         template."""
-        from sgr_agent_core.skills import Skill, SkillMetadata
+        from sgr_agent_core.skills import BaseSkill, SkillMetadata
 
-        skills = [Skill(metadata=SkillMetadata(name="greet", description="Greets."))]
+        skills = [BaseSkill(metadata=SkillMetadata(name="greet", description="Greets."))]
         with tempfile.TemporaryDirectory() as tmpdir:
             template_file = os.path.join(tmpdir, "system_prompt.txt")
             template = "Only tools:\n{available_tools}"

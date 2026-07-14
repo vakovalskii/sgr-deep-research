@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
-from sgr_agent_core.skills.models import Skill, SkillError, SkillMetadata
+from sgr_agent_core.skills.models import BaseSkill, SkillError, SkillMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +63,8 @@ class SkillLoader:
         return data, body
 
     @classmethod
-    def parse(cls, text: str, *, path: Path | None = None, default_name: str | None = None) -> Skill:
-        """Parse ``SKILL.md`` text into a validated :class:`Skill`.
+    def parse(cls, text: str, *, path: Path | None = None, default_name: str | None = None) -> BaseSkill:
+        """Parse ``SKILL.md`` text into a validated :class:`BaseSkill`.
 
         Args:
             text: Full ``SKILL.md`` content.
@@ -73,7 +73,7 @@ class SkillLoader:
                 (typically the skill directory name).
 
         Returns:
-            A validated :class:`Skill`.
+            A validated :class:`BaseSkill`.
 
         Raises:
             SkillError: If frontmatter is missing, malformed, or fails validation.
@@ -85,17 +85,17 @@ class SkillLoader:
             metadata = SkillMetadata.model_validate(data)
         except ValidationError as exc:
             raise SkillError(f"Invalid skill metadata: {exc}") from exc
-        return Skill(metadata=metadata, body=body, path=path)
+        return BaseSkill(metadata=metadata, body=body, path=path)
 
     @classmethod
-    def load_skill(cls, directory: Path) -> Skill:
+    def load_skill(cls, directory: Path) -> BaseSkill:
         """Load a single skill from a directory containing ``SKILL.md``.
 
         Args:
             directory: Directory holding the ``SKILL.md`` file.
 
         Returns:
-            The loaded :class:`Skill`.
+            The loaded :class:`BaseSkill`.
 
         Raises:
             SkillError: If ``SKILL.md`` is missing or invalid.
@@ -115,7 +115,7 @@ class SkillLoader:
         return cls.parse(text, path=directory, default_name=directory.name)
 
     @classmethod
-    def discover(cls, root: Path) -> list[Skill]:
+    def discover(cls, root: Path) -> list[BaseSkill]:
         """Discover all skills in immediate subdirectories of ``root``.
 
         Malformed skills are logged and skipped so one bad skill never breaks
@@ -130,7 +130,7 @@ class SkillLoader:
         root = Path(root)
         if not root.is_dir():
             return []
-        skills: list[Skill] = []
+        skills: list[BaseSkill] = []
         try:
             entries = sorted(root.iterdir())
         except OSError as exc:

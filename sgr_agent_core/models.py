@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from sgr_agent_core.skills.models import Skill
+from sgr_agent_core.skills.models import BaseSkill
 
 
 class SourceData(BaseModel):
@@ -69,7 +69,9 @@ class AgentContext(BaseModel):
         default=None, description="Custom context for project-specific data"
     )
 
-    available_skills: list[Skill] = Field(default_factory=list, description="Skills available to the agent this run")
+    available_skills: list[BaseSkill] = Field(
+        default_factory=list, description="Skills available to the agent this run"
+    )
 
     def agent_state(self) -> dict:
         return self.model_dump(exclude={"searches", "sources", "clarification_received", "available_skills"})

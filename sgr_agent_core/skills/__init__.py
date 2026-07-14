@@ -3,18 +3,18 @@
 Skills are directories containing a ``SKILL.md`` file (YAML frontmatter plus a
 markdown body). They are auto-registered into the agent system prompt (name +
 description) so the agent can invoke them autonomously, and can be surfaced as
-commands over ACP/MCP.
+user commands over ACP.
 """
 
 from sgr_agent_core.skills.commands import expand_skill_command
 from sgr_agent_core.skills.config import SkillsConfig
 from sgr_agent_core.skills.loader import SKILL_FILE, SkillLoader
-from sgr_agent_core.skills.models import Skill, SkillError, SkillMetadata
+from sgr_agent_core.skills.models import BaseSkill, SkillError, SkillMetadata
 from sgr_agent_core.skills.registry import SkillRegistry
 from sgr_agent_core.skills.rendering import render_available_skills
 
 __all__ = [
-    "Skill",
+    "BaseSkill",
     "SkillError",
     "SkillMetadata",
     "SkillLoader",

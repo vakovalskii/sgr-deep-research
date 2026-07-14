@@ -44,7 +44,7 @@ from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.models import AgentStatesEnum
 from sgr_agent_core.skills.commands import expand_skill_command
-from sgr_agent_core.skills.models import Skill
+from sgr_agent_core.skills.models import BaseSkill
 
 logger = logging.getLogger(__name__)
 
@@ -119,14 +119,14 @@ class SGRACPBridge:
             agent_def.llm.model = sess.model
         return agent_def
 
-    def _skills_for_session(self, sess: _ACPSession) -> list[Skill]:
+    def _skills_for_session(self, sess: _ACPSession) -> list[BaseSkill]:
         """Resolve the skills available for the session's agent definition."""
         try:
             return AgentFactory._resolve_skills(self._agent_definition_for_session(sess))
         except Exception:  # noqa: BLE001 - never let skill resolution break a session
             return []
 
-    def _build_available_commands(self, skills: list[Skill]) -> list[AvailableCommand]:
+    def _build_available_commands(self, skills: list[BaseSkill]) -> list[AvailableCommand]:
         """Map user-invocable skills to ACP available commands (slash
         commands)."""
         commands: list[AvailableCommand] = []
@@ -143,7 +143,7 @@ class SGRACPBridge:
         return commands
 
     @staticmethod
-    def _expand_skill_command(text: str, skills: list[Skill]) -> str | None:
+    def _expand_skill_command(text: str, skills: list[BaseSkill]) -> str | None:
         """Expand a ``/skill-name args`` message into the skill body + args."""
         return expand_skill_command(text, skills)
 
