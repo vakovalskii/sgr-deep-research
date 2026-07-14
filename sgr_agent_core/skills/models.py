@@ -67,28 +67,28 @@ class SkillMetadata(BaseModel):
     @classmethod
     def _validate_name(cls, value: str) -> str:
         if not value:
-            raise ValueError("BaseSkill 'name' must be non-empty")
+            raise ValueError("Skill 'name' must be non-empty")
         if len(value) > NAME_MAX_LENGTH:
-            raise ValueError(f"BaseSkill 'name' must be at most {NAME_MAX_LENGTH} characters")
+            raise ValueError(f"Skill 'name' must be at most {NAME_MAX_LENGTH} characters")
         if "<" in value or ">" in value:
-            raise ValueError("BaseSkill 'name' cannot contain XML tags")
+            raise ValueError("Skill 'name' cannot contain XML tags")
         if not NAME_PATTERN.match(value):
-            raise ValueError("BaseSkill 'name' must contain only lowercase letters, digits and hyphens")
+            raise ValueError("Skill 'name' must contain only lowercase letters, digits and hyphens")
         lowered = value.lower()
         for word in RESERVED_WORDS:
             if word in lowered:
-                raise ValueError(f"BaseSkill 'name' cannot contain the reserved word '{word}'")
+                raise ValueError(f"Skill 'name' cannot contain the reserved word '{word}'")
         return value
 
     @field_validator("description")
     @classmethod
     def _validate_description(cls, value: str) -> str:
         if not value or not value.strip():
-            raise ValueError("BaseSkill 'description' must be non-empty")
+            raise ValueError("Skill 'description' must be non-empty")
         if len(value) > DESCRIPTION_MAX_LENGTH:
-            raise ValueError(f"BaseSkill 'description' must be at most {DESCRIPTION_MAX_LENGTH} characters")
+            raise ValueError(f"Skill 'description' must be at most {DESCRIPTION_MAX_LENGTH} characters")
         if "<" in value or ">" in value:
-            raise ValueError("BaseSkill 'description' cannot contain XML tags")
+            raise ValueError("Skill 'description' cannot contain XML tags")
         return value
 
 

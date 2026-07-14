@@ -15,7 +15,7 @@ from sgr_agent_core.agent_definition import AgentDefinition, LLMConfig, ToolDefi
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.services import AgentRegistry, MCP2ToolConverter, StreamingGeneratorRegistry
-from sgr_agent_core.skills import SkillRegistry, SkillsConfig
+from sgr_agent_core.skills import SkillRegistry, SkillsConfig, inject_referenced_skills
 from sgr_agent_core.stream import BaseStreamingGenerator, OpenAIStreamingGenerator
 from sgr_agent_core.tools.skill_tool import SkillTool
 
@@ -216,6 +216,8 @@ class AgentFactory:
         skills = cls._resolve_skills(agent_def)
         if skills and SkillTool not in tools:
             tools.append(SkillTool)
+        # Inject bodies of skills the user referenced as "/skill-name" in the prompt.
+        task_messages = inject_referenced_skills(task_messages, skills)
 
         try:
             # Extract agent-specific parameters from agent_def (e.g., working_directory)

@@ -103,6 +103,34 @@ class TestAgentFactorySkills:
             assert SkillTool in agent.toolkit
 
     @pytest.mark.asyncio
+    async def test_factory_injects_referenced_skill_into_prompt(self, tmp_path):
+        skills_root = tmp_path / "skills"
+        _write_skill(skills_root, "greet", "Greets people.", "Greet the user warmly by name.")
+        with (
+            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+            patch.object(AgentFactory, "_create_client", return_value=Mock(spec=AsyncOpenAI)),
+        ):
+            agent_def = AgentDefinition(
+                name="ref_agent",
+                base_class=SGRToolCallingAgent,
+                tools=["reasoningtool"],
+                llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
+                prompts=PromptsConfig(
+                    system_prompt_str="T", initial_user_request_str="T", clarification_response_str="T"
+                ),
+                execution=ExecutionConfig(),
+                langfuse=LangfuseConfig(),
+                skills=SkillsConfig(paths=[str(skills_root)]),
+            )
+            # A user message referencing the skill with a slash triggers injection.
+            agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "/greet please"}])
+            context = await agent._prepare_context()
+            joined = "\n".join(str(m.get("content", "")) for m in context)
+            assert "Greet the user warmly by name." in joined
+            # Original user text is preserved.
+            assert "/greet please" in joined
+
+    @pytest.mark.asyncio
     async def test_factory_no_skills_no_skill_tool(self, tmp_path):
         with (
             patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),

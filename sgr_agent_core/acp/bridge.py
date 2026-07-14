@@ -43,7 +43,6 @@ from sgr_agent_core.agent_definition import AgentDefinition
 from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.models import AgentStatesEnum
-from sgr_agent_core.skills.commands import expand_skill_command
 from sgr_agent_core.skills.models import BaseSkill
 
 logger = logging.getLogger(__name__)
@@ -141,11 +140,6 @@ class SGRACPBridge:
                 )
             )
         return commands
-
-    @staticmethod
-    def _expand_skill_command(text: str, skills: list[BaseSkill]) -> str | None:
-        """Expand a ``/skill-name args`` message into the skill body + args."""
-        return expand_skill_command(text, skills)
 
     async def _advertise_commands(self, sess: _ACPSession) -> None:
         """Push the session's skill commands to the client (best effort).
@@ -364,11 +358,7 @@ class SGRACPBridge:
             sess.agent = None
             sess.execute_task = None
 
-        # Expand a "/skill-name args" slash command into the skill's instructions.
-        expanded = self._expand_skill_command(text, self._skills_for_session(sess))
-        if expanded is not None:
-            text = expanded
-
+        # "/skill-name" references in `text` are expanded centrally by AgentFactory.
         agent_def = self._agent_definition_for_session(sess)
         gen_cls = create_acp_streaming_generator_class(session_id, self._client)
         agent = await AgentFactory.create(

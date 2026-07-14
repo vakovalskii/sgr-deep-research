@@ -8,12 +8,12 @@ follows for the rest of the run.
 
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING, ClassVar
 
 from pydantic import Field
 
 from sgr_agent_core.base_tool import SystemBaseTool
+from sgr_agent_core.skills.commands import render_skill_body
 
 if TYPE_CHECKING:
     from sgr_agent_core.agent_definition import AgentConfig
@@ -34,14 +34,16 @@ class SkillTool(SystemBaseTool):
 
     async def __call__(self, context: "AgentContext", config: "AgentConfig", **kwargs) -> str:
         """Return the requested skill's body, or a helpful error listing the
-        available skills."""
-        skills = list(getattr(context, "available_skills", []) or [])
+        available skills.
+
+        Only model-invocable skills can be loaded here, symmetric with the
+        user-driven ``/skill-name`` path (which gates on ``user_invocable``).
+        Skills authored with ``disable-model-invocation: true`` are therefore
+        invisible to the model even if their name is known.
+        """
+        skills = [s for s in (getattr(context, "available_skills", []) or []) if s.metadata.model_invocable]
         skill = next((s for s in skills if s.name == self.skill_name), None)
         if skill is None:
             available = ", ".join(sorted(s.name for s in skills)) or "(none)"
-            return f"BaseSkill '{self.skill_name}' not found. Available skills: {available}"
-        body = skill.body.strip() or "(this skill has no additional instructions)"
-        # Neutralize any stray closing delimiter so a skill body cannot break out
-        # of its wrapper (skills are trusted content, but be defensive).
-        body = re.sub(r"</\s*SKILL\s*>", "< /SKILL>", body, flags=re.IGNORECASE)
-        return f'<SKILL name="{skill.name}">\n{body}\n</SKILL>'
+            return f"Skill '{self.skill_name}' not found. Available skills: {available}"
+        return render_skill_body(skill)

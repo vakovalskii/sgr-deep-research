@@ -85,20 +85,27 @@ a global setting: `execution.max_skill_desc_chars` (default 500).
 When any skill is available, the agent's toolkit automatically gains the
 `use_skill` tool.
 
-## Autonomous invocation
+## Invoking a skill
 
-The system prompt gains an `AVAILABLE_SKILLS` block listing each model-invocable
-skill and instructing the agent to call `use_skill` when a task matches. The
-agent decides on its own; calling `use_skill` with a skill name returns that
-skill's body into the conversation.
+There are two ways a skill is invoked:
 
-## Skills as commands
+1. **Autonomously (the model decides).** The system prompt gains an
+   `AVAILABLE_SKILLS` block listing each model-invocable skill and instructing
+   the agent to call `use_skill` when a task matches. Calling
+   `use_skill <name>` returns that skill's body into the conversation
+   (progressive disclosure level 2).
+2. **Explicitly (the user references it).** If a user message mentions a skill
+   by name with a leading slash — `/citation-style` — that skill's body is
+   injected into the prompt. This works in **every mode** (ACP, CLI, and the
+   OpenAI-compatible server), because the reference is expanded centrally in
+   `AgentFactory.create`. The reference may appear anywhere in the message
+   (`please use /concise-answer`); slashes inside URLs/paths are ignored.
+
+## Discovering skills as commands
 
 - **ACP** (`sgracp`): user-invocable skills are advertised to the client as
-  `available_commands` (slash commands). Typing `/citation-style ...` expands the
-  skill body into the turn.
-- **CLI**: `sgrsh --list-skills -c config.yaml` prints the available skills; a
-  `/skill-name ...` message in query or chat mode expands the skill.
+  `available_commands`, so they appear in the client's slash-command menu.
+- **CLI**: `sgrsh --list-skills -c config.yaml` prints the available skills.
 - **HTTP server**: `GET /v1/skills` (optional `?model=<agent>`) lists skills per
   agent.
 

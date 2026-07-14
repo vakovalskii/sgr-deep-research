@@ -43,24 +43,6 @@ class TestAcpCommandBuilding:
         assert [c.name for c in cmds] == ["shown"]
 
 
-class TestAcpSlashCommandExpansion:
-    def test_expand_matching_command(self):
-        bridge = SGRACPBridge()
-        skills = [_skill("greet", body="Greet the user warmly.")]
-        expanded = bridge._expand_skill_command("/greet say hi to Bob", skills)
-        assert expanded is not None
-        assert "Greet the user warmly." in expanded
-        assert "say hi to Bob" in expanded
-
-    def test_expand_unknown_command_returns_none(self):
-        bridge = SGRACPBridge()
-        assert bridge._expand_skill_command("/nope args", [_skill("greet")]) is None
-
-    def test_expand_non_command_returns_none(self):
-        bridge = SGRACPBridge()
-        assert bridge._expand_skill_command("just a normal message", [_skill("greet")]) is None
-
-
 class TestAcpAdvertise:
     @pytest.mark.asyncio
     async def test_new_session_advertises_skill_commands(self):

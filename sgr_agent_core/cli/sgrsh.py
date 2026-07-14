@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING
 from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.models import AgentStatesEnum
-from sgr_agent_core.skills import expand_skill_command
 
 if TYPE_CHECKING:
     from sgr_agent_core.base_agent import BaseAgent
@@ -167,9 +166,8 @@ async def chat_loop(agent_def_name: str, config: GlobalConfig):
             if not user_input:
                 continue
 
-            # Expand a "/skill-name args" slash command into the skill instructions.
-            expanded = expand_skill_command(user_input, AgentFactory._resolve_skills(agent_def))
-            conversation_history.append({"role": "user", "content": expanded if expanded is not None else user_input})
+            # "/skill-name" references are expanded centrally by AgentFactory.
+            conversation_history.append({"role": "user", "content": user_input})
             agent = await AgentFactory.create(agent_def, task_messages=conversation_history)
             result = await run_agent(agent)
 
@@ -281,12 +279,7 @@ Examples:
             print(f"Available agents: {', '.join(config.agents.keys())}")
             sys.exit(1)
 
-        # Expand a "/skill-name args" slash command into the skill instructions.
-        expanded = expand_skill_command(query, AgentFactory._resolve_skills(agent_def))
-        if expanded is not None:
-            query = expanded
-
-        # Create agent
+        # "/skill-name" references are expanded centrally by AgentFactory.
         task_messages = [{"role": "user", "content": query}]
         agent = await AgentFactory.create(agent_def, task_messages)
 

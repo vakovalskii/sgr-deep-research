@@ -130,8 +130,9 @@ A skill dir is any immediate subdirectory that contains a `SKILL.md`.
 - **ACP**: `SGRACPBridge` sends an `AvailableCommandsUpdate` session update
   after `new_session` (and on agent switch), advertising each skill as an
   `AvailableCommand(name, description, input=UnstructuredCommandInput(...))`.
-  A prompt of the form `/skill-name args...` is mapped to invoking that skill
-  (prepend the skill body / run `use_skill`).
+  `/skill-name` references are NOT handled in the bridge; they are expanded
+  centrally in `AgentFactory.create` (via `inject_referenced_skills`) for every
+  mode (ACP/CLI/server), detecting a reference anywhere in the last user message.
 - **MCP**: considered (skills as MCP prompts) but **dropped** — the ACP
   `available_commands` surface already covers "skills as commands", and MCP
   prompts added a parallel server for little extra value.
