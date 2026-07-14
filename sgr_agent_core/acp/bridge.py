@@ -11,6 +11,9 @@ from acp.interfaces import Client
 from acp.schema import (
     AgentCapabilities,
     AuthenticateResponse,
+    AvailableCommand,
+    AvailableCommandInput,
+    AvailableCommandsUpdate,
     CloseSessionResponse,
     HttpMcpServer,
     Implementation,
@@ -29,6 +32,7 @@ from acp.schema import (
     SetSessionModeResponse,
     SseMcpServer,
     TextContentBlock,
+    UnstructuredCommandInput,
 )
 
 from sgr_agent_core import __version__
@@ -38,6 +42,7 @@ from sgr_agent_core.agent_definition import AgentDefinition
 from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.models import AgentStatesEnum
+from sgr_agent_core.skills.models import Skill
 
 
 def extract_prompt_text(
@@ -109,6 +114,60 @@ class SGRACPBridge:
             agent_def = agent_def.model_copy(deep=True)
             agent_def.llm.model = sess.model
         return agent_def
+
+    def _skills_for_session(self, sess: _ACPSession) -> list[Skill]:
+        """Resolve the skills available for the session's agent definition."""
+        try:
+            return AgentFactory._resolve_skills(self._agent_definition_for_session(sess))
+        except Exception:  # noqa: BLE001 - never let skill resolution break a session
+            return []
+
+    def _build_available_commands(self, skills: list[Skill]) -> list[AvailableCommand]:
+        """Map user-invocable skills to ACP available commands (slash commands)."""
+        commands: list[AvailableCommand] = []
+        for skill in skills:
+            if not skill.metadata.user_invocable:
+                continue
+            commands.append(
+                AvailableCommand(
+                    name=skill.name,
+                    description=skill.description,
+                    input=AvailableCommandInput(root=UnstructuredCommandInput(hint="optional arguments")),
+                )
+            )
+        return commands
+
+    @staticmethod
+    def _expand_skill_command(text: str, skills: list[Skill]) -> str | None:
+        """Expand a ``/skill-name args`` message into the skill body + args.
+
+        Returns the expanded prompt when the first token names a user-invocable
+        skill, otherwise ``None``.
+        """
+        if not text.startswith("/"):
+            return None
+        head, _, rest = text[1:].partition(" ")
+        skill = next((s for s in skills if s.name == head and s.metadata.user_invocable), None)
+        if skill is None:
+            return None
+        body = skill.body.strip()
+        remainder = rest.strip()
+        return f"{body}\n\n{remainder}".strip() if remainder else body
+
+    async def _advertise_commands(self, sess: _ACPSession) -> None:
+        """Push the session's skill commands to the client (best effort)."""
+        if self._client is None:
+            return
+        commands = self._build_available_commands(self._skills_for_session(sess))
+        if not commands:
+            return
+        await self._client.session_update(
+            sess.session_id,
+            AvailableCommandsUpdate(
+                available_commands=commands,
+                session_update="available_commands_update",
+            ),
+        )
 
     def _agent_names(self) -> list[str]:
         return list(GlobalConfig().agents.keys())
@@ -207,6 +266,7 @@ class SGRACPBridge:
         model = GlobalConfig().agents[agent_name].llm.model
         sess = _ACPSession(session_id=session_id, cwd=cwd, agent_name=agent_name, model=model)
         self._sessions[session_id] = sess
+        await self._advertise_commands(sess)
         return NewSessionResponse(session_id=session_id, config_options=self._build_config_options(sess))
 
     async def load_session(
@@ -300,6 +360,11 @@ class SGRACPBridge:
         if sess.agent is not None and sess.agent._context.state in AgentStatesEnum.FINISH_STATES.value:
             sess.agent = None
             sess.execute_task = None
+
+        # Expand a "/skill-name args" slash command into the skill's instructions.
+        expanded = self._expand_skill_command(text, self._skills_for_session(sess))
+        if expanded is not None:
+            text = expanded
 
         agent_def = self._agent_definition_for_session(sess)
         gen_cls = create_acp_streaming_generator_class(session_id, self._client)
