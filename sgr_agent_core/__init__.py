@@ -35,6 +35,14 @@ from sgr_agent_core.services import (
     PromptLoader,
     ToolRegistry,
 )
+from sgr_agent_core.skills import (
+    Skill,
+    SkillError,
+    SkillLoader,
+    SkillMetadata,
+    SkillRegistry,
+    SkillsConfig,
+)
 from sgr_agent_core.tools import *  # noqa: F403
 
 __all__ = [
@@ -69,4 +77,11 @@ __all__ = [
     "NextStepToolsBuilder",
     # Factory
     "AgentFactory",
+    # Skills
+    "Skill",
+    "SkillMetadata",
+    "SkillLoader",
+    "SkillRegistry",
+    "SkillsConfig",
+    "SkillError",
 ]

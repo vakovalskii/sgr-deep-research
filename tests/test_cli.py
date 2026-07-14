@@ -23,6 +23,15 @@ class TestFormatSkillsListing:
         assert "greet" in out
         assert "Greets people." in out
 
+    def test_excludes_non_user_invocable(self):
+        skills = [
+            Skill(metadata=SkillMetadata(name="shown", description="Shown.")),
+            Skill(metadata=SkillMetadata(name="hidden", description="Hidden.", user_invocable=False)),
+        ]
+        out = format_skills_listing(skills)
+        assert "shown" in out
+        assert "hidden" not in out
+
 
 class TestFindConfigFile:
     """Test find_config_file function."""

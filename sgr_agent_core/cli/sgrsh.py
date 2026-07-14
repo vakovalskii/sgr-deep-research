@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.models import AgentStatesEnum
+from sgr_agent_core.skills import expand_skill_command
 
 if TYPE_CHECKING:
     from sgr_agent_core.base_agent import BaseAgent
@@ -28,11 +29,16 @@ logger = logging.getLogger(__name__)
 
 def format_skills_listing(skills: "list[Skill]") -> str:
     """Format a human-readable listing of skills for the CLI --list-skills
-    flag."""
-    if not skills:
+    flag.
+
+    Only user-invocable skills are shown as ``/commands`` because those are the
+    ones the CLI expands when typed.
+    """
+    invocable = [s for s in skills if s.metadata.user_invocable]
+    if not invocable:
         return "No skills available for this agent."
     lines = ["Available skills:"]
-    for skill in skills:
+    for skill in invocable:
         lines.append(f"  /{skill.name} — {skill.description}")
     return "\n".join(lines)
 
@@ -161,7 +167,9 @@ async def chat_loop(agent_def_name: str, config: GlobalConfig):
             if not user_input:
                 continue
 
-            conversation_history.append({"role": "user", "content": user_input})
+            # Expand a "/skill-name args" slash command into the skill instructions.
+            expanded = expand_skill_command(user_input, AgentFactory._resolve_skills(agent_def))
+            conversation_history.append({"role": "user", "content": expanded if expanded is not None else user_input})
             agent = await AgentFactory.create(agent_def, task_messages=conversation_history)
             result = await run_agent(agent)
 
@@ -272,6 +280,11 @@ Examples:
             print(f"❌ Agent '{agent_name}' not found in config")
             print(f"Available agents: {', '.join(config.agents.keys())}")
             sys.exit(1)
+
+        # Expand a "/skill-name args" slash command into the skill instructions.
+        expanded = expand_skill_command(query, AgentFactory._resolve_skills(agent_def))
+        if expanded is not None:
+            query = expanded
 
         # Create agent
         task_messages = [{"role": "user", "content": query}]

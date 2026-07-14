@@ -6,6 +6,7 @@ description) so the agent can invoke them autonomously, and can be surfaced as
 commands over ACP/MCP.
 """
 
+from sgr_agent_core.skills.commands import expand_skill_command
 from sgr_agent_core.skills.config import SkillsConfig
 from sgr_agent_core.skills.loader import SKILL_FILE, SkillLoader
 from sgr_agent_core.skills.models import Skill, SkillError, SkillMetadata
@@ -20,5 +21,6 @@ __all__ = [
     "SkillRegistry",
     "SkillsConfig",
     "render_available_skills",
+    "expand_skill_command",
     "SKILL_FILE",
 ]

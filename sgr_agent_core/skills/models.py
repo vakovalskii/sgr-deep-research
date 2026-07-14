@@ -41,6 +41,14 @@ class SkillMetadata(BaseModel):
     model_invocable: bool = True
     user_invocable: bool = True
 
+    @staticmethod
+    def _coerce_bool(value: object) -> bool:
+        """Coerce a YAML scalar to bool, honoring quoted strings like
+        "false"."""
+        if isinstance(value, str):
+            return value.strip().lower() in ("true", "1", "yes", "on")
+        return bool(value)
+
     @model_validator(mode="before")
     @classmethod
     def _map_invocation_aliases(cls, data: object) -> object:
@@ -50,9 +58,9 @@ class SkillMetadata(BaseModel):
         if isinstance(data, dict):
             data = dict(data)
             if "disable-model-invocation" in data:
-                data["model_invocable"] = not bool(data.pop("disable-model-invocation"))
+                data["model_invocable"] = not cls._coerce_bool(data.pop("disable-model-invocation"))
             if "user-invocable" in data:
-                data["user_invocable"] = bool(data.pop("user-invocable"))
+                data["user_invocable"] = cls._coerce_bool(data.pop("user-invocable"))
         return data
 
     @field_validator("name")

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import uuid
 from dataclasses import dataclass
 from typing import Any
@@ -42,7 +43,10 @@ from sgr_agent_core.agent_definition import AgentDefinition
 from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.models import AgentStatesEnum
+from sgr_agent_core.skills.commands import expand_skill_command
 from sgr_agent_core.skills.models import Skill
+
+logger = logging.getLogger(__name__)
 
 
 def extract_prompt_text(
@@ -140,35 +144,31 @@ class SGRACPBridge:
 
     @staticmethod
     def _expand_skill_command(text: str, skills: list[Skill]) -> str | None:
-        """Expand a ``/skill-name args`` message into the skill body + args.
-
-        Returns the expanded prompt when the first token names a user-invocable
-        skill, otherwise ``None``.
-        """
-        if not text.startswith("/"):
-            return None
-        head, _, rest = text[1:].partition(" ")
-        skill = next((s for s in skills if s.name == head and s.metadata.user_invocable), None)
-        if skill is None:
-            return None
-        body = skill.body.strip()
-        remainder = rest.strip()
-        return f"{body}\n\n{remainder}".strip() if remainder else body
+        """Expand a ``/skill-name args`` message into the skill body + args."""
+        return expand_skill_command(text, skills)
 
     async def _advertise_commands(self, sess: _ACPSession) -> None:
-        """Push the session's skill commands to the client (best effort)."""
+        """Push the session's skill commands to the client (best effort).
+
+        Advertising commands must never break session creation or an
+        agent switch, so client/transport errors are swallowed and
+        logged.
+        """
         if self._client is None:
             return
         commands = self._build_available_commands(self._skills_for_session(sess))
         if not commands:
             return
-        await self._client.session_update(
-            sess.session_id,
-            AvailableCommandsUpdate(
-                available_commands=commands,
-                session_update="available_commands_update",
-            ),
-        )
+        try:
+            await self._client.session_update(
+                sess.session_id,
+                AvailableCommandsUpdate(
+                    available_commands=commands,
+                    session_update="available_commands_update",
+                ),
+            )
+        except Exception as exc:  # noqa: BLE001 - advertising is best effort
+            logger.warning("Failed to advertise skill commands for %s: %s", sess.session_id, exc)
 
     def _agent_names(self) -> list[str]:
         return list(GlobalConfig().agents.keys())
@@ -317,6 +317,8 @@ class SGRACPBridge:
                 raise ValueError(f"Unknown agent config value: {value!r}")
             sess.agent_name = value
             self._reset_agent_if_idle(sess)
+            # Skills are per-agent, so refresh the advertised commands.
+            await self._advertise_commands(sess)
         elif config_id == self._MODEL_CONFIG_ID:
             if not isinstance(value, str) or value not in self._model_choices():
                 raise ValueError(f"Unknown model config value: {value!r}")

@@ -99,6 +99,16 @@ skill's body into the conversation.
 - **HTTP server**: `GET /v1/skills` (optional `?model=<agent>`) lists skills per
   agent.
 
+## Security & trust
+
+Skills are **trusted content**, on the same level as `config.yaml` and custom
+tool code: a skill body is injected verbatim into the model context when
+invoked. Once an agent enables `skills`, the roots `~/.sgr/skills` and
+`<config dir>/skills` are always scanned, so opening a repository that ships a
+`skills/` directory will auto-load its authors' instructions. Only enable skills
+from sources you trust, and review third-party `SKILL.md` files before use. The
+loader caps each `SKILL.md` at 1 MiB and skips unreadable files.
+
 ## Authoring tips
 
 - Write the `description` in third person; include both *what it does* and *when

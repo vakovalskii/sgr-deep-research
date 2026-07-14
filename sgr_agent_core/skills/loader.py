@@ -13,6 +13,9 @@ from sgr_agent_core.skills.models import Skill, SkillError, SkillMetadata
 logger = logging.getLogger(__name__)
 
 SKILL_FILE = "SKILL.md"
+# Guardrail: skip pathologically large SKILL.md files (they are injected into
+# the model context on invocation). 1 MiB is far above any reasonable skill.
+MAX_SKILL_FILE_BYTES = 1024 * 1024
 
 
 class SkillLoader:
@@ -101,7 +104,14 @@ class SkillLoader:
         skill_file = directory / SKILL_FILE
         if not skill_file.is_file():
             raise SkillError(f"No {SKILL_FILE} found in {directory}")
-        text = skill_file.read_text(encoding="utf-8")
+        try:
+            if skill_file.stat().st_size > MAX_SKILL_FILE_BYTES:
+                raise SkillError(f"{skill_file} exceeds the maximum skill size of {MAX_SKILL_FILE_BYTES} bytes")
+            text = skill_file.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise SkillError(f"Cannot read {skill_file}: {exc}") from exc
+        except UnicodeDecodeError as exc:
+            raise SkillError(f"{skill_file} is not valid UTF-8: {exc}") from exc
         return cls.parse(text, path=directory, default_name=directory.name)
 
     @classmethod
@@ -121,7 +131,12 @@ class SkillLoader:
         if not root.is_dir():
             return []
         skills: list[Skill] = []
-        for entry in sorted(root.iterdir()):
+        try:
+            entries = sorted(root.iterdir())
+        except OSError as exc:
+            logger.warning("Cannot list skill root %s: %s", root, exc)
+            return []
+        for entry in entries:
             if not entry.is_dir():
                 continue
             if not (entry / SKILL_FILE).is_file():

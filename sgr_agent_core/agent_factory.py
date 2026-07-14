@@ -147,7 +147,9 @@ class AgentFactory:
         registry = SkillRegistry()
         registry.load_from_paths(cls._default_skill_roots(skills_config))
         skills = registry.list_items()
-        if skills_config.include is not None:
+        # An empty include list is treated as "no allowlist filter" (symmetric
+        # with exclude), so it does not silently drop every skill.
+        if skills_config.include:
             skills = [s for s in skills if s.name in skills_config.include]
         if skills_config.exclude:
             skills = [s for s in skills if s.name not in skills_config.exclude]

@@ -26,12 +26,18 @@ class PromptLoader:
         skills_block = render_available_skills(available_skills or [], max_desc_chars=max_skill_desc_chars)
 
         try:
-            return template.format(
+            rendered = template.format(
                 available_tools="\n".join(available_tools_str_list),
                 available_skills=skills_block,
             )
         except KeyError as e:
             raise KeyError(f"Missing placeholder in system prompt template: {e}") from e
+
+        # If a custom template omits {available_skills}, append the catalog so the
+        # agent still sees skills it can invoke via use_skill (autonomous discovery).
+        if skills_block and "{available_skills}" not in template:
+            rendered = f"{rendered}\n\n{skills_block}"
+        return rendered
 
     @classmethod
     def get_initial_user_request(

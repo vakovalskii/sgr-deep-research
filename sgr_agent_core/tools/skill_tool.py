@@ -8,6 +8,7 @@ follows for the rest of the run.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, ClassVar
 
 from pydantic import Field
@@ -40,4 +41,7 @@ class SkillTool(SystemBaseTool):
             available = ", ".join(sorted(s.name for s in skills)) or "(none)"
             return f"Skill '{self.skill_name}' not found. Available skills: {available}"
         body = skill.body.strip() or "(this skill has no additional instructions)"
+        # Neutralize any stray closing delimiter so a skill body cannot break out
+        # of its wrapper (skills are trusted content, but be defensive).
+        body = re.sub(r"</\s*SKILL\s*>", "< /SKILL>", body, flags=re.IGNORECASE)
         return f'<SKILL name="{skill.name}">\n{body}\n</SKILL>'

@@ -72,6 +72,16 @@ class TestSkillMetadata:
         meta = SkillMetadata.model_validate({"name": "foo", "description": "bar", "user-invocable": False})
         assert meta.user_invocable is False
 
+    def test_quoted_boolean_strings_parsed_correctly(self):
+        # YAML may deliver quoted booleans as strings; bool("false") is True, so
+        # these must be coerced by meaning, not truthiness.
+        m1 = SkillMetadata.model_validate({"name": "foo", "description": "bar", "disable-model-invocation": "false"})
+        assert m1.model_invocable is True
+        m2 = SkillMetadata.model_validate({"name": "foo", "description": "bar", "disable-model-invocation": "true"})
+        assert m2.model_invocable is False
+        m3 = SkillMetadata.model_validate({"name": "foo", "description": "bar", "user-invocable": "false"})
+        assert m3.user_invocable is False
+
 
 class TestSkillLoaderParse:
     """Parsing SKILL.md text into a Skill."""
@@ -120,6 +130,24 @@ class TestSkillLoaderLoadSkill:
         d.mkdir()
         with pytest.raises(SkillError):
             SkillLoader.load_skill(d)
+
+    def test_load_skill_oversized_raises(self, tmp_path):
+        from sgr_agent_core.skills.loader import MAX_SKILL_FILE_BYTES
+
+        d = tmp_path / "big"
+        d.mkdir()
+        body = "x" * (MAX_SKILL_FILE_BYTES + 10)
+        (d / "SKILL.md").write_text(f"---\nname: big\ndescription: Big.\n---\n{body}\n", encoding="utf-8")
+        with pytest.raises(SkillError):
+            SkillLoader.load_skill(d)
+
+    def test_discover_skips_unreadable_utf8(self, tmp_path):
+        _write_skill(tmp_path, "good", "name: good\ndescription: Good skill.")
+        bad = tmp_path / "bad-utf8"
+        bad.mkdir()
+        (bad / "SKILL.md").write_bytes(b"---\nname: bad\ndescription: \xff\xfe bad\n---\nbody\n")
+        skills = SkillLoader.discover(tmp_path)
+        assert [s.name for s in skills] == ["good"]
 
 
 class TestSkillLoaderDiscover:

@@ -41,7 +41,7 @@ async def get_agent_state(agent_id: str):
         agent_id=agent.id,
         task_messages=agent.task_messages,
         sources_count=len(agent._context.sources),
-        **agent._context.model_dump(),
+        **agent._context.model_dump(exclude={"available_skills"}),
     )
 
 

@@ -31,6 +31,17 @@ def _write_skill(root, name, description="A skill.", body="Do the thing."):
     (d / "SKILL.md").write_text(f"---\nname: {name}\ndescription: {description}\n---\n\n{body}\n", encoding="utf-8")
 
 
+@pytest.fixture(autouse=True)
+def _isolate_default_skill_roots(monkeypatch):
+    """Keep tests hermetic: only use skills.paths, never the machine's global
+    ~/.sgr/skills or <config_dir>/skills locations."""
+    monkeypatch.setattr(
+        AgentFactory,
+        "_default_skill_roots",
+        classmethod(lambda cls, cfg: [__import__("pathlib").Path(p) for p in cfg.paths]),
+    )
+
+
 class TestAgentConfigSkills:
     def test_agent_config_accepts_skills(self):
         cfg = AgentConfig(skills={"enabled": True, "paths": ["./skills"], "max_desc_chars": 300})
@@ -113,6 +124,54 @@ class TestAgentFactorySkills:
             agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "hi"}])
             assert agent.available_skills == []
             assert SkillTool not in agent.toolkit
+
+    @pytest.mark.asyncio
+    async def test_factory_include_allowlist(self, tmp_path):
+        skills_root = tmp_path / "skills"
+        _write_skill(skills_root, "alpha", "Alpha.")
+        _write_skill(skills_root, "beta", "Beta.")
+        with (
+            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+            patch.object(AgentFactory, "_create_client", return_value=Mock(spec=AsyncOpenAI)),
+        ):
+            agent_def = AgentDefinition(
+                name="allow_agent",
+                base_class=SGRToolCallingAgent,
+                tools=["reasoningtool"],
+                llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
+                prompts=PromptsConfig(
+                    system_prompt_str="T", initial_user_request_str="T", clarification_response_str="T"
+                ),
+                execution=ExecutionConfig(),
+                langfuse=LangfuseConfig(),
+                skills=SkillsConfig(paths=[str(skills_root)], include=["beta"]),
+            )
+            agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "hi"}])
+            assert [s.name for s in agent.available_skills] == ["beta"]
+
+    @pytest.mark.asyncio
+    async def test_factory_empty_include_keeps_all(self, tmp_path):
+        skills_root = tmp_path / "skills"
+        _write_skill(skills_root, "alpha", "Alpha.")
+        _write_skill(skills_root, "beta", "Beta.")
+        with (
+            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+            patch.object(AgentFactory, "_create_client", return_value=Mock(spec=AsyncOpenAI)),
+        ):
+            agent_def = AgentDefinition(
+                name="empty_include_agent",
+                base_class=SGRToolCallingAgent,
+                tools=["reasoningtool"],
+                llm=LLMConfig(api_key="k", base_url="https://api.openai.com/v1"),
+                prompts=PromptsConfig(
+                    system_prompt_str="T", initial_user_request_str="T", clarification_response_str="T"
+                ),
+                execution=ExecutionConfig(),
+                langfuse=LangfuseConfig(),
+                skills=SkillsConfig(paths=[str(skills_root)], include=[]),
+            )
+            agent = await AgentFactory.create(agent_def, task_messages=[{"role": "user", "content": "hi"}])
+            assert [s.name for s in agent.available_skills] == ["alpha", "beta"]
 
     @pytest.mark.asyncio
     async def test_factory_exclude_filter(self, tmp_path):
