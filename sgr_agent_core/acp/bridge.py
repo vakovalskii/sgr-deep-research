@@ -123,7 +123,8 @@ class SGRACPBridge:
             return []
 
     def _build_available_commands(self, skills: list[Skill]) -> list[AvailableCommand]:
-        """Map user-invocable skills to ACP available commands (slash commands)."""
+        """Map user-invocable skills to ACP available commands (slash
+        commands)."""
         commands: list[AvailableCommand] = []
         for skill in skills:
             if not skill.metadata.user_invocable:

@@ -32,6 +32,7 @@ plugins:
             Configuration: Конфигурация
             Langfuse: Langfuse
             Build your agent: Собери своего агента
+            Skills: Навыки
             Workflow: Рабочий процесс
             Demonstration: Демонстрация
             Integration & Examples: Интеграция и примеры
@@ -87,6 +88,7 @@ nav:
         - Langfuse: framework/langfuse.md
         - Build your agent: framework/agents.md
         - Tools: framework/tools.md
+        - Skills: framework/skills.md
     - QnA: framework/qna.md
   - SGR API Service:
     - API Server Quick Start: sgr-api/SGR-Quick-Start.md

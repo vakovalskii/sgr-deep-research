@@ -127,3 +127,16 @@ agents:
       - "final_answer_tool"
       - "my_custom_tool"
       - "my_other_tool"
+
+    # Optional: Skills (Anthropic Agent Skills model)
+    # Each skill is a directory with a SKILL.md (frontmatter: name, description).
+    # Skill name + description are auto-registered into the system prompt so the
+    # agent can invoke a skill on its own via the `use_skill` tool. Skills are
+    # also exposed as commands over ACP (available_commands) and MCP (prompts).
+    # skills:
+    #   enabled: true
+    #   paths:
+    #     - "./skills"          # extra skill roots (relative to this config)
+    #   include: null            # optional allowlist of skill names
+    #   exclude: null            # optional denylist of skill names
+    #   max_desc_chars: 500      # per-entry description budget in the prompt

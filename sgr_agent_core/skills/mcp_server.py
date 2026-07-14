@@ -19,7 +19,8 @@ DEFAULT_SERVER_NAME = "sgr-skills"
 
 
 def _make_prompt_fn(skill: Skill) -> Callable[..., str]:
-    """Build the prompt callable that returns a skill's body (+ optional args)."""
+    """Build the prompt callable that returns a skill's body (+ optional
+    args)."""
 
     def prompt_fn(arguments: str = "") -> str:
         body = skill.body.strip() or "(this skill has no additional instructions)"

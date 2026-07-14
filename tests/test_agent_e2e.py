@@ -487,6 +487,6 @@ async def test_sgr_agent_custom_reasoning_tool_is_used():
     assert result is not None
     assert agent._context.state == AgentStatesEnum.COMPLETED
     assert len(captured_response_formats) >= 1, "response_format was never passed to OpenAI"
-    assert issubclass(captured_response_formats[0], CustomReasoningTool), (
-        f"response_format {captured_response_formats[0]} is not a subclass of CustomReasoningTool"
-    )
+    assert issubclass(
+        captured_response_formats[0], CustomReasoningTool
+    ), f"response_format {captured_response_formats[0]} is not a subclass of CustomReasoningTool"

@@ -17,9 +17,9 @@ from sgr_agent_core.skills.models import Skill
 class SkillRegistry:
     """Ordered, name-keyed catalog of :class:`Skill` objects.
 
-    Registering a skill with an existing name overrides the previous one, so
-    later skill roots take precedence over earlier ones (personal over builtin,
-    project over personal, explicit paths last).
+    Registering a skill with an existing name overrides the previous
+    one, so later skill roots take precedence over earlier ones
+    (personal over builtin, project over personal, explicit paths last).
     """
 
     def __init__(self, skills: Iterable[Skill] | None = None) -> None:

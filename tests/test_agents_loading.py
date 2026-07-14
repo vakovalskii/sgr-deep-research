@@ -17,9 +17,9 @@ from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.server.__main__ import load_config
 
 # Verify we're importing the real function
-assert load_config.__module__ == "sgr_agent_core.server.__main__", (
-    "Must import load_config from sgr_agent_core.server.__main__, not a mock!"
-)
+assert (
+    load_config.__module__ == "sgr_agent_core.server.__main__"
+), "Must import load_config from sgr_agent_core.server.__main__, not a mock!"
 
 
 @pytest.fixture
@@ -326,9 +326,9 @@ class TestAgentsLoadingOrder:
                 "ERROR: logger.error was not called! This means try/except block is commented out in __main__.py",
             )
             error_message = mock_logger.error.call_args[0][0]
-            assert "Invalid agents file format" in error_message or "must contain 'agents' key" in str(error_message), (
-                f"Expected error message about invalid format, got: {error_message}"
-            )
+            assert "Invalid agents file format" in error_message or "must contain 'agents' key" in str(
+                error_message
+            ), f"Expected error message about invalid format, got: {error_message}"
 
     def test_agents_yaml_yaml_error_logging(self, temp_dir, reset_global_config):
         """Test that yaml.YAMLError from agents.yaml is logged.
@@ -358,9 +358,9 @@ class TestAgentsLoadingOrder:
                 "ERROR: logger.error was not called! This means try/except block is commented out in __main__.py",
             )
             error_message = mock_logger.error.call_args[0][0]
-            assert "YAML parsing error" in error_message, (
-                f"Expected 'YAML parsing error' in log message, got: {error_message}"
-            )
+            assert (
+                "YAML parsing error" in error_message
+            ), f"Expected 'YAML parsing error' in log message, got: {error_message}"
 
     def test_config_yaml_without_agents_section(self, temp_dir, reset_global_config):
         """Test that config.yaml can be loaded without agents section."""
@@ -604,6 +604,6 @@ class TestAgentsLoadingOrder:
 
         # Verify base_class is from config (examples.sgr_deep_research), not core
         base_class_name = config.agents["sgr_agent"].base_class.__name__
-        assert base_class_name == "ResearchSGRToolCallingAgent", (
-            f"Expected ResearchSGRToolCallingAgent, got {base_class_name}"
-        )
+        assert (
+            base_class_name == "ResearchSGRToolCallingAgent"
+        ), f"Expected ResearchSGRToolCallingAgent, got {base_class_name}"

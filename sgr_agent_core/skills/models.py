@@ -44,8 +44,9 @@ class SkillMetadata(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _map_invocation_aliases(cls, data: object) -> object:
-        """Translate Claude-style ``disable-model-invocation`` / ``user-invocable``
-        frontmatter into the internal ``model_invocable`` / ``user_invocable`` flags."""
+        """Translate Claude-style ``disable-model-invocation`` / ``user-
+        invocable`` frontmatter into the internal ``model_invocable`` /
+        ``user_invocable`` flags."""
         if isinstance(data, dict):
             data = dict(data)
             if "disable-model-invocation" in data:

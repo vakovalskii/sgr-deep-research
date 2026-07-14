@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 
 def format_skills_listing(skills: "list[Skill]") -> str:
-    """Format a human-readable listing of skills for the CLI --list-skills flag."""
+    """Format a human-readable listing of skills for the CLI --list-skills
+    flag."""
     if not skills:
         return "No skills available for this agent."
     lines = ["Available skills:"]

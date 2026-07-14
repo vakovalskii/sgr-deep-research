@@ -2,7 +2,7 @@
 name: citation-style
 description: Formats research citations in a consistent numbered style. Use when writing reports or answers that reference web sources, or when the user asks for citations, references, or a bibliography.
 metadata:
-  version: "1.0"
+  version: '1.0'
 ---
 
 # Citation style
@@ -19,7 +19,8 @@ Apply this style whenever the answer cites external sources.
 
 ## Example
 
-The framework uses schema-guided reasoning [1].
+The framework uses schema-guided reasoning \[1\].
 
 ## Sources
-[1] SGR Agent Core — https://github.com/vamplabAI/sgr-agent-core
+
+\[1\] SGR Agent Core — https://github.com/vamplabAI/sgr-agent-core

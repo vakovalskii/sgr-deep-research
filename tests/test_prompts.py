@@ -165,7 +165,8 @@ class TestPromptLoader:
             assert result == "This template has no placeholders."
 
     def test_get_system_prompt_with_skills(self):
-        """Skills are auto-registered into the system prompt via {available_skills}."""
+        """Skills are auto-registered into the system prompt via
+        {available_skills}."""
         from sgr_agent_core.skills import Skill, SkillMetadata
 
         skills = [Skill(metadata=SkillMetadata(name="greet", description="Greets people warmly."))]
