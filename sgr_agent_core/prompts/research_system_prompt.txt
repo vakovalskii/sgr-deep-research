@@ -63,3 +63,5 @@ When working with specific dates, numbers, versions, names, or other precise inf
 <AGENT_TOOL_USAGE_GUIDELINES>
 {available_tools}
 </AGENT_TOOL_USAGE_GUIDELINES>
+
+{available_skills}

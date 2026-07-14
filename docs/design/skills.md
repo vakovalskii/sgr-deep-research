@@ -171,6 +171,33 @@ A skill dir is any immediate subdirectory that contains a `SKILL.md`.
   AvailableCommand(name, description, input=UnstructuredCommandInput(hint=...))]))`
   — same `session_update` channel the streaming generator already uses.
 
+## 5b. Prior art (codex / Claude Code / Cursor / MCP)
+
+Autonomous invocation across all these tools = inject a rendered catalog block
+of `name + description (+ when-to-use)` into the system/developer context, under
+a budget, plus a "how to use" instruction telling the model to load the full
+body on match. Concretely:
+
+- **Codex** `render_available_skills_body` emits a `## Skills` section:
+  `- {name}: {description} (file: {path})` followed by a "How to use skills"
+  block with trigger rules ("if the task matches a skill's description, use it";
+  read `SKILL.md` fully first). Budget = 2% of context.
+- **Claude Code** injects a skill listing (name + truncated description),
+  budget ~1% of context, per-entry cap ~1536 chars; loads the body on trigger.
+- **Cursor** "Apply Intelligently" rules present the description to the agent to
+  decide relevance.
+- **MCP `prompts`** primitive (`prompts/list` / `prompts/get` /
+  `notifications/prompts/list_changed`; Prompt = `name`/`title`/`description`/
+  `arguments`) is **user-controlled by spec** → renders as slash commands. This
+  is the transport for the *command* surface; autonomous invocation still needs
+  the description in the model catalog (our system-prompt block + `use_skill`).
+
+Our `{available_skills}` block mirrors the codex format (name + description) and
+adds an explicit instruction to call `use_skill` to load a skill's body, giving
+the same autonomous-invocation behavior. `model_invocable` / `user_invocable`
+flags (mirroring codex/Claude `disable-model-invocation` / `user-invocable`)
+gate whether a skill appears in the model catalog vs the command menu.
+
 ## 6. Non-goals / constraints
 
 - No new runtime dependency (reuse PyYAML, fastmcp, acp already present).

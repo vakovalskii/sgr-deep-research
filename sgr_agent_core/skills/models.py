@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 NAME_MAX_LENGTH = 64
 DESCRIPTION_MAX_LENGTH = 1024
@@ -37,6 +37,22 @@ class SkillMetadata(BaseModel):
     license: str | None = None
     allowed_tools: list[str] = Field(default_factory=list, alias="allowed-tools")
     metadata: dict = Field(default_factory=dict)
+    # Invocation gating (mirrors codex/Claude disable-model-invocation / user-invocable).
+    model_invocable: bool = True
+    user_invocable: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def _map_invocation_aliases(cls, data: object) -> object:
+        """Translate Claude-style ``disable-model-invocation`` / ``user-invocable``
+        frontmatter into the internal ``model_invocable`` / ``user_invocable`` flags."""
+        if isinstance(data, dict):
+            data = dict(data)
+            if "disable-model-invocation" in data:
+                data["model_invocable"] = not bool(data.pop("disable-model-invocation"))
+            if "user-invocable" in data:
+                data["user_invocable"] = bool(data.pop("user-invocable"))
+        return data
 
     @field_validator("name")
     @classmethod

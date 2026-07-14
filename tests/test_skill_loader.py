@@ -57,6 +57,21 @@ class TestSkillMetadata:
         meta = SkillMetadata.model_validate({"name": "foo", "description": "bar", "allowed-tools": ["web_search_tool"]})
         assert meta.allowed_tools == ["web_search_tool"]
 
+    def test_invocation_flags_default_true(self):
+        meta = SkillMetadata(name="foo", description="bar")
+        assert meta.model_invocable is True
+        assert meta.user_invocable is True
+
+    def test_disable_model_invocation_alias(self):
+        # Anthropic/Claude-style flag maps to model_invocable=False.
+        meta = SkillMetadata.model_validate({"name": "foo", "description": "bar", "disable-model-invocation": True})
+        assert meta.model_invocable is False
+        assert meta.user_invocable is True
+
+    def test_user_invocable_false(self):
+        meta = SkillMetadata.model_validate({"name": "foo", "description": "bar", "user-invocable": False})
+        assert meta.user_invocable is False
+
 
 class TestSkillLoaderParse:
     """Parsing SKILL.md text into a Skill."""
