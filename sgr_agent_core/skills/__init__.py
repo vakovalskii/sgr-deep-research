@@ -10,6 +10,7 @@ from sgr_agent_core.skills.config import SkillsConfig
 from sgr_agent_core.skills.loader import SKILL_FILE, SkillLoader
 from sgr_agent_core.skills.models import Skill, SkillError, SkillMetadata
 from sgr_agent_core.skills.registry import SkillRegistry
+from sgr_agent_core.skills.rendering import render_available_skills
 
 __all__ = [
     "Skill",
@@ -18,5 +19,6 @@ __all__ = [
     "SkillLoader",
     "SkillRegistry",
     "SkillsConfig",
+    "render_available_skills",
     "SKILL_FILE",
 ]
