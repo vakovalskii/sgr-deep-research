@@ -6,8 +6,22 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from sgr_agent_core.cli.sgrsh import chat_loop, find_config_file, main, run_agent
+from sgr_agent_core.cli.sgrsh import chat_loop, find_config_file, format_skills_listing, main, run_agent
 from sgr_agent_core.models import AgentStatesEnum
+from sgr_agent_core.skills import Skill, SkillMetadata
+
+
+class TestFormatSkillsListing:
+    """Test the skills listing formatter used by --list-skills."""
+
+    def test_empty(self):
+        assert "No skills" in format_skills_listing([])
+
+    def test_lists_name_and_description(self):
+        skills = [Skill(metadata=SkillMetadata(name="greet", description="Greets people."))]
+        out = format_skills_listing(skills)
+        assert "greet" in out
+        assert "Greets people." in out
 
 
 class TestFindConfigFile:

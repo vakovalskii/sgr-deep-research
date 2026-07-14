@@ -21,8 +21,19 @@ from sgr_agent_core.models import AgentStatesEnum
 
 if TYPE_CHECKING:
     from sgr_agent_core.base_agent import BaseAgent
+    from sgr_agent_core.skills import Skill
 
 logger = logging.getLogger(__name__)
+
+
+def format_skills_listing(skills: "list[Skill]") -> str:
+    """Format a human-readable listing of skills for the CLI --list-skills flag."""
+    if not skills:
+        return "No skills available for this agent."
+    lines = ["Available skills:"]
+    for skill in skills:
+        lines.append(f"  /{skill.name} — {skill.description}")
+    return "\n".join(lines)
 
 
 def _read_user_input(prompt: str) -> str:
@@ -193,6 +204,11 @@ Examples:
         help="Agent name to use (default: first agent in config)",
     )
     parser.add_argument(
+        "--list-skills",
+        action="store_true",
+        help="List skills available to the selected agent and exit",
+    )
+    parser.add_argument(
         "query",
         nargs="*",
         help="Initial query (optional - if not provided, starts interactive chat)",
@@ -234,6 +250,16 @@ Examples:
         if len(config.agents) > 1:
             print(f"ℹ️  Using agent: {agent_name}")
             print(f"   Available agents: {', '.join(config.agents.keys())}")
+
+    # List skills and exit
+    if args.list_skills:
+        agent_def = config.agents.get(agent_name)
+        if agent_def is None:
+            print(f"❌ Agent '{agent_name}' not found in config")
+            sys.exit(1)
+        skills = AgentFactory._resolve_skills(agent_def)
+        print(format_skills_listing(skills))
+        return
 
     # Check if query provided
     query = " ".join(args.query) if args.query else None

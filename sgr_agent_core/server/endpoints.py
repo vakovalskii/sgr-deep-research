@@ -150,6 +150,26 @@ async def get_available_models():
     return {"data": models_data, "object": "list"}
 
 
+@router.get("/v1/skills")
+async def get_available_skills(model: str | None = None):
+    """List skills available per agent model (optionally filtered by model)."""
+    definitions = AgentFactory.get_definitions_list()
+    if model is not None:
+        definitions = [d for d in definitions if d.name == model]
+
+    data = [
+        {
+            "model": agent_def.name,
+            "skills": [
+                {"name": skill.name, "description": skill.description}
+                for skill in AgentFactory._resolve_skills(agent_def)
+            ],
+        }
+        for agent_def in definitions
+    ]
+    return {"data": data, "object": "list"}
+
+
 @router.post("/agents/{agent_id}/provide_clarification")
 async def provide_clarification(
     request: MessagesRequest,
