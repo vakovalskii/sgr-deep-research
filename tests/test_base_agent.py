@@ -523,13 +523,13 @@ class TestBaseAgentCancellation:
         await asyncio.sleep(0.05)
 
         expected = f"Agent {agent_id} started\n"
-        assert any(
-            m.get("content") == expected for m in agent.conversation if m.get("role") == "system"
-        ), "Conversation should contain agent started system message"
+        assert any(m.get("content") == expected for m in agent.conversation if m.get("role") == "system"), (
+            "Conversation should contain agent started system message"
+        )
         # SSE chunks are JSON-serialized, so the newline appears as \\n in the raw string
-        assert any(
-            f"Agent {agent_id} started" in chunk for chunk in streamed
-        ), "Stream should contain agent started message"
+        assert any(f"Agent {agent_id} started" in chunk for chunk in streamed), (
+            "Stream should contain agent started message"
+        )
 
         consume_task.cancel()
         try:
