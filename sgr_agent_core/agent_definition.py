@@ -10,6 +10,8 @@ import yaml
 from fastmcp.mcp_config import MCPConfig
 from pydantic import BaseModel, Field, FilePath, ImportString, computed_field, field_validator, model_validator
 
+from sgr_agent_core.skills.config import SkillsConfig
+
 logger = logging.getLogger(__name__)
 
 
@@ -183,6 +185,7 @@ class AgentConfig(BaseModel, extra="allow"):
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig, description="Execution settings")
     prompts: PromptsConfig = Field(default_factory=PromptsConfig, description="Prompts settings")
     mcp: MCPConfig = Field(default_factory=MCPConfig, description="MCP settings")
+    skills: SkillsConfig | None = Field(default=None, description="Skills discovery and rendering settings")
 
     @field_validator("langfuse", mode="before")
     @classmethod
