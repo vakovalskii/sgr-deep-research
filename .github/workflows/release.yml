@@ -167,13 +167,6 @@ jobs:
             clarification_tool:
             reasoning_tool:
           agents:
-            sgr_agent:
-              base_class: "examples.sgr_deep_research.agents.ResearchSGRAgent"
-              tools:
-                - "web_search_tool"
-                - "final_answer_tool"
-                - "generate_plan_tool"
-                - "adapt_plan_tool"
             sgr_tool_calling_agent:
               base_class: "examples.sgr_deep_research.agents.ResearchSGRToolCallingAgent"
               tools:
@@ -205,7 +198,7 @@ jobs:
 
       - name: Test each agent
         run: |
-          for agent in sgr_agent sgr_tool_calling_agent tool_calling_agent iron_agent; do
+          for agent in sgr_tool_calling_agent tool_calling_agent iron_agent; do
             echo "--- Testing $agent ---"
             body=$(jq -n --arg model "$agent" \
               '{model: $model, messages: [{role: "user", content: "What is Schema-Guided Reasoning? Give a brief answer."}], stream: true}')
