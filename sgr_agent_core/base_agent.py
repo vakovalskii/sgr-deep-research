@@ -246,7 +246,7 @@ class BaseAgent(AgentRegistryMixin):
         if isinstance(action_tool, ClarificationTool):
             self.logger.info("\n⏸️  Research paused - please answer questions")
             self.streaming_generator.finish(
-                phase_id="{self._context.iteration}-final", content=self._context.execution_result
+                phase_id=f"{self._context.iteration}-final", content=self._context.execution_result
             )
             self._context.clarification_received.clear()
             await self._context.clarification_received.wait()
