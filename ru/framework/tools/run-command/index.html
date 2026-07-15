@@ -1,0 +1,1733 @@
+
+<!doctype html>
+<html lang="ru" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Open-source agentic framework for building intelligent research agents using Schema-Guided Reasoning. Multiple agent types, extensible architecture, OpenAI-compatible API.">
+      
+      
+      
+        <link rel="canonical" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/run-command/">
+      
+      
+      
+      
+        
+          <link rel="alternate" href="../../../../framework/tools/run-command/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>RunCommandTool и безопасный режим (Bubblewrap) - SGR Agent Core</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+  
+  
+  
+  
+  <style>:root{--md-annotation-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M17%2013h-4v4h-2v-4H7v-2h4V7h2v4h4m-5-9A10%2010%200%200%200%202%2012a10%2010%200%200%200%2010%2010%2010%2010%200%200%200%2010-10A10%2010%200%200%200%2012%202%22/%3E%3C/svg%3E');}</style>
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+
+
+
+  <meta property="og:url" content="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/run-command/" />
+
+
+  <meta property="og:title" content="RunCommandTool и безопасный режим (Bubblewrap)" />
+
+<meta property="og:type" content="website" />
+
+  <meta property="og:description" content="Open-source agentic framework for building intelligent research agents using Schema-Guided Reasoning. Multiple agent types, extensible architecture, OpenAI-compatible API." />
+
+
+  <meta property="og:image" content="https://vamplabai.github.io/sgr-agent-core/assets/images/intro.jpg" />
+
+
+  <meta property="og:image:alt" content="SGR Agent Core - Schema-Guided Reasoning Framework" />
+
+
+  <meta property="og:site_name" content="SGR Agent Core" />
+
+
+<meta name="twitter:card" content="summary_large_image" />
+
+  <meta name="twitter:title" content="RunCommandTool и безопасный режим (Bubblewrap)" />
+
+
+  <meta name="twitter:description" content="Open-source agentic framework for building intelligent research agents using Schema-Guided Reasoning. Multiple agent types, extensible architecture, OpenAI-compatible API." />
+
+
+  <meta name="twitter:image" content="https://vamplabai.github.io/sgr-agent-core/assets/images/intro.jpg" />
+
+<style>
+  /* Override Material theme CSS variables for custom colors */
+  :root,
+  [data-md-color-scheme] {
+    /* Dark purple background for header */
+    --md-primary-fg-color: #1a1a2e;
+    --md-primary-fg-color--light: #a29bfe;
+    --md-primary-fg-color--dark: #5f3dc4;
+
+    /* Accent colors */
+    --md-accent-fg-color: #6c5ce7;
+    --md-accent-fg-color--transparent: rgba(108, 92, 231, 0.1);
+
+    /* Dark theme background colors */
+    --md-default-bg-color: #0d0d1a;
+    --md-default-bg-color--light: #1a1a2e;
+    --md-default-bg-color--lighter: #252540;
+    --md-default-bg-color--lightest: #2d2d4a;
+
+    /* Text colors for dark theme */
+    --md-default-fg-color: #ffffff;
+    --md-default-fg-color--light: rgba(255, 255, 255, 0.7);
+    --md-default-fg-color--lighter: rgba(255, 255, 255, 0.54);
+    --md-default-fg-color--lightest: rgba(255, 255, 255, 0.38);
+
+    /* Code block colors */
+    --md-code-bg-color: #1a1a2e;
+    --md-code-fg-color: #ffffff;
+
+    /* Link colors */
+    --md-typeset-a-color: #6c5ce7;
+
+    /* Admonition colors */
+    --md-admonition-bg-color: rgba(108, 92, 231, 0.1);
+  }
+
+  /* Override for dark theme (slate) */
+  [data-md-color-scheme="slate"] {
+    --md-primary-fg-color: #1a1a2e;
+    --md-primary-fg-color--light: #a29bfe;
+    --md-primary-fg-color--dark: #5f3dc4;
+
+    --md-accent-fg-color: #6c5ce7;
+
+    --md-default-bg-color: #0d0d1a;
+    --md-default-fg-color: #ffffff;
+
+    --md-code-bg-color: #1a1a2e;
+    --md-code-fg-color: #ffffff;
+
+    --md-typeset-a-color: #6c5ce7;
+
+    /* Subtle grid pattern effect */
+    background-image:
+      linear-gradient(rgba(108, 92, 231, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108, 92, 231, 0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* Override for light theme (default) */
+  [data-md-color-scheme="default"] {
+    --md-primary-fg-color: #1a1a2e;
+    --md-primary-fg-color--light: #a29bfe;
+    --md-primary-fg-color--dark: #5f3dc4;
+
+    --md-accent-fg-color: #6c5ce7;
+
+    --md-default-bg-color: #ffffff;
+    --md-default-fg-color: #1a1a2e;
+    --md-default-fg-color--light: rgba(26, 26, 46, 0.7);
+    --md-default-fg-color--lighter: rgba(26, 26, 46, 0.54);
+    --md-default-fg-color--lightest: rgba(26, 26, 46, 0.38);
+
+    --md-code-bg-color: #f5f5f5;
+    --md-code-fg-color: #1a1a2e;
+
+    --md-typeset-a-color: #6c5ce7;
+  }
+</style>
+<script>
+  // Redirect root page to Russian getting started page
+  (function() {
+    var path = window.location.pathname;
+    var basePath = '/sgr-agent-core';
+
+    // Check if we're on the root page
+    if (path === '/' || path === basePath || path === basePath + '/') {
+      window.location.replace(basePath + '/getting-started/');
+    }
+  })();
+</script>
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="purple" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#runcommandtool-bubblewrap" class="md-skip">
+          Перейти к содержанию
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Верхний колонтитул">
+    <a href="../../../.." title="SGR Agent Core" class="md-header__button md-logo" aria-label="SGR Agent Core" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            SGR Agent Core
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              RunCommandTool и безопасный режим (Bubblewrap)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="purple" data-md-color-accent="purple"  aria-label="Переключить на светлую тему"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Переключить на светлую тему" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="purple" data-md-color-accent="purple"  aria-label="Переключить на тёмную тему"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Переключить на тёмную тему" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Выберите язык">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../../framework/tools/run-command/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Поиск" placeholder="Поиск" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Поиск">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Очистить" aria-label="Очистить" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Инициализация поиска
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/vamplabai/sgr-agent-core" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    vamplabAI/sgr-agent-core
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Вкладки" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../getting-started/" class="md-tabs__link">
+          
+  
+  
+  Начало работы
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../main-concepts/" class="md-tabs__link">
+          
+  
+  
+  Agent Framework
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../sgr-api/SGR-Quick-Start/" class="md-tabs__link">
+          
+  
+  
+  SGR API Service
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../highlights/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Хайлайты
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Навигация" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="SGR Agent Core" class="md-nav__button md-logo" aria-label="SGR Agent Core" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    SGR Agent Core
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/vamplabai/sgr-agent-core" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    vamplabAI/sgr-agent-core
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Начало работы
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Начало работы
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Добро пожаловать в SGR Agent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Установка
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Framework
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Agent Framework
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../main-concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Основные концепции
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство пользователя
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство пользователя
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../first-steps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Использование как библиотека
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Конфигурация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../langfuse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Langfuse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../agents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Собери своего агента
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../skills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Навыки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../qna/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    QnA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SGR API Service
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    SGR API Service
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sgr-api/SGR-Quick-Start/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Быстрый старт API сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sgr-api/SGR-Agent%27s-Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рабочий процесс
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sgr-api/SGR-Demonstration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Демонстрация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sgr-api/SGR-Integration-%26-Examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграция и примеры
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sgr-api/SGR-Description-API/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Описание API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sgr-api/SGR-Summary-table/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сводная таблица
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sgr-api/SGR-vs-Function-Calling_-When-to-Use-Each-Approach/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SGR vs Function Calling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../highlights/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Хайлайты
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Что это
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Что это">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#runcommandtool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RunCommandTool
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Как это работает
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Как это работает">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#runcommandtool_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поток RunCommandTool
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bwrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Безопасный режим: минимальные настройки по умолчанию (bwrap)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#overlayfs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Детали реализации OverlayFS
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Справочник конфигурации
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Справочник конфигурации">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bubblewrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Установка Bubblewrap (для безопасного режима)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Аналоги и альтернативы
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Аналоги и альтернативы">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unsafe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Режим Unsafe (ОС)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bubblewrap-overlayfs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bubblewrap + OverlayFS (безопасный режим)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Замечания по безопасности
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Кратко
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="runcommandtool-bubblewrap">RunCommandTool и безопасный режим (Bubblewrap)</h1>
+<p>В этом документе описаны <strong>RunCommandTool</strong> (тул агента для выполнения shell-команд) и работа <strong>безопасного</strong> режима через <strong>Bubblewrap (bwrap)</strong> в Linux. Режим unsafe использует субпроцесс ОС напрямую и доступен на всех платформах.</p>
+<hr />
+<h2 id="1">1. Что это</h2>
+<h3 id="runcommandtool">RunCommandTool</h3>
+<p><strong>RunCommandTool</strong> выполняет shell-команды (например, <code>ls -la</code>, <code>python script.py</code>). Два режима:</p>
+<ul>
+<li><strong>Safe (по умолчанию)</strong>: Команда выполняется в песочнице <strong>Bubblewrap (bwrap)</strong>: минимальный вид файловой системы (только чтение /usr, привязка workspace), пространства имён, без сети по умолчанию. <strong>Только Linux</strong>; требуется установленный <code>bwrap</code>. Если <code>bwrap</code> не найден, тул возвращает ошибку со ссылкой на инструкцию по установке.</li>
+<li><strong>Unsafe</strong>: Команда выполняется через ОС (asyncio subprocess). Можно задать <strong>workspace_path</strong>, чтобы процесс использовал эту директорию как текущую, а пути в аргументах не могли выйти за её пределы. Работает в Windows, macOS, Linux.</li>
+</ul>
+<p>Итого: <strong>safe (по умолчанию) = изоляция bwrap (Linux); unsafe = субпроцесс ОС (все платформы).</strong></p>
+<hr />
+<h2 id="2">2. Как это работает</h2>
+<h3 id="runcommandtool_1">Поток RunCommandTool</h3>
+<ol>
+<li><strong>Конфиг</strong>: В глобальной секции <code>tools:</code> или у агента: <code>workspace_path</code> (опционально), <code>mode</code> (<code>"safe"</code> или <code>"unsafe"</code>), <code>timeout_seconds</code>, <code>include_paths</code> (опциональный список разрешённых команд/путей), <code>exclude_paths</code> (опциональный список запрещённых команд/путей). Режим по умолчанию - <strong>safe</strong>. Если RunCommandTool используется где угодно (глобально или у любого агента) и <code>workspace_path</code> не задан для эффективного конфига, сервер создаёт директорию <code>./workspace</code> рядом с <code>config.yaml</code> и использует её как рабочую.</li>
+<li><strong>LLM</strong>: Агент передаёт в тул строку <code>command</code> (и <code>reasoning</code>).</li>
+<li><strong>Проверка</strong>: Если заданы <code>include_paths</code> или <code>exclude_paths</code>, тул проверяет, что исполняемый файл команды и пути в аргументах разрешены. Команды сопоставляются по имени (например, <code>"ls"</code>) или по полному пути (например, <code>/usr/bin/ls</code>). <strong>include_paths имеет приоритет над exclude_paths</strong>: если путь есть в обоих списках, он разрешён.</li>
+<li><strong>Unsafe</strong>: Тул разрешает <code>workspace_path</code> (если задан), проверяет пути в аргументах, затем запускает <code>sh -c "&lt;command&gt;"</code> с <code>cwd=workspace_path</code> и таймаутом. Возвращает форматированные stdout, stderr и код возврата.</li>
+<li><strong>Safe</strong>: Тул проверяет наличие <code>bwrap</code> (например, <code>which bwrap</code>). Если нет - возвращает ошибку со ссылкой на <a href="https://github.com/containers/bubblewrap#installation">установку Bubblewrap</a>. Если есть:</li>
+<li>Если в конфигурации тула заданы <code>include_paths</code> или <code>exclude_paths</code>, <strong>OverlayFS</strong> монтируется <strong>один раз при старте сервера</strong> (не на каждую команду):<ul>
+<li>Сервер проверяет глобальный <code>tools:</code> и список <code>tools</code> каждого агента; если RunCommandTool используется где угодно с <code>mode: "safe"</code> и заданы <code>include_paths</code>/<code>exclude_paths</code>, OverlayFSManager создаёт overlay-файловые системы:</li>
+<li>Создаёт временные директории для слоёв overlay (lowerdir, upperdir, workdir)</li>
+<li>Монтирует исходные директории как нижний слой (только чтение)</li>
+<li>Создаёт whiteout-файлы в верхнем слое для исключённых бинарников</li>
+<li>Монтирует overlay и сохраняет пути монтирования</li>
+<li>Эти монтирования переиспользуются для всех выполнений команд в течение жизни сервера</li>
+</ul>
+</li>
+<li>В рантайме тул использует заранее инициализированные монтирования OverlayFS из OverlayFSManager</li>
+<li>Это ограничивает доступные в песочнице бинарники на уровне файловой системы, в том числе команды, вызываемые скриптами</li>
+<li>Если ни <code>include_paths</code>, ни <code>exclude_paths</code> не заданы, используются монтирования по умолчанию (только чтение <code>/usr</code> и т.д.)</li>
+<li>При остановке сервера все монтирования OverlayFS автоматически размонтируются, временные директории удаляются</li>
+<li>Запускает команду через <code>bwrap</code> с настроенными монтированиями и таймаутом. Возвращает форматированные stdout, stderr, код возврата.</li>
+</ol>
+<h3 id="bwrap">Безопасный режим: минимальные настройки по умолчанию (bwrap)</h3>
+<p>Безопасный режим использует минимальную, но достаточную настройку bwrap, чтобы песочница работала из коробки:</p>
+<ul>
+<li><strong>Файловая система по умолчанию</strong> (когда <code>include_paths</code> не задан): Привязка <code>/usr</code> только для чтения; симлинки для <code>/bin</code>, <code>/lib</code>, <code>/lib64</code>; <code>--proc /proc</code>, <code>--dev /dev</code>; записываемая директория <strong>workspace</strong>, привязанная как <code>/workspace</code> (из <code>workspace_path</code>, если задан, иначе временная или текущая рабочая директория).</li>
+<li><strong>Ограниченная файловая система</strong> (когда заданы <code>include_paths</code> или <code>exclude_paths</code>): Используется <strong>OverlayFS</strong> для отфильтрованного вида файловой системы:</li>
+<li><strong>Инициализация</strong>: OverlayFS инициализируется <strong>один раз при старте сервера</strong>, если RunCommandTool используется с <code>mode: "safe"</code> <strong>где угодно</strong> (глобальный <code>tools:</code> или <code>tools</code> любого агента). Пути (<code>include_paths</code>/<code>exclude_paths</code>) могут быть не заданы; тогда overlay-монтирования не создаются, но менеджер готов. Если пути заданы, создаются overlay-монтирования для этих директорий.</li>
+<li><strong>Нижний слой</strong>: Исходные директории (например, <code>/usr/bin</code>) смонтированы только для чтения</li>
+<li><strong>Верхний слой</strong>: Временная директория с whiteout-файлами для exclude_paths</li>
+<li><strong>Объединённый слой</strong>: OverlayFS-монтирование, объединяющее нижний и верхний слои, скрывая исключённые файлы</li>
+<li>Например, при <code>include_paths: ["ls", "cat"]</code> и <code>exclude_paths: ["rm"]</code>, если все в <code>/usr/bin</code>:<ul>
+<li>Нижний слой: <code>/usr/bin</code> (только чтение, все бинарники)</li>
+<li>Верхний слой: Содержит whiteout-файл <code>.wh.rm</code>, скрывающий <code>rm</code></li>
+<li>Объединённый: overlay <code>/usr/bin</code> показывает <code>ls</code> и <code>cat</code>, но не <code>rm</code></li>
+</ul>
+</li>
+<li>Overlay монтируется в bwrap по исходному пути</li>
+<li>Системные директории (<code>/lib</code>, <code>/usr/lib</code>, <code>/lib64</code>, <code>/usr/lib64</code>) всегда монтируются для зависимостей (shared libraries)</li>
+<li><strong>Переиспользование</strong>: Одни и те же overlay-монтирования используются для всех выполнений команд (без накладных расходов на команду)</li>
+<li><strong>Очистка</strong>: При остановке сервера все OverlayFS-монтирования размонтируются, временные директории удаляются</li>
+<li>Это гарантирует, что команды, вызываемые из скриптов (например, <code>bash script.sh</code>, вызывающий <code>rm</code>), тоже ограничены: если <code>rm</code> скрыт whiteout, он недоступен в песочнице</li>
+<li><strong>Выполнение</strong>: Процесс запускается с <code>--chdir /workspace</code>, <code>--unshare-all</code>, <code>--die-with-parent</code>; команда выполняется как <code>/bin/sh -c "&lt;command&gt;"</code>.</li>
+<li><strong>Таймаут</strong>: Задаётся тулом (subprocess timeout) после <code>timeout_seconds</code>.</li>
+</ul>
+<p>Это даёт изоляцию (пространства имён, ограниченная файловая система) без дополнительной настройки. При использовании <code>include_paths</code>/<code>exclude_paths</code> песочница использует OverlayFS для ограничения бинарников на уровне файловой системы, так что скрипты не могут выполнить запрещённые команды даже при попытке.</p>
+<h3 id="overlayfs">Детали реализации OverlayFS</h3>
+<p><strong>Как работает OverlayFS:</strong></p>
+<ul>
+<li><strong>Нижний слой</strong> (только чтение): Исходная файловая система (например, <code>/usr/bin</code> со всеми бинарниками)</li>
+<li><strong>Верхний слой</strong> (запись): Whiteout-файлы (<code>.wh.&lt;имя_файла&gt;</code>), скрывающие файлы нижнего слоя</li>
+<li><strong>Рабочая директория</strong>: Временная директория для атомарных операций OverlayFS</li>
+<li><strong>Объединённое монтирование</strong>: Общий вид, в котором исключённые файлы скрыты</li>
+</ul>
+<p><strong>Whiteout-файлы:</strong></p>
+<ul>
+<li>Формат: символьное устройство с major/minor 0/0 или обычный файл <code>.wh.&lt;исходное_имя&gt;</code></li>
+<li>При встрече whiteout OverlayFS скрывает соответствующий файл из нижнего слоя</li>
+<li>Это позволяет исключать отдельные файлы из директории, не исключая всю директорию</li>
+</ul>
+<p><strong>Управление жизненным циклом:</strong></p>
+<ul>
+<li><strong>Старт сервера</strong>: OverlayFS инициализируется OverlayFSManager в фазе FastAPI <code>lifespan</code> startup</li>
+<li><strong>Конфигурация</strong>: Конфиг RunCommandTool берётся из глобального <code>tools:</code> или из любого агента (выигрывает первый кандидат с <code>mode: "safe"</code>). Если <strong>везде</strong> <code>mode: "unsafe"</code>, overlay <strong>не</strong> инициализируется. Если <strong>хотя бы один</strong> конфиг (глобальный или агента) имеет <code>mode: "safe"</code>, overlay <strong>инициализируется</strong> (include_paths/exclude_paths могут быть не заданы; тогда 0 монтирований).</li>
+<li><strong>Инициализация</strong>: При наличии хотя бы одного safe-конфига (глобального или у агента)</li>
+<li><strong>Рантайм</strong>: Заранее инициализированные монтирования переиспользуются для всех выполнений команд</li>
+<li><strong>Остановка сервера</strong>: Все OverlayFS-монтирования размонтируются, временные директории удаляются в фазе FastAPI <code>lifespan</code> shutdown</li>
+</ul>
+<p><strong>Преимущества:</strong></p>
+<ul>
+<li>Нативный механизм ядра (не нужен SUID)</li>
+<li>Точное исключение файлов внутри директорий</li>
+<li>Удобная работа с bwrap</li>
+<li>Эффективность: монтирования создаются один раз при старте, переиспользуются для всех команд</li>
+<li>Автоматическая очистка при остановке сервера</li>
+</ul>
+<hr />
+<h2 id="3">3. Справочник конфигурации</h2>
+<p>Все параметры опциональны. Задаются в глобальной секции <code>tools:</code> или у агента.</p>
+<table>
+<thead>
+<tr>
+<th>Параметр</th>
+<th>Тип</th>
+<th>По умолчанию</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>workspace_path</code></td>
+<td>str</td>
+<td>None</td>
+<td>Директория для cwd (unsafe) или workspace bwrap (safe). В safe-режиме эта директория привязывается как <code>/workspace</code> внутри песочницы. Если при использовании RunCommandTool параметр не задан, сервер создаёт директорию <code>./workspace</code> рядом с <code>config.yaml</code> и использует её.</td>
+</tr>
+<tr>
+<td><code>mode</code></td>
+<td>str</td>
+<td><code>"safe"</code></td>
+<td><code>"safe"</code> или <code>"unsafe"</code>. Safe использует bwrap (только Linux); unsafe - локальный субпроцесс.</td>
+</tr>
+<tr>
+<td><code>timeout_seconds</code></td>
+<td>int</td>
+<td>60</td>
+<td>Максимальное время выполнения в секундах.</td>
+</tr>
+<tr>
+<td><code>include_paths</code></td>
+<td>list[str]</td>
+<td>None</td>
+<td>Разрешённые команды/пути. Если задано, выполняться могут только команды из этого списка. Сопоставление по имени (например, <code>"ls"</code>) или полному пути (например, <code>"/usr/bin/ls"</code>). Пути в аргументах команды тоже проверяются. <strong>Имеет приоритет над exclude_paths</strong> (один и тот же путь в обоих - разрешён).</td>
+</tr>
+<tr>
+<td><code>exclude_paths</code></td>
+<td>list[str]</td>
+<td>None</td>
+<td>Исключённые команды/пути. Если задано, они запрещены, если не указаны также в <code>include_paths</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Параметры тула (от LLM / схемы): <code>reasoning</code> (str), <code>command</code> (str, полная командная строка).</p>
+<p>Пример (unsafe):</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">tools</span><span class="p">:</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">run_command_tool</span><span class="p">:</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nt">workspace_path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/tmp/agent_workspace&quot;</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;unsafe&quot;</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="nt">timeout_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">120</span>
+</span></code></pre></div>
+<p>Пример (safe, Linux с установленным bwrap):</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">tools</span><span class="p">:</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">run_command_tool</span><span class="p">:</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">workspace_path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/tmp/agent_workspace&quot;</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;safe&quot;</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nt">timeout_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span>
+</span></code></pre></div>
+<p>Пример (с include_paths/exclude_paths - ограничение разрешённых команд):</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">tools</span><span class="p">:</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">run_command_tool</span><span class="p">:</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">workspace_path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/tmp/agent_workspace&quot;</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;unsafe&quot;</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">timeout_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">include_paths</span><span class="p">:</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;ls&quot;</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;cat&quot;</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;/usr/bin/python3&quot;</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;/tmp/agent_workspace&quot;</span><span class="w">  </span><span class="c1"># Доступ к директории workspace</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="nt">exclude_paths</span><span class="p">:</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;rm&quot;</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;/usr/bin/rm&quot;</span>
+</span></code></pre></div>
+<h3 id="bubblewrap">Установка Bubblewrap (для безопасного режима)</h3>
+<p>Безопасный режим требует наличия <strong>bwrap</strong> в системе. Если он не установлен, тул возвращает сообщение об ошибке со ссылкой на инструкцию по установке.</p>
+<ul>
+<li><strong>Установка</strong>: См. <a href="https://github.com/containers/bubblewrap#installation">Bubblewrap - Installation</a>. В Debian/Ubuntu: <code>apt install bubblewrap</code>. В Fedora: <code>dnf install bubblewrap</code>. В Arch: <code>pacman -S bubblewrap</code>.</li>
+<li><strong>Docker</strong>: В Docker-образе проекта bubblewrap ставится через <code>apt</code>, поэтому безопасный режим работает без дополнительных шагов.</li>
+</ul>
+<hr />
+<h2 id="4">4. Аналоги и альтернативы</h2>
+<h3 id="unsafe">Режим Unsafe (ОС)</h3>
+<p>Unsafe использует субпроцесс ОС и опционально <strong>workspace_path</strong>; работает на всех платформах. Используйте, когда нужна только граница по директории или когда bwrap недоступен (например, Windows, macOS).</p>
+<h3 id="bubblewrap-overlayfs">Bubblewrap + OverlayFS (безопасный режим)</h3>
+<p><a href="https://github.com/containers/bubblewrap">bubblewrap</a> - лёгкая непривилегированная песочница на базе пространств имён Linux и bind-монтирований. Используется в Flatpak и др. Безопасный режим сочетает bwrap с <strong>OverlayFS</strong> для точного управления файловой системой:</p>
+<ul>
+<li><strong>bwrap</strong> даёт изоляцию пространств имён (PID, UTS, IPC, NET, MNT, USER, CGROUP, TIME)</li>
+<li><strong>OverlayFS</strong> даёт исключение на уровне файлов через whiteout-файлы</li>
+<li>Вместе это позволяет монтировать директории, исключая отдельные файлы, без SUID-бинарников</li>
+</ul>
+<p>Безопасный режим строит минимальное окружение, в котором команды выполняются изолированно с одной записываемой директорией workspace и отфильтрованным доступом к бинарникам.</p>
+<hr />
+<h2 id="5">5. Замечания по безопасности</h2>
+<ul>
+<li><strong>Unsafe</strong>: Выполняется от того же пользователя, что и агент. Проверка путей ограничивает доступ к <code>workspace_path</code>; используйте таймаут, чтобы избежать зависаний.</li>
+<li><strong>Safe</strong>: Использует bwrap для изоляции пространств имён и файловой системы. Песочница не является полной границей безопасности; используйте как слой снижения рисков. Убедитесь, что <code>workspace_path</code> указывает на выделенную рабочую директорию, а не на чувствительную.</li>
+</ul>
+<hr />
+<h2 id="6">6. Кратко</h2>
+<table>
+<thead>
+<tr>
+<th>Элемент</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RunCommandTool</strong></td>
+<td>Выполняет shell-команды; <strong>unsafe</strong> = субпроцесс ОС (все платформы); <strong>safe</strong> = песочница bwrap (Linux, требуется bwrap).</td>
+</tr>
+<tr>
+<td><strong>bwrap</strong></td>
+<td>Должен быть установлен для безопасного режима. Установка: <a href="https://github.com/containers/bubblewrap#installation">Bubblewrap - Installation</a>.</td>
+</tr>
+<tr>
+<td><strong>Минимальные умолчания</strong></td>
+<td>Безопасный режим использует минимальную настройку bwrap: ro-bind /usr, workspace как /workspace, unshare-all, таймаут.</td>
+</tr>
+<tr>
+<td><strong>OverlayFS</strong></td>
+<td>При заданных <code>include_paths</code>/<code>exclude_paths</code> использует OverlayFS с whiteout-файлами для исключения отдельных бинарников из директорий.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  К началу
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.code.highlight"], "search": "../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440", "clipboard.copy": "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432 \u0431\u0443\u0444\u0435\u0440", "search.result.more.one": "\u0415\u0449\u0451 1 \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.more.other": "\u0415\u0449\u0451 # \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.none": "\u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", "search.result.one": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e 1 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435", "search.result.other": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439: #", "search.result.placeholder": "\u041d\u0430\u0447\u043d\u0438\u0442\u0435 \u043f\u0435\u0447\u0430\u0442\u0430\u0442\u044c \u0434\u043b\u044f \u043f\u043e\u0438\u0441\u043a\u0430", "search.result.term.missing": "\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442", "select.version": "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0435\u0440\u0441\u0438\u044e"}, "version": null}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

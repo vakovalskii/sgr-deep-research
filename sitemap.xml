@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/example_report/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/example_report/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/example_report/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/design/skills/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/design/skills/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/design/skills/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/highlights/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/highlights/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/highlights/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/agents/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/agents/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/agents/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/configuration/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/configuration/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/first-steps/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/first-steps/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/first-steps/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/langfuse/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/langfuse/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/langfuse/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/main-concepts/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/main-concepts/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/main-concepts/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/qna/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/qna/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/qna/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/skills/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/skills/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/skills/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/tools/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/tools/adapt-plan-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/adapt-plan-tool/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/adapt-plan-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/tools/clarification-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/clarification-tool/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/clarification-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/tools/create-report-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/create-report-tool/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/create-report-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/tools/extract-page-content-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/extract-page-content-tool/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/extract-page-content-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/tools/final-answer-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/final-answer-tool/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/final-answer-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/tools/generate-plan-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/generate-plan-tool/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/generate-plan-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/tools/reasoning-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/reasoning-tool/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/reasoning-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/tools/run-command/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/run-command/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/run-command/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/framework/tools/web-search-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/web-search-tool/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/web-search-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/getting-started/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/getting-started/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/getting-started/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/getting-started/installation/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/getting-started/installation/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/getting-started/installation/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Agent%27s-Workflow/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Agent%27s-Workflow/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Agent%27s-Workflow/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Demonstration/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Demonstration/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Demonstration/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Description-API/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Description-API/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Description-API/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Integration-%26-Examples/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Integration-%26-Examples/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Integration-%26-Examples/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Quick-Start/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Quick-Start/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Quick-Start/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Summary-table/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Summary-table/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Summary-table/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-vs-Function-Calling_-When-to-Use-Each-Approach/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-vs-Function-Calling_-When-to-Use-Each-Approach/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-vs-Function-Calling_-When-to-Use-Each-Approach/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/example_report/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/example_report/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/example_report/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/design/skills/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/design/skills/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/design/skills/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/highlights/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/highlights/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/highlights/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/agents/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/agents/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/agents/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/configuration/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/configuration/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/configuration/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/first-steps/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/first-steps/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/first-steps/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/langfuse/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/langfuse/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/langfuse/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/main-concepts/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/main-concepts/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/main-concepts/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/qna/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/qna/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/qna/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/skills/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/skills/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/skills/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/adapt-plan-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/adapt-plan-tool/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/adapt-plan-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/clarification-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/clarification-tool/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/clarification-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/create-report-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/create-report-tool/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/create-report-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/extract-page-content-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/extract-page-content-tool/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/extract-page-content-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/final-answer-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/final-answer-tool/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/final-answer-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/generate-plan-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/generate-plan-tool/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/generate-plan-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/reasoning-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/reasoning-tool/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/reasoning-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/run-command/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/run-command/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/run-command/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/web-search-tool/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/framework/tools/web-search-tool/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/framework/tools/web-search-tool/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/getting-started/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/getting-started/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/getting-started/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/getting-started/installation/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/getting-started/installation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/getting-started/installation/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Agent%27s-Workflow/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Agent%27s-Workflow/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Agent%27s-Workflow/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Demonstration/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Demonstration/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Demonstration/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Description-API/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Description-API/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Description-API/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Integration-%26-Examples/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Integration-%26-Examples/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Integration-%26-Examples/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Quick-Start/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Quick-Start/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Quick-Start/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Summary-table/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-Summary-table/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-Summary-table/"/>
+    </url>
+    <url>
+        <loc>https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-vs-Function-Calling_-When-to-Use-Each-Approach/</loc>
+        <lastmod>2026-07-15</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vamplabai.github.io/sgr-agent-core/ru/sgr-api/SGR-vs-Function-Calling_-When-to-Use-Each-Approach/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vamplabai.github.io/sgr-agent-core/sgr-api/SGR-vs-Function-Calling_-When-to-Use-Each-Approach/"/>
+    </url>
+</urlset>

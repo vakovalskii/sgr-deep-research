@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+{{ super() }}
+{# OpenGraph meta tags #}
+{% if page and page.canonical_url %}
+  <meta property="og:url" content="{{ page.canonical_url }}" />
+{% elif config.site_url %}
+  <meta property="og:url" content="{{ config.site_url }}{{ page.url if page else '' }}" />
+{% endif %}
+{% if page and page.meta and page.meta.title %}
+  <meta property="og:title" content="{{ page.meta.title }}" />
+{% elif page and page.title %}
+  <meta property="og:title" content="{{ page.title }}" />
+{% else %}
+  <meta property="og:title" content="{{ config.site_name }}" />
+{% endif %}
+<meta property="og:type" content="website" />
+{% if config.site_description %}
+  <meta property="og:description" content="{{ config.site_description }}" />
+{% endif %}
+{% if config.og_image %}
+  <meta property="og:image" content="{{ config.og_image }}" />
+{% endif %}
+{% if config.og_image_alt %}
+  <meta property="og:image:alt" content="{{ config.og_image_alt }}" />
+{% endif %}
+{% if config.site_url %}
+  <meta property="og:site_name" content="{{ config.site_name }}" />
+{% endif %}
+{# Twitter Card meta tags #}
+<meta name="twitter:card" content="summary_large_image" />
+{% if page and page.meta and page.meta.title %}
+  <meta name="twitter:title" content="{{ page.meta.title }}" />
+{% elif page and page.title %}
+  <meta name="twitter:title" content="{{ page.title }}" />
+{% else %}
+  <meta name="twitter:title" content="{{ config.site_name }}" />
+{% endif %}
+{% if config.site_description %}
+  <meta name="twitter:description" content="{{ config.site_description }}" />
+{% endif %}
+{% if config.og_image %}
+  <meta name="twitter:image" content="{{ config.og_image }}" />
+{% endif %}
+<style>
+  /* Override Material theme CSS variables for custom colors */
+  :root,
+  [data-md-color-scheme] {
+    /* Dark purple background for header */
+    --md-primary-fg-color: #1a1a2e;
+    --md-primary-fg-color--light: #a29bfe;
+    --md-primary-fg-color--dark: #5f3dc4;
+
+    /* Accent colors */
+    --md-accent-fg-color: #6c5ce7;
+    --md-accent-fg-color--transparent: rgba(108, 92, 231, 0.1);
+
+    /* Dark theme background colors */
+    --md-default-bg-color: #0d0d1a;
+    --md-default-bg-color--light: #1a1a2e;
+    --md-default-bg-color--lighter: #252540;
+    --md-default-bg-color--lightest: #2d2d4a;
+
+    /* Text colors for dark theme */
+    --md-default-fg-color: #ffffff;
+    --md-default-fg-color--light: rgba(255, 255, 255, 0.7);
+    --md-default-fg-color--lighter: rgba(255, 255, 255, 0.54);
+    --md-default-fg-color--lightest: rgba(255, 255, 255, 0.38);
+
+    /* Code block colors */
+    --md-code-bg-color: #1a1a2e;
+    --md-code-fg-color: #ffffff;
+
+    /* Link colors */
+    --md-typeset-a-color: #6c5ce7;
+
+    /* Admonition colors */
+    --md-admonition-bg-color: rgba(108, 92, 231, 0.1);
+  }
+
+  /* Override for dark theme (slate) */
+  [data-md-color-scheme="slate"] {
+    --md-primary-fg-color: #1a1a2e;
+    --md-primary-fg-color--light: #a29bfe;
+    --md-primary-fg-color--dark: #5f3dc4;
+
+    --md-accent-fg-color: #6c5ce7;
+
+    --md-default-bg-color: #0d0d1a;
+    --md-default-fg-color: #ffffff;
+
+    --md-code-bg-color: #1a1a2e;
+    --md-code-fg-color: #ffffff;
+
+    --md-typeset-a-color: #6c5ce7;
+
+    /* Subtle grid pattern effect */
+    background-image:
+      linear-gradient(rgba(108, 92, 231, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108, 92, 231, 0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* Override for light theme (default) */
+  [data-md-color-scheme="default"] {
+    --md-primary-fg-color: #1a1a2e;
+    --md-primary-fg-color--light: #a29bfe;
+    --md-primary-fg-color--dark: #5f3dc4;
+
+    --md-accent-fg-color: #6c5ce7;
+
+    --md-default-bg-color: #ffffff;
+    --md-default-fg-color: #1a1a2e;
+    --md-default-fg-color--light: rgba(26, 26, 46, 0.7);
+    --md-default-fg-color--lighter: rgba(26, 26, 46, 0.54);
+    --md-default-fg-color--lightest: rgba(26, 26, 46, 0.38);
+
+    --md-code-bg-color: #f5f5f5;
+    --md-code-fg-color: #1a1a2e;
+
+    --md-typeset-a-color: #6c5ce7;
+  }
+</style>
+<script>
+  // Redirect root page to Russian getting started page
+  (function() {
+    var path = window.location.pathname;
+    var basePath = '/sgr-agent-core';
+
+    // Check if we're on the root page
+    if (path === '/' || path === basePath || path === basePath + '/') {
+      window.location.replace(basePath + '/getting-started/');
+    }
+  })();
+</script>
+{% endblock %}
