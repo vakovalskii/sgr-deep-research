@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import uuid
 from dataclasses import dataclass
 from typing import Any
@@ -11,6 +12,9 @@ from acp.interfaces import Client
 from acp.schema import (
     AgentCapabilities,
     AuthenticateResponse,
+    AvailableCommand,
+    AvailableCommandInput,
+    AvailableCommandsUpdate,
     CloseSessionResponse,
     HttpMcpServer,
     Implementation,
@@ -29,6 +33,7 @@ from acp.schema import (
     SetSessionModeResponse,
     SseMcpServer,
     TextContentBlock,
+    UnstructuredCommandInput,
 )
 
 from sgr_agent_core import __version__
@@ -38,6 +43,9 @@ from sgr_agent_core.agent_definition import AgentDefinition
 from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.models import AgentStatesEnum
+from sgr_agent_core.skills.models import BaseSkill
+
+logger = logging.getLogger(__name__)
 
 
 def extract_prompt_text(
@@ -109,6 +117,52 @@ class SGRACPBridge:
             agent_def = agent_def.model_copy(deep=True)
             agent_def.llm.model = sess.model
         return agent_def
+
+    def _skills_for_session(self, sess: _ACPSession) -> list[BaseSkill]:
+        """Resolve the skills available for the session's agent definition."""
+        try:
+            return AgentFactory._resolve_skills(self._agent_definition_for_session(sess))
+        except Exception:  # noqa: BLE001 - never let skill resolution break a session
+            return []
+
+    def _build_available_commands(self, skills: list[BaseSkill]) -> list[AvailableCommand]:
+        """Map user-invocable skills to ACP available commands (slash
+        commands)."""
+        commands: list[AvailableCommand] = []
+        for skill in skills:
+            if not skill.metadata.user_invocable:
+                continue
+            commands.append(
+                AvailableCommand(
+                    name=skill.name,
+                    description=skill.description,
+                    input=AvailableCommandInput(root=UnstructuredCommandInput(hint="optional arguments")),
+                )
+            )
+        return commands
+
+    async def _advertise_commands(self, sess: _ACPSession) -> None:
+        """Push the session's skill commands to the client (best effort).
+
+        Advertising commands must never break session creation or an
+        agent switch, so client/transport errors are swallowed and
+        logged.
+        """
+        if self._client is None:
+            return
+        commands = self._build_available_commands(self._skills_for_session(sess))
+        if not commands:
+            return
+        try:
+            await self._client.session_update(
+                sess.session_id,
+                AvailableCommandsUpdate(
+                    available_commands=commands,
+                    session_update="available_commands_update",
+                ),
+            )
+        except Exception as exc:  # noqa: BLE001 - advertising is best effort
+            logger.warning("Failed to advertise skill commands for %s: %s", sess.session_id, exc)
 
     def _agent_names(self) -> list[str]:
         return list(GlobalConfig().agents.keys())
@@ -207,6 +261,7 @@ class SGRACPBridge:
         model = GlobalConfig().agents[agent_name].llm.model
         sess = _ACPSession(session_id=session_id, cwd=cwd, agent_name=agent_name, model=model)
         self._sessions[session_id] = sess
+        await self._advertise_commands(sess)
         return NewSessionResponse(session_id=session_id, config_options=self._build_config_options(sess))
 
     async def load_session(
@@ -256,6 +311,8 @@ class SGRACPBridge:
                 raise ValueError(f"Unknown agent config value: {value!r}")
             sess.agent_name = value
             self._reset_agent_if_idle(sess)
+            # Skills are per-agent, so refresh the advertised commands.
+            await self._advertise_commands(sess)
         elif config_id == self._MODEL_CONFIG_ID:
             if not isinstance(value, str) or value not in self._model_choices():
                 raise ValueError(f"Unknown model config value: {value!r}")
@@ -301,6 +358,7 @@ class SGRACPBridge:
             sess.agent = None
             sess.execute_task = None
 
+        # "/skill-name" references in `text` are expanded centrally by AgentFactory.
         agent_def = self._agent_definition_for_session(sess)
         gen_cls = create_acp_streaming_generator_class(session_id, self._client)
         agent = await AgentFactory.create(

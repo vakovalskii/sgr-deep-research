@@ -10,6 +10,8 @@ import yaml
 from fastmcp.mcp_config import MCPConfig
 from pydantic import BaseModel, Field, FilePath, ImportString, computed_field, field_validator, model_validator
 
+from sgr_agent_core.skills.config import SkillsConfig
+
 logger = logging.getLogger(__name__)
 
 
@@ -132,6 +134,9 @@ class ExecutionConfig(BaseModel, extra="allow"):
     max_clarifications: int = Field(default=3, ge=0, description="Maximum number of clarifications")
     max_iterations: int = Field(default=10, gt=0, description="Maximum number of iterations")
     mcp_context_limit: int = Field(default=15000, gt=0, description="Maximum context length from MCP server response")
+    max_skill_desc_chars: int = Field(
+        default=500, gt=0, description="Per-entry skill description cap in the system-prompt listing"
+    )
 
     streaming_generator: Literal["openai", "open_webui"] = Field(
         default="openai",
@@ -183,6 +188,7 @@ class AgentConfig(BaseModel, extra="allow"):
     execution: ExecutionConfig = Field(default_factory=ExecutionConfig, description="Execution settings")
     prompts: PromptsConfig = Field(default_factory=PromptsConfig, description="Prompts settings")
     mcp: MCPConfig = Field(default_factory=MCPConfig, description="MCP settings")
+    skills: SkillsConfig | None = Field(default=None, description="Skills discovery and rendering settings")
 
     @field_validator("langfuse", mode="before")
     @classmethod

@@ -188,7 +188,7 @@ class OverlayFSManager:
             if not tool_config:
                 if candidates:
                     logger.warning(
-                        "RunCommandTool is configured only with unsafe mode; " "OverlayFS will not be initialized.",
+                        "RunCommandTool is configured only with unsafe mode; OverlayFS will not be initialized.",
                     )
                 return
 

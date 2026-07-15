@@ -21,8 +21,25 @@ from sgr_agent_core.models import AgentStatesEnum
 
 if TYPE_CHECKING:
     from sgr_agent_core.base_agent import BaseAgent
+    from sgr_agent_core.skills import BaseSkill
 
 logger = logging.getLogger(__name__)
+
+
+def format_skills_listing(skills: "list[BaseSkill]") -> str:
+    """Format a human-readable listing of skills for the CLI --list-skills
+    flag.
+
+    Only user-invocable skills are shown as ``/commands`` because those are the
+    ones the CLI expands when typed.
+    """
+    invocable = [s for s in skills if s.metadata.user_invocable]
+    if not invocable:
+        return "No skills available for this agent."
+    lines = ["Available skills:"]
+    for skill in invocable:
+        lines.append(f"  /{skill.name} — {skill.description}")
+    return "\n".join(lines)
 
 
 def _read_user_input(prompt: str) -> str:
@@ -149,6 +166,7 @@ async def chat_loop(agent_def_name: str, config: GlobalConfig):
             if not user_input:
                 continue
 
+            # "/skill-name" references are expanded centrally by AgentFactory.
             conversation_history.append({"role": "user", "content": user_input})
             agent = await AgentFactory.create(agent_def, task_messages=conversation_history)
             result = await run_agent(agent)
@@ -193,6 +211,11 @@ Examples:
         help="Agent name to use (default: first agent in config)",
     )
     parser.add_argument(
+        "--list-skills",
+        action="store_true",
+        help="List skills available to the selected agent and exit",
+    )
+    parser.add_argument(
         "query",
         nargs="*",
         help="Initial query (optional - if not provided, starts interactive chat)",
@@ -235,6 +258,16 @@ Examples:
             print(f"ℹ️  Using agent: {agent_name}")
             print(f"   Available agents: {', '.join(config.agents.keys())}")
 
+    # List skills and exit
+    if args.list_skills:
+        agent_def = config.agents.get(agent_name)
+        if agent_def is None:
+            print(f"❌ Agent '{agent_name}' not found in config")
+            sys.exit(1)
+        skills = AgentFactory._resolve_skills(agent_def)
+        print(format_skills_listing(skills))
+        return
+
     # Check if query provided
     query = " ".join(args.query) if args.query else None
 
@@ -246,7 +279,7 @@ Examples:
             print(f"Available agents: {', '.join(config.agents.keys())}")
             sys.exit(1)
 
-        # Create agent
+        # "/skill-name" references are expanded centrally by AgentFactory.
         task_messages = [{"role": "user", "content": query}]
         agent = await AgentFactory.create(agent_def, task_messages)
 

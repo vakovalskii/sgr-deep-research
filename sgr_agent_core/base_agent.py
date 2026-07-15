@@ -5,7 +5,7 @@ import os
 import traceback
 import uuid
 from datetime import datetime
-from typing import Any, Type
+from typing import TYPE_CHECKING, Any, Type
 
 from openai import AsyncOpenAI, pydantic_function_tool
 from openai.types.chat import ChatCompletionFunctionToolParam, ChatCompletionMessageParam
@@ -21,6 +21,9 @@ from sgr_agent_core.tools import (
     ClarificationTool,
     ReasoningTool,
 )
+
+if TYPE_CHECKING:
+    from sgr_agent_core.skills import BaseSkill
 
 
 class AgentRegistryMixin:
@@ -44,6 +47,7 @@ class BaseAgent(AgentRegistryMixin):
         def_name: str | None = None,
         streaming_generator: type[BaseStreamingGenerator] = OpenAIStreamingGenerator,
         tool_configs: dict[str, ToolDefinition] | None = None,
+        skills: list["BaseSkill"] = (),
         **kwargs: dict,
     ):
         self.id = f"{def_name or self.name}_{uuid.uuid4()}"
@@ -55,8 +59,9 @@ class BaseAgent(AgentRegistryMixin):
         self.task_messages = task_messages
         self.toolkit = toolkit
         self.tool_configs = tool_configs or {}
+        self.available_skills: list[BaseSkill] = list(skills or [])
 
-        self._context = AgentContext()
+        self._context = AgentContext(available_skills=self.available_skills)
         self.conversation = []
         self.logger = logging.getLogger(f"sgr_agent_core.agents.{self.id}")
         self.log = []
@@ -182,7 +187,14 @@ class BaseAgent(AgentRegistryMixin):
         """
 
         return [
-            {"role": "system", "content": PromptLoader.get_system_prompt(self.toolkit, self.config.prompts)},
+            {
+                "role": "system",
+                "content": PromptLoader.get_system_prompt(
+                    self.toolkit,
+                    self.config.prompts,
+                    available_skills=self.available_skills,
+                ),
+            },
             *self.task_messages,
             {"role": "user", "content": PromptLoader.get_initial_user_request(self.task_messages, self.config.prompts)},
             *self.conversation,

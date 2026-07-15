@@ -6,8 +6,31 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from sgr_agent_core.cli.sgrsh import chat_loop, find_config_file, main, run_agent
+from sgr_agent_core.cli.sgrsh import chat_loop, find_config_file, format_skills_listing, main, run_agent
 from sgr_agent_core.models import AgentStatesEnum
+from sgr_agent_core.skills import BaseSkill, SkillMetadata
+
+
+class TestFormatSkillsListing:
+    """Test the skills listing formatter used by --list-skills."""
+
+    def test_empty(self):
+        assert "No skills" in format_skills_listing([])
+
+    def test_lists_name_and_description(self):
+        skills = [BaseSkill(metadata=SkillMetadata(name="greet", description="Greets people."))]
+        out = format_skills_listing(skills)
+        assert "greet" in out
+        assert "Greets people." in out
+
+    def test_excludes_non_user_invocable(self):
+        skills = [
+            BaseSkill(metadata=SkillMetadata(name="shown", description="Shown.")),
+            BaseSkill(metadata=SkillMetadata(name="hidden", description="Hidden.", user_invocable=False)),
+        ]
+        out = format_skills_listing(skills)
+        assert "shown" in out
+        assert "hidden" not in out
 
 
 class TestFindConfigFile:

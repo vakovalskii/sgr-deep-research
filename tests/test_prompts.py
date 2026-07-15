@@ -164,6 +164,101 @@ class TestPromptLoader:
             result = PromptLoader.get_system_prompt([], prompts_config)
             assert result == "This template has no placeholders."
 
+    def test_get_system_prompt_with_skills(self):
+        """Skills are auto-registered into the system prompt via
+        {available_skills}."""
+        from sgr_agent_core.skills import BaseSkill, SkillMetadata
+
+        skills = [BaseSkill(metadata=SkillMetadata(name="greet", description="Greets people warmly."))]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_file = os.path.join(tmpdir, "system_prompt.txt")
+            template = "Tools:\n{available_tools}\nSkills:\n{available_skills}\nEnd."
+            with open(template_file, "w", encoding="utf-8") as f:
+                f.write(template)
+            dummy_file = os.path.join(tmpdir, "dummy.txt")
+            with open(dummy_file, "w", encoding="utf-8") as f:
+                f.write("dummy")
+
+            prompts_config = PromptsConfig(
+                system_prompt_file=template_file,
+                initial_user_request_file=dummy_file,
+                clarification_response_file=dummy_file,
+            )
+
+            result = PromptLoader.get_system_prompt([], prompts_config, available_skills=skills)
+            assert "greet: Greets people warmly." in result
+            assert "use_skill" in result
+
+    def test_get_system_prompt_skills_default_empty(self):
+        """Without skills, the {available_skills} placeholder renders empty and
+        no error is raised (backward compatible)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_file = os.path.join(tmpdir, "system_prompt.txt")
+            template = "Tools:\n{available_tools}\nSkills:\n{available_skills}\nEnd."
+            with open(template_file, "w", encoding="utf-8") as f:
+                f.write(template)
+            dummy_file = os.path.join(tmpdir, "dummy.txt")
+            with open(dummy_file, "w", encoding="utf-8") as f:
+                f.write("dummy")
+
+            prompts_config = PromptsConfig(
+                system_prompt_file=template_file,
+                initial_user_request_file=dummy_file,
+                clarification_response_file=dummy_file,
+            )
+
+            result = PromptLoader.get_system_prompt([], prompts_config)
+            assert "Skills:\n\nEnd." in result
+
+    def test_get_system_prompt_skills_appended_when_placeholder_absent(self):
+        """A custom template without {available_skills} still gets the skills
+        catalog appended, so autonomous discovery works regardless of
+        template."""
+        from sgr_agent_core.skills import BaseSkill, SkillMetadata
+
+        skills = [BaseSkill(metadata=SkillMetadata(name="greet", description="Greets."))]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_file = os.path.join(tmpdir, "system_prompt.txt")
+            template = "Only tools:\n{available_tools}"
+            with open(template_file, "w", encoding="utf-8") as f:
+                f.write(template)
+            dummy_file = os.path.join(tmpdir, "dummy.txt")
+            with open(dummy_file, "w", encoding="utf-8") as f:
+                f.write("dummy")
+
+            prompts_config = PromptsConfig(
+                system_prompt_file=template_file,
+                initial_user_request_file=dummy_file,
+                clarification_response_file=dummy_file,
+            )
+
+            result = PromptLoader.get_system_prompt([], prompts_config, available_skills=skills)
+            assert result.startswith("Only tools:\n")
+            assert "greet: Greets." in result
+            assert "use_skill" in result
+
+    def test_get_system_prompt_no_skills_no_append(self):
+        """Without skills, nothing is appended to a placeholder-less
+        template."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            template_file = os.path.join(tmpdir, "system_prompt.txt")
+            template = "Only tools:\n{available_tools}"
+            with open(template_file, "w", encoding="utf-8") as f:
+                f.write(template)
+            dummy_file = os.path.join(tmpdir, "dummy.txt")
+            with open(dummy_file, "w", encoding="utf-8") as f:
+                f.write("dummy")
+
+            prompts_config = PromptsConfig(
+                system_prompt_file=template_file,
+                initial_user_request_file=dummy_file,
+                clarification_response_file=dummy_file,
+            )
+
+            result = PromptLoader.get_system_prompt([], prompts_config)
+            assert result == "Only tools:\n"
+
     def test_get_initial_user_request(self):
         """Test get_initial_user_request formats date correctly."""
         with tempfile.TemporaryDirectory() as tmpdir:

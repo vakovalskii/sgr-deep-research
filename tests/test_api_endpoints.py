@@ -18,6 +18,7 @@ from sgr_agent_core.server.endpoints import (
     delete_agent,
     get_agent_state,
     get_agents_list,
+    get_available_skills,
     provide_clarification,
 )
 from sgr_agent_core.server.models import ChatCompletionRequest, MessagesList, MessagesRequest
@@ -685,3 +686,37 @@ class TestAgentStorageIntegration:
         """Test that different test methods have isolated storage."""
         # This test verifies that setup_method clears storage properly
         assert len(agents_storage) == 0
+
+
+class TestSkillsEndpoint:
+    """Tests for GET /v1/skills."""
+
+    @patch("sgr_agent_core.server.endpoints.AgentFactory")
+    @pytest.mark.asyncio
+    async def test_lists_skills_per_model(self, mock_factory):
+        from sgr_agent_core.skills import BaseSkill, SkillMetadata
+
+        mock_def = Mock()
+        mock_def.name = "sgr_agent"
+        mock_factory.get_definitions_list.return_value = [mock_def]
+        mock_factory._resolve_skills.return_value = [
+            BaseSkill(metadata=SkillMetadata(name="greet", description="Greets people."))
+        ]
+
+        result = await get_available_skills()
+        assert result["object"] == "list"
+        assert result["data"][0]["model"] == "sgr_agent"
+        assert result["data"][0]["skills"] == [{"name": "greet", "description": "Greets people."}]
+
+    @patch("sgr_agent_core.server.endpoints.AgentFactory")
+    @pytest.mark.asyncio
+    async def test_filter_by_model(self, mock_factory):
+        a = Mock()
+        a.name = "a"
+        b = Mock()
+        b.name = "b"
+        mock_factory.get_definitions_list.return_value = [a, b]
+        mock_factory._resolve_skills.return_value = []
+
+        result = await get_available_skills(model="b")
+        assert [d["model"] for d in result["data"]] == ["b"]

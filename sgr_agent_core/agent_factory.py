@@ -3,7 +3,8 @@
 import importlib
 import logging
 from importlib import import_module
-from typing import Any, Type, TypeVar
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Type, TypeVar
 
 import httpx
 from openai import AsyncOpenAI
@@ -14,7 +15,12 @@ from sgr_agent_core.agent_definition import AgentDefinition, LLMConfig, ToolDefi
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.services import AgentRegistry, MCP2ToolConverter, StreamingGeneratorRegistry
+from sgr_agent_core.skills import SkillRegistry, SkillsConfig, inject_referenced_skills
 from sgr_agent_core.stream import BaseStreamingGenerator, OpenAIStreamingGenerator
+from sgr_agent_core.tools.skill_tool import SkillTool
+
+if TYPE_CHECKING:
+    from sgr_agent_core.skills import BaseSkill
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +116,40 @@ class AgentFactory:
         return toolkit, tool_configs
 
     @classmethod
+    def _default_skill_roots(cls, skills_config: SkillsConfig) -> list[Path]:
+        """Resolve skill root directories to scan.
+
+        When ``skills.paths`` is set it overrides the defaults (relative paths
+        resolved against the current working directory). Otherwise the defaults
+        are ``./.agent/skills`` (project, relative to CWD) and
+        ``~/.agent/skills`` (personal). Missing/empty roots are simply skipped.
+        """
+        if skills_config.paths:
+            return [p if (p := Path(raw)).is_absolute() else Path.cwd() / p for raw in skills_config.paths]
+        return [Path.cwd() / ".agent" / "skills", Path.home() / ".agent" / "skills"]
+
+    @classmethod
+    def _resolve_skills(cls, agent_def: AgentDefinition) -> list["BaseSkill"]:
+        """Discover and filter skills for an agent.
+
+        Skills are scanned from the default roots even without a ``skills:``
+        block; a ``skills:`` config overrides the roots and activation filters.
+        """
+        skills_config = getattr(agent_def, "skills", None) or SkillsConfig()
+        if not skills_config.enabled:
+            return []
+        registry = SkillRegistry()
+        registry.load_from_paths(cls._default_skill_roots(skills_config))
+        skills = registry.list_items()
+        # An empty include list is treated as "no allowlist filter" (symmetric
+        # with exclude), so it does not silently drop every skill.
+        if skills_config.include:
+            skills = [s for s in skills if s.name in skills_config.include]
+        if skills_config.exclude:
+            skills = [s for s in skills if s.name not in skills_config.exclude]
+        return skills
+
+    @classmethod
     async def create(
         cls,
         agent_def: AgentDefinition,
@@ -172,12 +212,21 @@ class AgentFactory:
         tools, tool_configs = cls._resolve_tools_with_configs(agent_def.tools)
         tools.extend(mcp_tools)
 
+        # Resolve skills and expose the use_skill tool when any are available.
+        skills = cls._resolve_skills(agent_def)
+        if skills and SkillTool not in tools:
+            tools.append(SkillTool)
+        # Inject bodies of skills the user referenced as "/skill-name" in the prompt.
+        task_messages = inject_referenced_skills(task_messages, skills)
+
         try:
             # Extract agent-specific parameters from agent_def (e.g., working_directory)
             # These are fields that are not part of standard AgentConfig but are allowed via extra="allow"
             agent_kwargs = {}
             for key, value in agent_def.model_dump().items():
                 agent_kwargs[key] = value
+            # 'skills' is resolved into BaseSkill objects below; drop the raw config dump.
+            agent_kwargs.pop("skills", None)
 
             gen_cls = streaming_generator or cls._resolve_streaming_generator(agent_def.execution.streaming_generator)
             agent = BaseClass(
@@ -188,6 +237,7 @@ class AgentFactory:
                 openai_client=cls._create_client(agent_def.llm),
                 agent_config=agent_def,
                 streaming_generator=gen_cls,
+                skills=skills,
                 **agent_kwargs,
             )
             logger.info(
