@@ -6,7 +6,8 @@ A powerful research assistant that combines structured reasoning with deep analy
 
 # Version info — derived from the installed package metadata,
 # which setuptools-scm populates from the latest git tag at build time.
-from importlib.metadata import PackageNotFoundError, version as _pkg_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 
 try:
     __version__ = _pkg_version("sgr-agent-core")
