@@ -7,6 +7,12 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+# Version comes from the git tag via CI (build-arg); .git is not in the build
+# context, so setuptools-scm reads this pretend-version instead. The 0.0.0
+# fallback keeps non-release/local builds working without a tag.
+ARG SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0
+ENV SETUPTOOLS_SCM_PRETEND_VERSION_FOR_SGR_AGENT_CORE=${SETUPTOOLS_SCM_PRETEND_VERSION}
+
 # Install build dependencies
 RUN apt update \
  && apt install -y --no-install-recommends build-essential \

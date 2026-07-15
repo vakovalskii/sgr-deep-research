@@ -52,6 +52,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
+          build-args: |
+            SETUPTOOLS_SCM_PRETEND_VERSION=${{ github.ref_type == 'tag' && github.ref_name || '0.0.0' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache

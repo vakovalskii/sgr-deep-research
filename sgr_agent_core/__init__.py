@@ -4,8 +4,15 @@ SGR Agent Core - Schema-Guided Reasoning for building agentic systems
 A powerful research assistant that combines structured reasoning with deep analysis capabilities.
 """
 
-# Version info
-__version__ = "0.7.0"
+# Version info — derived from the installed package metadata,
+# which setuptools-scm populates from the latest git tag at build time.
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+try:
+    __version__ = _pkg_version("sgr-agent-core")
+except PackageNotFoundError:  # running from a source tree without an install
+    __version__ = "0.0.0+unknown"
+
 __author__ = "sgr-agent-core-team"
 
 # Base classes (from direct .py files)

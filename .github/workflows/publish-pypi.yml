@@ -1,4 +1,4 @@
-name: Build and Publish
+name: Publish to PyPI
 
 on:
   - workflow_dispatch
@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history + tags so setuptools-scm sees the tag
 
       - name: Build wheel
         run: pipx run build --wheel .
@@ -47,3 +49,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+          skip-existing: true  # re-running on an already-published version is a no-op, not a failure

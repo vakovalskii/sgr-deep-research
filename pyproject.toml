@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64.0", "wheel"]
+requires = ["setuptools>=64.0", "wheel", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -103,8 +103,9 @@ include = ["sgr_agent_core*"]
 [tool.setuptools]
 zip-safe = false
 
-[tool.setuptools.dynamic]
-version = {attr = "sgr_agent_core.__version__"}
+# Version is derived from the latest git tag by setuptools-scm.
+# Release flow: `git tag 0.7.2 && git push origin 0.7.2` — no manual bumps.
+[tool.setuptools_scm]
 
 [tool.setuptools.package-dir]
 "" = "."
