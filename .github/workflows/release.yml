@@ -6,6 +6,13 @@ on:
     tags:
       - "*.*.*"
 
+# Reusable workflows can't request more than the caller grants. publish-pypi.yml
+# needs id-token: write (PyPI OIDC) and publish-docker.yml needs packages: write.
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+
 jobs:
   # ─────────────────────────────────────────────
   # 1. Unit + integration tests
