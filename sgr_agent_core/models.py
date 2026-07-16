@@ -46,6 +46,12 @@ class AgentStatesEnum(str, Enum):
     FINISH_STATES = {COMPLETED, FAILED, ERROR, CANCELLED}
 
 
+# Context fields that cannot (or must not) be serialized into a checkpoint: the
+# clarification event is a live asyncio primitive, and skills are re-resolved
+# from configuration when the agent is rebuilt.
+_CONTEXT_SNAPSHOT_EXCLUDE = {"clarification_received", "available_skills"}
+
+
 class AgentContext(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
 
@@ -75,6 +81,42 @@ class AgentContext(BaseModel):
 
     def agent_state(self) -> dict:
         return self.model_dump(exclude={"searches", "sources", "clarification_received", "available_skills"})
+
+    def to_snapshot(self) -> dict:
+        """Return a JSON-serializable snapshot of the restorable state.
+
+        Excludes runtime-only fields (the clarification event and the
+        resolved skills) so the result can be persisted to disk and
+        rebuilt later via :meth:`from_snapshot`.
+        """
+        return self.model_dump(mode="json", exclude=_CONTEXT_SNAPSHOT_EXCLUDE)
+
+    @classmethod
+    def from_snapshot(cls, data: dict, available_skills: list[BaseSkill] | None = None) -> "AgentContext":
+        """Rebuild a context from a snapshot produced by :meth:`to_snapshot`.
+
+        A fresh clarification event is created automatically (via the field
+        default factory); skills are injected from the caller since they are
+        re-resolved from configuration on restore.
+        """
+        payload = {k: v for k, v in data.items() if k not in _CONTEXT_SNAPSHOT_EXCLUDE}
+        payload["available_skills"] = available_skills or []
+        return cls.model_validate(payload)
+
+
+class AgentCheckpoint(BaseModel):
+    """A restorable snapshot of an agent taken at a given execution step."""
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    agent_id: str = Field(description="Id of the agent the checkpoint belongs to")
+    def_name: str | None = Field(default=None, description="Agent definition name used to rebuild the agent")
+    step: int = Field(description="Execution iteration this checkpoint captures")
+    created_at: datetime = Field(default_factory=datetime.now, description="Checkpoint creation timestamp")
+    session_id: str | None = Field(default=None, description="Optional external session id (e.g. ACP session)")
+    task_messages: list[dict] = Field(default_factory=list, description="Original task messages")
+    conversation: list[dict] = Field(default_factory=list, description="Agent conversation snapshot")
+    context: dict = Field(default_factory=dict, description="AgentContext snapshot (see AgentContext.to_snapshot)")
 
 
 class AgentStatistics(BaseModel):

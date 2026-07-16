@@ -30,6 +30,7 @@ from sgr_agent_core.agents import *  # noqa: F403
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.base_tool import BaseTool, MCPBaseTool, SystemBaseTool
 from sgr_agent_core.models import (
+    AgentCheckpoint,
     AgentContext,
     AgentStatesEnum,
     AgentStatistics,
@@ -66,6 +67,7 @@ __all__ = [
     "AgentStatesEnum",
     "AgentStatistics",
     "AgentContext",
+    "AgentCheckpoint",
     "SearchResult",
     "SourceData",
     # Services

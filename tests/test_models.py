@@ -5,12 +5,13 @@ system.
 """
 
 import asyncio
+import json
 from datetime import datetime
 
 import pytest
 from pydantic import ValidationError
 
-from sgr_agent_core.models import AgentContext, AgentStatesEnum, SearchResult, SourceData
+from sgr_agent_core.models import AgentCheckpoint, AgentContext, AgentStatesEnum, SearchResult, SourceData
 
 
 class TestSourceData:
@@ -360,3 +361,121 @@ class TestChatCompletionRequestAgentId:
         reasoning_data = {"step": 1, "action": "search"}
         context.current_step_reasoning = reasoning_data
         assert context.current_step_reasoning == reasoning_data
+
+
+class TestAgentContextSnapshot:
+    """Tests for AgentContext serialization used by checkpointing."""
+
+    def _populated_context(self) -> AgentContext:
+        context = AgentContext()
+        context.state = AgentStatesEnum.RESEARCHING
+        context.iteration = 4
+        context.searches_used = 2
+        context.clarifications_used = 1
+        context.execution_result = "partial result"
+        context.current_step_reasoning = {"action": "search", "step": 4}
+        context.custom_context = {"project": "acme", "flag": True}
+        context.searches.append(SearchResult(query="python asyncio"))
+        context.sources["u1"] = SourceData(number=1, url="https://example.com", title="Example")
+        return context
+
+    def test_to_snapshot_excludes_runtime_only_fields(self):
+        """Snapshot must drop the non-serializable event and re-resolvable skills."""
+        snapshot = self._populated_context().to_snapshot()
+
+        assert isinstance(snapshot, dict)
+        assert "clarification_received" not in snapshot
+        assert "available_skills" not in snapshot
+
+    def test_to_snapshot_keeps_restorable_state(self):
+        """Snapshot must carry everything needed to rebuild the context."""
+        snapshot = self._populated_context().to_snapshot()
+
+        assert snapshot["state"] == AgentStatesEnum.RESEARCHING.value
+        assert snapshot["iteration"] == 4
+        assert snapshot["searches_used"] == 2
+        assert snapshot["clarifications_used"] == 1
+        assert snapshot["execution_result"] == "partial result"
+        assert snapshot["current_step_reasoning"] == {"action": "search", "step": 4}
+        assert snapshot["custom_context"] == {"project": "acme", "flag": True}
+        assert snapshot["searches"][0]["query"] == "python asyncio"
+        assert snapshot["sources"]["u1"]["url"] == "https://example.com"
+
+    def test_to_snapshot_is_json_serializable(self):
+        """The snapshot must survive a JSON round-trip (for disk persistence)."""
+        snapshot = self._populated_context().to_snapshot()
+        assert json.loads(json.dumps(snapshot))["iteration"] == 4
+
+    def test_from_snapshot_round_trips_state(self):
+        """from_snapshot must rebuild an equivalent context."""
+        original = self._populated_context()
+        restored = AgentContext.from_snapshot(original.to_snapshot())
+
+        assert restored.state == AgentStatesEnum.RESEARCHING
+        assert restored.iteration == 4
+        assert restored.searches_used == 2
+        assert restored.clarifications_used == 1
+        assert restored.execution_result == "partial result"
+        assert restored.current_step_reasoning == {"action": "search", "step": 4}
+        assert restored.custom_context == {"project": "acme", "flag": True}
+        assert isinstance(restored.searches[0], SearchResult)
+        assert restored.searches[0].query == "python asyncio"
+        assert isinstance(restored.sources["u1"], SourceData)
+        assert restored.sources["u1"].url == "https://example.com"
+
+    def test_from_snapshot_creates_fresh_event(self):
+        """A restored context must get a usable, unset clarification event."""
+        restored = AgentContext.from_snapshot(self._populated_context().to_snapshot())
+
+        assert isinstance(restored.clarification_received, asyncio.Event)
+        assert not restored.clarification_received.is_set()
+
+    def test_from_snapshot_injects_available_skills(self):
+        """Skills are re-resolved externally and injected on restore."""
+        restored = AgentContext.from_snapshot(AgentContext().to_snapshot(), available_skills=[])
+        assert restored.available_skills == []
+
+
+class TestAgentCheckpoint:
+    """Tests for the AgentCheckpoint snapshot model."""
+
+    def _checkpoint(self) -> AgentCheckpoint:
+        context = AgentContext()
+        context.iteration = 3
+        return AgentCheckpoint(
+            agent_id="sgr_agent_abc",
+            def_name="sgr_agent",
+            step=3,
+            task_messages=[{"role": "user", "content": "Do research"}],
+            conversation=[{"role": "system", "content": "Agent started"}],
+            context=context.to_snapshot(),
+        )
+
+    def test_checkpoint_holds_identity_and_payload(self):
+        checkpoint = self._checkpoint()
+
+        assert checkpoint.agent_id == "sgr_agent_abc"
+        assert checkpoint.def_name == "sgr_agent"
+        assert checkpoint.step == 3
+        assert checkpoint.session_id is None
+        assert checkpoint.task_messages[0]["content"] == "Do research"
+        assert checkpoint.conversation[0]["content"] == "Agent started"
+        assert checkpoint.context["iteration"] == 3
+
+    def test_checkpoint_has_creation_timestamp(self):
+        assert isinstance(self._checkpoint().created_at, datetime)
+
+    def test_checkpoint_json_round_trip(self):
+        """A checkpoint must round-trip through JSON for disk storage."""
+        checkpoint = self._checkpoint()
+        restored = AgentCheckpoint.model_validate_json(checkpoint.model_dump_json())
+
+        assert restored.agent_id == checkpoint.agent_id
+        assert restored.step == checkpoint.step
+        assert restored.context["iteration"] == 3
+        assert restored.conversation == checkpoint.conversation
+
+    def test_checkpoint_accepts_session_id(self):
+        checkpoint = self._checkpoint()
+        checkpoint.session_id = "sgr_deadbeef"
+        assert AgentCheckpoint.model_validate_json(checkpoint.model_dump_json()).session_id == "sgr_deadbeef"
