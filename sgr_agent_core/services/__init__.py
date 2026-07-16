@@ -4,6 +4,7 @@ from sgr_agent_core.services.checkpoint_store import (
     BaseCheckpointStore,
     FileCheckpointStore,
     InMemoryCheckpointStore,
+    build_checkpoint_store,
 )
 from sgr_agent_core.services.mcp_service import MCP2ToolConverter
 from sgr_agent_core.services.prompt_loader import PromptLoader
@@ -24,4 +25,5 @@ __all__ = [
     "BaseCheckpointStore",
     "InMemoryCheckpointStore",
     "FileCheckpointStore",
+    "build_checkpoint_store",
 ]

@@ -13,8 +13,12 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from sgr_agent_core.models import AgentCheckpoint
+
+if TYPE_CHECKING:
+    from sgr_agent_core.agent_definition import CheckpointConfig
 
 logger = logging.getLogger(__name__)
 
@@ -157,3 +161,12 @@ class FileCheckpointStore(BaseCheckpointStore):
         if not self._root.is_dir():
             return []
         return [child.name for child in self._root.iterdir() if child.is_dir()]
+
+
+def build_checkpoint_store(config: "CheckpointConfig") -> BaseCheckpointStore | None:
+    """Build a checkpoint store from a CheckpointConfig, or None if disabled."""
+    if not config.enabled:
+        return None
+    if config.backend == "file":
+        return FileCheckpointStore(config.dir, max_history=config.max_history)
+    return InMemoryCheckpointStore(max_history=config.max_history)

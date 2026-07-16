@@ -2,10 +2,12 @@
 
 import pytest
 
+from sgr_agent_core.agent_definition import CheckpointConfig
 from sgr_agent_core.models import AgentCheckpoint
 from sgr_agent_core.services.checkpoint_store import (
     FileCheckpointStore,
     InMemoryCheckpointStore,
+    build_checkpoint_store,
 )
 
 
@@ -134,3 +136,21 @@ class TestFileCheckpointStore(_StoreContract):
         store.save(_checkpoint("a", 3))
 
         assert [cp.step for cp in FileCheckpointStore(str(self._dir)).list("a")] == [2, 3]
+
+
+class TestBuildCheckpointStore:
+    """Tests for building a store from a CheckpointConfig."""
+
+    def test_disabled_returns_none(self):
+        assert build_checkpoint_store(CheckpointConfig(enabled=False)) is None
+
+    def test_memory_backend(self):
+        store = build_checkpoint_store(CheckpointConfig(enabled=True, backend="memory", max_history=3))
+        assert isinstance(store, InMemoryCheckpointStore)
+        assert store._max_history == 3
+
+    def test_file_backend(self, tmp_path):
+        store = build_checkpoint_store(
+            CheckpointConfig(enabled=True, backend="file", dir=str(tmp_path / "cp"))
+        )
+        assert isinstance(store, FileCheckpointStore)

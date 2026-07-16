@@ -7,14 +7,20 @@ from fastapi.responses import StreamingResponse
 from sgr_agent_core import AgentFactory, AgentStatesEnum, BaseAgent
 from sgr_agent_core.server.models import (
     AgentCancelResponse,
+    AgentCheckpointItem,
+    AgentCheckpointListResponse,
     AgentDeleteResponse,
     AgentListItem,
     AgentListResponse,
+    AgentRestoreResponse,
+    AgentRollbackRequest,
+    AgentRollbackResponse,
     AgentStateResponse,
     ChatCompletionRequest,
     HealthResponse,
     MessagesRequest,
 )
+from sgr_agent_core.services.checkpoint_store import BaseCheckpointStore
 from sgr_agent_core.utils import is_agent_id
 
 logger = logging.getLogger(__name__)
@@ -23,6 +29,10 @@ router = APIRouter()
 
 # ToDo: better to move to a separate service
 agents_storage: dict[str, BaseAgent] = {}
+
+# Shared checkpoint store for all agents; set at server startup from config.
+# None means checkpointing is disabled.
+checkpoint_store: BaseCheckpointStore | None = None
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -117,6 +127,93 @@ async def delete_agent(agent_id: str):
         deleted=True,
         final_state=final_state,
     )
+
+
+@router.get("/agents/{agent_id}/checkpoints", response_model=AgentCheckpointListResponse)
+async def get_agent_checkpoints(agent_id: str):
+    """List the checkpoints saved for an agent.
+
+    Works even if the agent is no longer live in memory, as long as its
+    checkpoints are still in the store (e.g. after a restart).
+
+    Raises:
+        HTTPException: 404 if checkpointing is disabled or no checkpoints exist.
+    """
+    if checkpoint_store is None:
+        raise HTTPException(status_code=404, detail="Checkpointing is not enabled")
+
+    checkpoints = checkpoint_store.list(agent_id)
+    if not checkpoints:
+        raise HTTPException(status_code=404, detail="No checkpoints found for agent")
+
+    items = [
+        AgentCheckpointItem(
+            step=cp.step,
+            created_at=cp.created_at,
+            state=cp.context.get("state"),
+            session_id=cp.session_id,
+        )
+        for cp in checkpoints
+    ]
+    return AgentCheckpointListResponse(agent_id=agent_id, checkpoints=items, total=len(items))
+
+
+@router.post("/agents/{agent_id}/rollback", response_model=AgentRollbackResponse)
+async def rollback_agent(request: AgentRollbackRequest, agent_id: str):
+    """Roll a live agent back to a saved checkpoint.
+
+    Args:
+        request: Rollback options (target step; latest when omitted).
+        agent_id: The agent to roll back.
+
+    Raises:
+        HTTPException: 404 if checkpointing is disabled or the agent has no
+            checkpoints; 400 if the requested step does not exist.
+    """
+    if checkpoint_store is None:
+        raise HTTPException(status_code=404, detail="Checkpointing is not enabled")
+
+    agent = agents_storage.get(agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found (restore it before rolling back)")
+
+    try:
+        checkpoint = agent.rollback(request.step)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return AgentRollbackResponse(
+        agent_id=agent_id,
+        step=checkpoint.step,
+        state=agent._context.state.value,
+        restored=False,
+    )
+
+
+@router.post("/agents/{agent_id}/restore", response_model=AgentRestoreResponse)
+async def restore_agent(agent_id: str):
+    """Rebuild an agent from its latest checkpoint and put it back in storage.
+
+    Use this to resume an agent after a process restart.
+
+    Raises:
+        HTTPException: 404 if checkpointing is disabled or no checkpoint exists.
+    """
+    if checkpoint_store is None:
+        raise HTTPException(status_code=404, detail="Checkpointing is not enabled")
+
+    checkpoint = checkpoint_store.latest(agent_id)
+    if checkpoint is None:
+        raise HTTPException(status_code=404, detail="No checkpoints found for agent")
+
+    try:
+        agent = await AgentFactory.restore(checkpoint, checkpoint_store=checkpoint_store)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    agents_storage[agent.id] = agent
+    logger.info(f"Restored agent {agent.id} from checkpoint at step {checkpoint.step}")
+    return AgentRestoreResponse(agent_id=agent.id, step=checkpoint.step, state=agent._context.state.value)
 
 
 @router.get("/agents", response_model=AgentListResponse)
@@ -218,7 +315,7 @@ async def create_chat_completion(request: ChatCompletionRequest):
                 detail=f"Invalid model '{request.model}'. "
                 f"Available models: {[ad.name for ad in AgentFactory.get_definitions_list()]}",
             )
-        agent = await AgentFactory.create(agent_def, request.messages.root)
+        agent = await AgentFactory.create(agent_def, request.messages.root, checkpoint_store=checkpoint_store)
         logger.info(f"Created agent '{request.model}' with {len(request.messages)} messages")
 
         agents_storage[agent.id] = agent
