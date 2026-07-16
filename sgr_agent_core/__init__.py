@@ -21,6 +21,7 @@ from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.agent_definition import (
     AgentConfig,
     AgentDefinition,
+    CheckpointConfig,
     ExecutionConfig,
     LLMConfig,
     PromptsConfig,
@@ -87,6 +88,7 @@ __all__ = [
     "LLMConfig",
     "PromptsConfig",
     "ExecutionConfig",
+    "CheckpointConfig",
     "GlobalConfig",
     # Next step tools
     "NextStepToolStub",
