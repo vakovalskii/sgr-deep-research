@@ -15,8 +15,103 @@ import pytest
 from sgr_agent_core.agent_definition import AgentConfig, ExecutionConfig, LLMConfig, PromptsConfig
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.models import AgentContext, AgentStatesEnum
+from sgr_agent_core.services.checkpoint_store import InMemoryCheckpointStore
 from sgr_agent_core.tools import BaseTool, ReasoningTool, WebSearchTool
 from tests.conftest import create_test_agent
+
+
+class TestBaseAgentCheckpointing:
+    """Tests for per-step checkpointing, rollback, and restore hooks."""
+
+    @pytest.mark.asyncio
+    async def test_auto_checkpoint_per_iteration(self):
+        """Running the loop with a store must snapshot every iteration."""
+        store = InMemoryCheckpointStore()
+        agent = create_test_agent(
+            BaseAgent, task_messages=[{"role": "user", "content": "go"}], checkpoint_store=store
+        )
+
+        async def step():
+            if agent._context.iteration >= 3:
+                agent._context.state = AgentStatesEnum.COMPLETED
+
+        agent._execution_step = step
+        await agent.execute()
+
+        assert [cp.step for cp in store.list(agent.id)] == [1, 2, 3]
+        assert store.latest(agent.id).def_name == agent._def_name
+
+    def test_checkpoint_saves_and_lists(self):
+        store = InMemoryCheckpointStore()
+        agent = create_test_agent(BaseAgent, checkpoint_store=store)
+        agent._context.iteration = 2
+        agent.conversation.append({"role": "user", "content": "hi"})
+
+        checkpoint = agent.checkpoint()
+
+        assert checkpoint.step == 2
+        assert checkpoint.agent_id == agent.id
+        assert [cp.step for cp in agent.list_checkpoints()] == [2]
+
+    def test_rollback_restores_conversation_and_context(self):
+        store = InMemoryCheckpointStore()
+        agent = create_test_agent(BaseAgent, checkpoint_store=store)
+
+        agent._context.iteration = 1
+        agent._context.searches_used = 1
+        agent.conversation = [{"role": "user", "content": "first"}]
+        agent.checkpoint()
+
+        agent._context.iteration = 2
+        agent._context.searches_used = 5
+        agent.conversation.append({"role": "assistant", "content": "second"})
+        agent.checkpoint()
+
+        checkpoint = agent.rollback(1)
+
+        assert checkpoint.step == 1
+        assert agent._context.iteration == 1
+        assert agent._context.searches_used == 1
+        assert agent.conversation == [{"role": "user", "content": "first"}]
+        assert not agent._context.clarification_received.is_set()
+
+    def test_rollback_defaults_to_latest(self):
+        store = InMemoryCheckpointStore()
+        agent = create_test_agent(BaseAgent, checkpoint_store=store)
+        agent._context.iteration = 1
+        agent.checkpoint()
+        agent._context.iteration = 2
+        agent.checkpoint()
+
+        assert agent.rollback().step == 2
+        assert agent._context.iteration == 2
+
+    def test_rollback_without_store_raises(self):
+        agent = create_test_agent(BaseAgent)
+        with pytest.raises(RuntimeError):
+            agent.rollback()
+
+    def test_rollback_unknown_step_raises(self):
+        store = InMemoryCheckpointStore()
+        agent = create_test_agent(BaseAgent, checkpoint_store=store)
+        agent._context.iteration = 1
+        agent.checkpoint()
+
+        with pytest.raises(ValueError):
+            agent.rollback(99)
+
+    @pytest.mark.asyncio
+    async def test_no_store_means_no_checkpoints(self):
+        """Without a store the agent must run unchanged and expose no history."""
+        agent = create_test_agent(BaseAgent, task_messages=[{"role": "user", "content": "go"}])
+
+        async def step():
+            agent._context.state = AgentStatesEnum.COMPLETED
+
+        agent._execution_step = step
+        await agent.execute()
+
+        assert agent.list_checkpoints() == []
 
 
 class TestBaseAgentInitialization:
