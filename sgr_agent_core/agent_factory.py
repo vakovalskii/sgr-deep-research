@@ -20,6 +20,8 @@ from sgr_agent_core.stream import BaseStreamingGenerator, OpenAIStreamingGenerat
 from sgr_agent_core.tools.skill_tool import SkillTool
 
 if TYPE_CHECKING:
+    from sgr_agent_core.models import AgentCheckpoint
+    from sgr_agent_core.services.checkpoint_store import BaseCheckpointStore
     from sgr_agent_core.skills import BaseSkill
 
 logger = logging.getLogger(__name__)
@@ -156,6 +158,8 @@ class AgentFactory:
         task_messages: list[ChatCompletionMessageParam],
         *,
         streaming_generator: type[BaseStreamingGenerator] | None = None,
+        checkpoint_store: "BaseCheckpointStore | None" = None,
+        session_id: str | None = None,
     ) -> Agent:
         """Create an agent instance from a definition.
 
@@ -163,6 +167,8 @@ class AgentFactory:
             agent_def: Agent definition with configuration (classes already resolved)
             task_messages: Task messages in OpenAI ChatCompletionMessageParam format
             streaming_generator: Optional streaming generator class (overrides execution config)
+            checkpoint_store: Optional store enabling per-step checkpointing
+            session_id: Optional external session id tagging the agent's checkpoints
 
         Returns:
             Created agent instance
@@ -238,6 +244,8 @@ class AgentFactory:
                 agent_config=agent_def,
                 streaming_generator=gen_cls,
                 skills=skills,
+                checkpoint_store=checkpoint_store,
+                session_id=session_id,
                 **agent_kwargs,
             )
             logger.info(
@@ -249,6 +257,58 @@ class AgentFactory:
         except Exception as e:
             logger.error(f"Failed to create agent '{agent_def.name}': {e}", exc_info=True)
             raise ValueError(f"Failed to create agent: {e}") from e
+
+    @classmethod
+    async def restore(
+        cls,
+        checkpoint: "AgentCheckpoint",
+        *,
+        agent_def: AgentDefinition | None = None,
+        checkpoint_store: "BaseCheckpointStore | None" = None,
+        streaming_generator: type[BaseStreamingGenerator] | None = None,
+    ) -> Agent:
+        """Rebuild a live agent from a checkpoint.
+
+        The agent definition is taken from ``agent_def`` when provided, otherwise
+        resolved from ``GlobalConfig`` by the checkpoint's ``def_name``. The
+        rebuilt agent keeps the checkpoint's id (so it can be addressed and can
+        find its own history) and has the saved conversation and context applied.
+
+        Args:
+            checkpoint: The checkpoint to restore from.
+            agent_def: Optional agent definition (skips GlobalConfig lookup).
+            checkpoint_store: Store to attach to the restored agent.
+            streaming_generator: Optional streaming generator class override.
+
+        Returns:
+            The restored agent instance.
+
+        Raises:
+            ValueError: If no agent definition can be resolved for the checkpoint.
+        """
+        if agent_def is None:
+            agents = GlobalConfig().agents
+            if not checkpoint.def_name or checkpoint.def_name not in agents:
+                raise ValueError(
+                    f"Cannot restore agent: definition '{checkpoint.def_name}' not found in configuration"
+                )
+            agent_def = agents[checkpoint.def_name]
+
+        agent = await cls.create(
+            agent_def,
+            checkpoint.task_messages,
+            streaming_generator=streaming_generator,
+            checkpoint_store=checkpoint_store,
+            session_id=checkpoint.session_id,
+        )
+        # Rebind the identity to the checkpoint so the agent addresses its own
+        # history and keeps a stable id across restarts.
+        agent.id = checkpoint.agent_id
+        if getattr(agent.streaming_generator, "agent_id", None) is not None:
+            agent.streaming_generator.agent_id = checkpoint.agent_id
+        agent._apply_checkpoint(checkpoint)
+        logger.info(f"Restored agent '{agent_def.name}' as {agent.id} at step {checkpoint.step}")
+        return agent
 
     @classmethod
     def get_definitions_list(cls) -> list[AgentDefinition]:

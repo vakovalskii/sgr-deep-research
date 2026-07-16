@@ -26,6 +26,8 @@ from sgr_agent_core.agents import (
     ToolCallingAgent,
 )
 from sgr_agent_core.base_agent import BaseAgent
+from sgr_agent_core.models import AgentCheckpoint, AgentContext
+from sgr_agent_core.services.checkpoint_store import InMemoryCheckpointStore
 from sgr_agent_core.stream import OpenAIStreamingGenerator, OpenWebUIStreamingGenerator
 from sgr_agent_core.tools import BaseTool, ReasoningTool, RunCommandTool
 
@@ -1097,3 +1099,114 @@ class TestAgentFactoryDefinitionsList:
 
             assert len(definitions) == 0
             assert definitions == []
+
+
+class TestAgentFactoryCheckpointing:
+    """Tests for wiring a checkpoint store into created/restored agents."""
+
+    def _sgr_agent_def(self) -> AgentDefinition:
+        return AgentDefinition(
+            name="sgr_agent",
+            base_class=SGRAgent,
+            tools=["reasoningtool"],
+            llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
+            prompts={
+                "system_prompt_str": "Test system prompt",
+                "initial_user_request_str": "Test initial request",
+                "clarification_response_str": "Test clarification response",
+            },
+            execution={},
+        )
+
+    def _checkpoint(self) -> AgentCheckpoint:
+        context = AgentContext()
+        context.iteration = 4
+        context.searches_used = 2
+        return AgentCheckpoint(
+            agent_id="sgr_agent_fixed-id",
+            def_name="sgr_agent",
+            step=4,
+            session_id="sess-1",
+            task_messages=[{"role": "user", "content": "orig"}],
+            conversation=[
+                {"role": "user", "content": "orig"},
+                {"role": "assistant", "content": "progress"},
+            ],
+            context=context.to_snapshot(),
+        )
+
+    @pytest.mark.asyncio
+    async def test_create_threads_checkpoint_store(self):
+        with (
+            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+            mock_global_config(),
+        ):
+            store = InMemoryCheckpointStore()
+            agent = await AgentFactory.create(
+                self._sgr_agent_def(),
+                task_messages=[{"role": "user", "content": "Test"}],
+                checkpoint_store=store,
+            )
+            assert agent.checkpoint_store is store
+
+    @pytest.mark.asyncio
+    async def test_restore_rebuilds_agent_from_checkpoint(self):
+        with (
+            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+            mock_global_config(),
+        ):
+            store = InMemoryCheckpointStore()
+            checkpoint = self._checkpoint()
+            store.save(checkpoint)
+
+            agent = await AgentFactory.restore(
+                checkpoint,
+                agent_def=self._sgr_agent_def(),
+                checkpoint_store=store,
+            )
+
+            assert agent.id == "sgr_agent_fixed-id"
+            assert agent.streaming_generator.agent_id == "sgr_agent_fixed-id"
+            assert agent._context.iteration == 4
+            assert agent._context.searches_used == 2
+            assert agent.conversation[-1]["content"] == "progress"
+            assert agent.checkpoint_store is store
+            assert agent._session_id == "sess-1"
+            # The restored agent can address its own checkpoint history.
+            assert [cp.step for cp in agent.list_checkpoints()] == [4]
+
+    @pytest.mark.asyncio
+    async def test_restore_resolves_definition_from_global_config(self):
+        cfg = Mock()
+        cfg.llm = LLMConfig(api_key="default-key", base_url="https://api.openai.com/v1")
+        cfg.prompts = PromptsConfig(
+            system_prompt_str="d", initial_user_request_str="d", clarification_response_str="d"
+        )
+        cfg.execution = ExecutionConfig()
+        cfg.search = None
+        cfg.langfuse = LangfuseConfig()
+        cfg.tools = {}
+        mock_mcp = Mock()
+        mock_mcp.model_copy.return_value = mock_mcp
+        mock_mcp.model_dump.return_value = {}
+        cfg.mcp = mock_mcp
+        with (
+            patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+            patch("sgr_agent_core.agent_config.GlobalConfig", return_value=cfg),
+            patch("sgr_agent_core.agent_factory.GlobalConfig", return_value=cfg),
+        ):
+            cfg.agents = {"sgr_agent": self._sgr_agent_def()}
+            agent = await AgentFactory.restore(self._checkpoint())
+
+        assert agent.id == "sgr_agent_fixed-id"
+        assert agent._context.iteration == 4
+
+    @pytest.mark.asyncio
+    async def test_restore_missing_definition_raises(self):
+        checkpoint = self._checkpoint()
+        checkpoint.def_name = "ghost_agent"
+        mock_config = Mock()
+        mock_config.agents = {}
+        with patch("sgr_agent_core.agent_factory.GlobalConfig", return_value=mock_config):
+            with pytest.raises(ValueError):
+                await AgentFactory.restore(checkpoint)
