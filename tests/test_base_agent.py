@@ -112,6 +112,26 @@ class TestBaseAgentCheckpointing:
 
         assert agent.list_checkpoints() == []
 
+    @pytest.mark.asyncio
+    async def test_auto_checkpoint_failure_does_not_crash_run(self):
+        """A store that raises on save must not abort the agent execution."""
+
+        class _BrokenStore(InMemoryCheckpointStore):
+            def save(self, checkpoint):
+                raise OSError("disk full")
+
+        agent = create_test_agent(
+            BaseAgent, task_messages=[{"role": "user", "content": "go"}], checkpoint_store=_BrokenStore()
+        )
+
+        async def step():
+            agent._context.state = AgentStatesEnum.COMPLETED
+
+        agent._execution_step = step
+        await agent.execute()
+
+        assert agent._context.state == AgentStatesEnum.COMPLETED
+
 
 class TestBaseAgentInitialization:
     """Tests for BaseAgent initialization and setup."""

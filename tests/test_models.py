@@ -437,6 +437,21 @@ class TestAgentContextSnapshot:
         restored = AgentContext.from_snapshot(AgentContext().to_snapshot(), available_skills=[])
         assert restored.available_skills == []
 
+    def test_custom_context_pydantic_model_is_preserved(self):
+        """A Pydantic custom_context must not be reduced to {} on snapshot."""
+        from pydantic import BaseModel as PydModel
+
+        class ProjectContext(PydModel):
+            foo: int = 0
+            bar: str = ""
+
+        context = AgentContext(custom_context=ProjectContext(foo=7, bar="hi"))
+        snapshot = context.to_snapshot()
+
+        assert snapshot["custom_context"] == {"foo": 7, "bar": "hi"}
+        restored = AgentContext.from_snapshot(snapshot)
+        assert restored.custom_context == {"foo": 7, "bar": "hi"}
+
 
 class TestAgentCheckpoint:
     """Tests for the AgentCheckpoint snapshot model."""

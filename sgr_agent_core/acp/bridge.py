@@ -383,6 +383,24 @@ class SGRACPBridge:
         if not text:
             return PromptResponse(stop_reason="end_turn")
 
+        # Resume an agent restored via load_session (present but not yet
+        # running): feed the new input into its restored conversation/context
+        # and (re)start execution instead of discarding it for a fresh agent.
+        if (
+            sess.agent is not None
+            and sess.execute_task is None
+            and sess.agent._context.state not in AgentStatesEnum.FINISH_STATES.value
+        ):
+            if sess.agent._context.state == AgentStatesEnum.WAITING_FOR_CLARIFICATION:
+                await sess.agent.provide_clarification(
+                    [{"role": "user", "content": text}],
+                    replace_conversation=False,
+                )
+            else:
+                sess.agent.conversation.append({"role": "user", "content": text})
+            sess.execute_task = asyncio.create_task(sess.agent.execute())
+            return await self._wait_turn(sess.agent, sess.execute_task)
+
         if sess.agent and sess.agent._context.state == AgentStatesEnum.WAITING_FOR_CLARIFICATION:
             await sess.agent.provide_clarification(
                 [{"role": "user", "content": text}],

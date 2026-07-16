@@ -177,6 +177,10 @@ async def rollback_agent(request: AgentRollbackRequest, agent_id: str):
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found (restore it before rolling back)")
 
+    # Stop any in-flight execution first, otherwise the running step would
+    # resume and write its results onto the freshly restored state.
+    await agent.cancel()
+
     try:
         checkpoint = agent.rollback(request.step)
     except ValueError as exc:

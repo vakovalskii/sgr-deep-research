@@ -88,8 +88,12 @@ class AgentContext(BaseModel):
         Excludes runtime-only fields (the clarification event and the
         resolved skills) so the result can be persisted to disk and
         rebuilt later via :meth:`from_snapshot`.
+
+        ``serialize_as_any`` ensures a ``custom_context`` holding a Pydantic
+        model is dumped by its concrete type (not the bare ``BaseModel``
+        schema), so project-specific fields are not silently dropped.
         """
-        return self.model_dump(mode="json", exclude=_CONTEXT_SNAPSHOT_EXCLUDE)
+        return self.model_dump(mode="json", exclude=_CONTEXT_SNAPSHOT_EXCLUDE, serialize_as_any=True)
 
     @classmethod
     def from_snapshot(cls, data: dict, available_skills: list[BaseSkill] | None = None) -> "AgentContext":

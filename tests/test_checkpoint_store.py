@@ -1,5 +1,7 @@
 """Tests for checkpoint stores (in-memory and file backends)."""
 
+from datetime import datetime
+
 import pytest
 
 from sgr_agent_core.agent_definition import CheckpointConfig
@@ -96,6 +98,20 @@ class _StoreContract:
         assert [cp.step for cp in found] == [1, 2]
         assert store.find_by_session("missing") == []
 
+    def test_find_by_session_orders_by_creation_across_agents(self):
+        """The latest checkpoint must be last even when a later turn (new
+        agent) has fewer steps than an earlier one."""
+        store = self.make_store()
+        early = _checkpoint("turn_a", 10, session_id="s1")
+        early.created_at = datetime(2026, 7, 16, 10, 0, 0)
+        late = _checkpoint("turn_b", 2, session_id="s1")
+        late.created_at = datetime(2026, 7, 16, 11, 0, 0)
+        store.save(early)
+        store.save(late)
+
+        found = store.find_by_session("s1")
+        assert found[-1].agent_id == "turn_b"
+
 
 class TestInMemoryCheckpointStore(_StoreContract):
     def make_store(self):
@@ -137,6 +153,17 @@ class TestFileCheckpointStore(_StoreContract):
         store.save(_checkpoint("a", 3))
 
         assert [cp.step for cp in FileCheckpointStore(str(self._dir)).list("a")] == [2, 3]
+
+    def test_delete_tolerates_non_json_files(self):
+        """Delete() must remove the whole agent dir even with stray files."""
+        store = FileCheckpointStore(str(self._dir))
+        store.save(_checkpoint("a", 1))
+        (self._dir / "a" / "notes.txt").write_text("stray", encoding="utf-8")
+
+        store.delete("a")
+
+        assert store.list("a") == []
+        assert not (self._dir / "a").exists()
 
 
 class TestBuildCheckpointStore:

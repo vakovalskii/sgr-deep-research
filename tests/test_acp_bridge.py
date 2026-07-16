@@ -159,6 +159,62 @@ async def test_acp_prompt_tags_checkpoints_with_session_id():
 
 
 @pytest.mark.asyncio
+async def test_acp_prompt_resumes_restored_agent_instead_of_recreating():
+    """After load_session, the next prompt must continue the restored agent."""
+    from unittest.mock import AsyncMock
+
+    from sgr_agent_core.acp.bridge import SGRACPBridge
+    from sgr_agent_core.models import AgentCheckpoint, AgentContext, AgentStatesEnum
+    from sgr_agent_core.services.checkpoint_store import InMemoryCheckpointStore
+
+    store = InMemoryCheckpointStore()
+    context = AgentContext()
+    context.iteration = 2
+    context.state = AgentStatesEnum.RESEARCHING
+    store.save(
+        AgentCheckpoint(
+            agent_id="sgr_agent_x",
+            def_name="sgr_agent",
+            step=2,
+            session_id="sess-1",
+            task_messages=[{"role": "user", "content": "t"}],
+            conversation=[{"role": "user", "content": "t"}],
+            context=context.to_snapshot(),
+        )
+    )
+
+    cfg = _fake_bridge_config({"sgr_agent": "gpt-4o-mini"})
+    bridge = SGRACPBridge(default_agent_name="sgr_agent", checkpoint_store=store)
+    bridge._client = SimpleNamespace()
+
+    restored = SimpleNamespace(
+        id="sgr_agent_x",
+        conversation=[{"role": "user", "content": "t"}],
+        _context=SimpleNamespace(state=AgentStatesEnum.RESEARCHING),
+        execute=lambda: None,
+    )
+
+    async def fake_wait_turn(agent, task):
+        return SimpleNamespace(stop_reason="end_turn")
+
+    with (
+        _patch_bridge_config(cfg),
+        patch("sgr_agent_core.acp.bridge.create_acp_streaming_generator_class", return_value=None),
+        patch("sgr_agent_core.acp.bridge.AgentFactory.restore", new=AsyncMock(return_value=restored)),
+        patch("sgr_agent_core.acp.bridge.AgentFactory.create", new=AsyncMock()) as mock_create,
+        patch("sgr_agent_core.acp.bridge.asyncio.create_task", return_value=SimpleNamespace()),
+        patch.object(bridge, "_wait_turn", new=fake_wait_turn),
+    ):
+        await bridge.load_session(cwd="/tmp", session_id="sess-1")
+        await bridge.prompt(prompt=[TextContentBlock(type="text", text="more")], session_id="sess-1")
+
+    mock_create.assert_not_awaited()
+    assert bridge._sessions["sess-1"].agent is restored
+    assert bridge._sessions["sess-1"].execute_task is not None
+    assert restored.conversation[-1] == {"role": "user", "content": "more"}
+
+
+@pytest.mark.asyncio
 async def test_acp_bridge_new_session_returns_session_id():
     """new_session should create a session with a stable id prefix pattern."""
     from sgr_agent_core.acp.bridge import SGRACPBridge

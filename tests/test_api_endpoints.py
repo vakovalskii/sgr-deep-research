@@ -795,6 +795,27 @@ class TestAgentCheckpointEndpoints:
         assert agent.conversation == [{"role": "user", "content": "a"}]
 
     @pytest.mark.asyncio
+    async def test_rollback_cancels_running_task(self):
+        """A rollback on a still-running agent must cancel its execute task."""
+        import asyncio
+
+        store = InMemoryCheckpointStore()
+        endpoints_module.checkpoint_store = store
+        agent = create_test_agent(SGRAgent, checkpoint_store=store)
+        agents_storage[agent.id] = agent
+        agent._context.iteration = 1
+        agent.checkpoint()
+
+        async def _run_forever():
+            await asyncio.sleep(3600)
+
+        agent._execute_task = asyncio.create_task(_run_forever())
+
+        await rollback_agent(AgentRollbackRequest(step=1), agent.id)
+
+        assert agent._execute_task.cancelled()
+
+    @pytest.mark.asyncio
     async def test_rollback_defaults_to_latest(self):
         store = InMemoryCheckpointStore()
         endpoints_module.checkpoint_store = store

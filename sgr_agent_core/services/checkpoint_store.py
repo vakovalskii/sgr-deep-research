@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -60,12 +61,16 @@ class BaseCheckpointStore(ABC):
         return checkpoints[-1] if checkpoints else None
 
     def find_by_session(self, session_id: str) -> list[AgentCheckpoint]:
-        """Return all checkpoints tagged with ``session_id``, ordered by
-        step."""
+        """Return all checkpoints tagged with ``session_id``.
+
+        Ordered by creation time then step, so the last element is the
+        most recent checkpoint even when a session spans multiple agents
+        (each with its own step counter), e.g. successive ACP turns.
+        """
         found: list[AgentCheckpoint] = []
         for agent_id in self.agent_ids():
             found.extend(cp for cp in self.list(agent_id) if cp.session_id == session_id)
-        found.sort(key=lambda cp: cp.step)
+        found.sort(key=lambda cp: (cp.created_at, cp.step))
         return found
 
 
@@ -154,9 +159,7 @@ class FileCheckpointStore(BaseCheckpointStore):
         agent_dir = self._agent_dir(agent_id)
         if not agent_dir.is_dir():
             return
-        for path in agent_dir.glob("*.json"):
-            path.unlink(missing_ok=True)
-        agent_dir.rmdir()
+        shutil.rmtree(agent_dir)
 
     def agent_ids(self) -> list[str]:
         if not self._root.is_dir():

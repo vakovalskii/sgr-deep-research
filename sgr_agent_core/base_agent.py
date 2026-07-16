@@ -209,6 +209,19 @@ class BaseAgent(AgentRegistryMixin):
             self.checkpoint_store.save(checkpoint)
         return checkpoint
 
+    def _auto_checkpoint(self) -> None:
+        """Best-effort checkpoint for the execution loop; never raises.
+
+        A failing or unserializable store must not abort a healthy agent run,
+        so errors are logged and swallowed (unlike the public ``checkpoint``).
+        """
+        if self.checkpoint_store is None:
+            return
+        try:
+            self.checkpoint()
+        except Exception as exc:  # noqa: BLE001 - checkpointing is best effort
+            self.logger.warning(f"Failed to save checkpoint at step {self._context.iteration}: {exc}")
+
     def list_checkpoints(self) -> list[AgentCheckpoint]:
         """Return this agent's checkpoints (ordered by step), or empty list."""
         if self.checkpoint_store is None:
@@ -317,6 +330,10 @@ class BaseAgent(AgentRegistryMixin):
             self.streaming_generator.finish(
                 phase_id="{self._context.iteration}-final", content=self._context.execution_result
             )
+            # Capture the waiting state so a restore/resume observes that the
+            # agent is paused for clarification (the start-of-step checkpoint
+            # was taken before this step set the waiting state).
+            self._auto_checkpoint()
             self._context.clarification_received.clear()
             await self._context.clarification_received.wait()
 
@@ -362,8 +379,7 @@ class BaseAgent(AgentRegistryMixin):
                 # Snapshot the state entering this step so a rollback returns
                 # the agent to the start of the step (crash-safe: the latest
                 # checkpoint holds everything through the previous step).
-                if self.checkpoint_store is not None:
-                    self.checkpoint()
+                self._auto_checkpoint()
                 await self._execution_step()
             return self._context.execution_result
 
