@@ -27,9 +27,7 @@ class TestBaseAgentCheckpointing:
     async def test_auto_checkpoint_per_iteration(self):
         """Running the loop with a store must snapshot every iteration."""
         store = InMemoryCheckpointStore()
-        agent = create_test_agent(
-            BaseAgent, task_messages=[{"role": "user", "content": "go"}], checkpoint_store=store
-        )
+        agent = create_test_agent(BaseAgent, task_messages=[{"role": "user", "content": "go"}], checkpoint_store=store)
 
         async def step():
             if agent._context.iteration >= 3:
@@ -102,7 +100,8 @@ class TestBaseAgentCheckpointing:
 
     @pytest.mark.asyncio
     async def test_no_store_means_no_checkpoints(self):
-        """Without a store the agent must run unchanged and expose no history."""
+        """Without a store the agent must run unchanged and expose no
+        history."""
         agent = create_test_agent(BaseAgent, task_messages=[{"role": "user", "content": "go"}])
 
         async def step():

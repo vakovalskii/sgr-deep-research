@@ -30,6 +30,7 @@ plugins:
             Using as Library: Использование как библиотека
             API Server Quick Start: Быстрый старт API сервера
             Configuration: Конфигурация
+            Checkpoints & Rollback: Чекпоинты и откат
             Langfuse: Langfuse
             Build your agent: Собери своего агента
             Skills: Навыки
@@ -85,6 +86,7 @@ nav:
     - User Guide:
         - Using as Library: framework/first-steps.md
         - Configuration: framework/configuration.md
+        - Checkpoints & Rollback: framework/checkpoints.md
         - Langfuse: framework/langfuse.md
         - Build your agent: framework/agents.md
         - Tools: framework/tools.md

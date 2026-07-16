@@ -95,9 +95,9 @@ class AgentContext(BaseModel):
     def from_snapshot(cls, data: dict, available_skills: list[BaseSkill] | None = None) -> "AgentContext":
         """Rebuild a context from a snapshot produced by :meth:`to_snapshot`.
 
-        A fresh clarification event is created automatically (via the field
-        default factory); skills are injected from the caller since they are
-        re-resolved from configuration on restore.
+        A fresh clarification event is created automatically (via the
+        field default factory); skills are injected from the caller
+        since they are re-resolved from configuration on restore.
         """
         payload = {k: v for k, v in data.items() if k not in _CONTEXT_SNAPSHOT_EXCLUDE}
         payload["available_skills"] = available_skills or []

@@ -380,7 +380,8 @@ class TestAgentContextSnapshot:
         return context
 
     def test_to_snapshot_excludes_runtime_only_fields(self):
-        """Snapshot must drop the non-serializable event and re-resolvable skills."""
+        """Snapshot must drop the non-serializable event and re-resolvable
+        skills."""
         snapshot = self._populated_context().to_snapshot()
 
         assert isinstance(snapshot, dict)
@@ -402,7 +403,8 @@ class TestAgentContextSnapshot:
         assert snapshot["sources"]["u1"]["url"] == "https://example.com"
 
     def test_to_snapshot_is_json_serializable(self):
-        """The snapshot must survive a JSON round-trip (for disk persistence)."""
+        """The snapshot must survive a JSON round-trip (for disk
+        persistence)."""
         snapshot = self._populated_context().to_snapshot()
         assert json.loads(json.dumps(snapshot))["iteration"] == 4
 

@@ -77,7 +77,8 @@ async def test_acp_load_session_returns_none_when_no_checkpoints():
 
 @pytest.mark.asyncio
 async def test_acp_load_session_restores_session():
-    """load_session must rebuild the session from a session-tagged checkpoint."""
+    """load_session must rebuild the session from a session-tagged
+    checkpoint."""
     from unittest.mock import AsyncMock
 
     from sgr_agent_core.acp.bridge import SGRACPBridge
@@ -117,7 +118,8 @@ async def test_acp_load_session_restores_session():
 
 @pytest.mark.asyncio
 async def test_acp_prompt_tags_checkpoints_with_session_id():
-    """Agents created for a prompt must carry the session id for checkpointing."""
+    """Agents created for a prompt must carry the session id for
+    checkpointing."""
     from unittest.mock import AsyncMock
 
     from sgr_agent_core.acp.bridge import SGRACPBridge

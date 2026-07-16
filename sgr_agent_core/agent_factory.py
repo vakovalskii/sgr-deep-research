@@ -289,9 +289,7 @@ class AgentFactory:
         if agent_def is None:
             agents = GlobalConfig().agents
             if not checkpoint.def_name or checkpoint.def_name not in agents:
-                raise ValueError(
-                    f"Cannot restore agent: definition '{checkpoint.def_name}' not found in configuration"
-                )
+                raise ValueError(f"Cannot restore agent: definition '{checkpoint.def_name}' not found in configuration")
             agent_def = agents[checkpoint.def_name]
 
         agent = await cls.create(

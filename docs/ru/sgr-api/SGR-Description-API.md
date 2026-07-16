@@ -458,3 +458,91 @@ curl -X DELETE "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef"
 - Очистить хранилище от завершенных агентов
 - Отменить агента, который завис или выполняется слишком долго
 - Освободить ресурсы, удалив неактивных агентов
+
+## GET `/agents/{agent_id}/checkpoints`
+
+Список сохранённых чекпоинтов состояния агента. Требует включённого чекпоинтинга
+(`execution.checkpoint.enabled: true`). Работает даже для агентов, которых уже
+нет в памяти, если их чекпоинты остались в сторе.
+
+**Запрос:**
+
+```bash
+curl "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/checkpoints"
+```
+
+**Ответ:**
+
+```json
+{
+  "agent_id": "sgr_agent_12345-67890-abcdef",
+  "checkpoints": [
+    {"step": 1, "created_at": "2026-07-16T10:00:00", "state": "researching", "session_id": null},
+    {"step": 2, "created_at": "2026-07-16T10:00:05", "state": "researching", "session_id": null}
+  ],
+  "total": 2
+}
+```
+
+**Ошибки:**
+
+- `404 Not Found`: чекпоинтинг выключен или у агента нет чекпоинтов.
+
+## POST `/agents/{agent_id}/rollback`
+
+Откатить **живого** агента к сохранённому чекпоинту, восстановив его conversation
+и context.
+
+**Тело запроса:**
+
+- `step` (integer, опционально): итерация для отката. Без `step` — последний чекпоинт.
+
+**Запрос:**
+
+```bash
+curl -X POST "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/rollback" \
+  -H "Content-Type: application/json" \
+  -d '{"step": 1}'
+```
+
+**Ответ:**
+
+```json
+{
+  "agent_id": "sgr_agent_12345-67890-abcdef",
+  "step": 1,
+  "state": "researching",
+  "restored": false
+}
+```
+
+**Ошибки:**
+
+- `404 Not Found`: чекпоинтинг выключен или агента нет в хранилище (сначала восстановите его).
+- `400 Bad Request`: для указанного шага нет чекпоинта.
+
+## POST `/agents/{agent_id}/restore`
+
+Пересобрать агента из последнего чекпоинта и вернуть его в хранилище. Используйте
+для возобновления агента после перезапуска процесса (с бэкендом `file`).
+
+**Запрос:**
+
+```bash
+curl -X POST "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/restore"
+```
+
+**Ответ:**
+
+```json
+{
+  "agent_id": "sgr_agent_12345-67890-abcdef",
+  "step": 2,
+  "state": "researching"
+}
+```
+
+**Ошибки:**
+
+- `404 Not Found`: чекпоинтинг выключен или у агента нет чекпоинтов.
+- `400 Bad Request`: определение агента из чекпоинта отсутствует в текущей конфигурации.

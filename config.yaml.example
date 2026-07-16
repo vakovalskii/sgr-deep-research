@@ -26,6 +26,12 @@ execution:
   mcp_context_limit: 15000  # Max context length from MCP server response
   logs_dir: "logs"  # Directory for saving agent execution logs
   reports_dir: "reports"  # Directory for saving agent reports
+  # Optional: state checkpointing (rollback / restore / session resume)
+  checkpoint:
+    enabled: false  # Set true to snapshot agent state every step
+    backend: "memory"  # "memory" (per-process) or "file" (survives restarts)
+    dir: "checkpoints"  # Directory used by the file backend
+    max_history: null  # Keep only the last N steps per agent (null = unbounded)
 
 # Optional: Agent Client Protocol (stdio) via `sgracp --config config.yaml`
 # acp:

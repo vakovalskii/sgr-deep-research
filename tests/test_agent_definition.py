@@ -39,9 +39,7 @@ class TestCheckpointConfig:
 
     def test_execution_config_accepts_checkpoint_override(self):
         """Checkpoint settings can be provided as a nested dict."""
-        execution = ExecutionConfig(
-            checkpoint={"enabled": True, "backend": "file", "dir": "cp", "max_history": 5}
-        )
+        execution = ExecutionConfig(checkpoint={"enabled": True, "backend": "file", "dir": "cp", "max_history": 5})
         assert execution.checkpoint.enabled is True
         assert execution.checkpoint.backend == "file"
         assert execution.checkpoint.dir == "cp"

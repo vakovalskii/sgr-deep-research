@@ -32,7 +32,8 @@ class BaseCheckpointStore(ABC):
 
     @abstractmethod
     def save(self, checkpoint: AgentCheckpoint) -> None:
-        """Persist a checkpoint, replacing any existing one with the same step."""
+        """Persist a checkpoint, replacing any existing one with the same
+        step."""
 
     @abstractmethod
     def list(self, agent_id: str) -> list[AgentCheckpoint]:
@@ -59,7 +60,8 @@ class BaseCheckpointStore(ABC):
         return checkpoints[-1] if checkpoints else None
 
     def find_by_session(self, session_id: str) -> list[AgentCheckpoint]:
-        """Return all checkpoints tagged with ``session_id``, ordered by step."""
+        """Return all checkpoints tagged with ``session_id``, ordered by
+        step."""
         found: list[AgentCheckpoint] = []
         for agent_id in self.agent_ids():
             found.extend(cp for cp in self.list(agent_id) if cp.session_id == session_id)
@@ -102,7 +104,8 @@ class InMemoryCheckpointStore(BaseCheckpointStore):
 
 
 class FileCheckpointStore(BaseCheckpointStore):
-    """Persist checkpoints as JSON files under ``{root}/{agent_id}/{step}.json``.
+    """Persist checkpoints as JSON files under
+    ``{root}/{agent_id}/{step}.json``.
 
     Args:
         root: Directory to store checkpoints in (created on demand).
@@ -124,9 +127,7 @@ class FileCheckpointStore(BaseCheckpointStore):
     def save(self, checkpoint: AgentCheckpoint) -> None:
         agent_dir = self._agent_dir(checkpoint.agent_id)
         agent_dir.mkdir(parents=True, exist_ok=True)
-        self._step_file(agent_dir, checkpoint.step).write_text(
-            checkpoint.model_dump_json(indent=2), encoding="utf-8"
-        )
+        self._step_file(agent_dir, checkpoint.step).write_text(checkpoint.model_dump_json(indent=2), encoding="utf-8")
         self._evict(agent_dir)
 
     def _evict(self, agent_dir: Path) -> None:
@@ -164,7 +165,8 @@ class FileCheckpointStore(BaseCheckpointStore):
 
 
 def build_checkpoint_store(config: "CheckpointConfig") -> BaseCheckpointStore | None:
-    """Build a checkpoint store from a CheckpointConfig, or None if disabled."""
+    """Build a checkpoint store from a CheckpointConfig, or None if
+    disabled."""
     if not config.enabled:
         return None
     if config.backend == "file":

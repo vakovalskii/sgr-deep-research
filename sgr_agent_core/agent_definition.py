@@ -133,13 +133,9 @@ class CheckpointConfig(BaseModel, extra="allow"):
     """
 
     enabled: bool = Field(default=False, description="Enable automatic per-step checkpointing")
-    backend: Literal["memory", "file"] = Field(
-        default="memory", description="Checkpoint store backend"
-    )
+    backend: Literal["memory", "file"] = Field(default="memory", description="Checkpoint store backend")
     dir: str = Field(default="checkpoints", description="Directory for the file backend")
-    max_history: int | None = Field(
-        default=None, ge=1, description="Max checkpoints kept per agent (None = unbounded)"
-    )
+    max_history: int | None = Field(default=None, ge=1, description="Max checkpoints kept per agent (None = unbounded)")
 
 
 class ExecutionConfig(BaseModel, extra="allow"):

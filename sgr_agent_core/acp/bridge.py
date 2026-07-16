@@ -281,10 +281,11 @@ class SGRACPBridge:
     ) -> LoadSessionResponse | None:
         """Restore a session from its latest checkpoint.
 
-        Returns None (unsupported) when no checkpoint store is configured or no
-        checkpoint exists for the session. Otherwise the agent is rebuilt from
-        its last checkpoint and the session is re-registered so it can continue
-        via the standard per-prompt flow.
+        Returns None (unsupported) when no checkpoint store is
+        configured or no checkpoint exists for the session. Otherwise
+        the agent is rebuilt from its last checkpoint and the session is
+        re-registered so it can continue via the standard per-prompt
+        flow.
         """
         if self._checkpoint_store is None:
             return None

@@ -1179,9 +1179,7 @@ class TestAgentFactoryCheckpointing:
     async def test_restore_resolves_definition_from_global_config(self):
         cfg = Mock()
         cfg.llm = LLMConfig(api_key="default-key", base_url="https://api.openai.com/v1")
-        cfg.prompts = PromptsConfig(
-            system_prompt_str="d", initial_user_request_str="d", clarification_response_str="d"
-        )
+        cfg.prompts = PromptsConfig(system_prompt_str="d", initial_user_request_str="d", clarification_response_str="d")
         cfg.execution = ExecutionConfig()
         cfg.search = None
         cfg.langfuse = LangfuseConfig()

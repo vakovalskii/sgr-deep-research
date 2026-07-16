@@ -201,7 +201,8 @@ class BaseAgent(AgentRegistryMixin):
         """Build a checkpoint of the current state and persist it if a store is
         configured.
 
-        Returns the checkpoint regardless of whether a store is attached.
+        Returns the checkpoint regardless of whether a store is
+        attached.
         """
         checkpoint = self._build_checkpoint()
         if self.checkpoint_store is not None:

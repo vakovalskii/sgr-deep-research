@@ -120,7 +120,8 @@ class TestFileCheckpointStore(_StoreContract):
         return FileCheckpointStore(str(self._dir))
 
     def test_persists_across_instances(self):
-        """A new store over the same directory must see previously saved data."""
+        """A new store over the same directory must see previously saved
+        data."""
         store = FileCheckpointStore(str(self._dir))
         store.save(_checkpoint("a", 1))
         store.save(_checkpoint("a", 2))
@@ -150,7 +151,5 @@ class TestBuildCheckpointStore:
         assert store._max_history == 3
 
     def test_file_backend(self, tmp_path):
-        store = build_checkpoint_store(
-            CheckpointConfig(enabled=True, backend="file", dir=str(tmp_path / "cp"))
-        )
+        store = build_checkpoint_store(CheckpointConfig(enabled=True, backend="file", dir=str(tmp_path / "cp")))
         assert isinstance(store, FileCheckpointStore)
