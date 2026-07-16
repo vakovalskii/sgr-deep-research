@@ -53,7 +53,107 @@ async def test_acp_bridge_initialize_returns_agent_info():
     resp = await bridge.initialize(protocol_version=1, client_capabilities=None, client_info=None)
     assert resp.protocol_version == 1
     assert resp.agent_info.name == "sgr-agent-core"
-    assert resp.agent_capabilities.load_session is False
+    assert resp.agent_capabilities.load_session is True
+
+
+@pytest.mark.asyncio
+async def test_acp_load_session_without_store_returns_none():
+    """Without a checkpoint store, session restore is unavailable."""
+    from sgr_agent_core.acp.bridge import SGRACPBridge
+
+    bridge = SGRACPBridge(default_agent_name="sgr_agent")
+    assert await bridge.load_session(cwd="/tmp", session_id="sess-x") is None
+
+
+@pytest.mark.asyncio
+async def test_acp_load_session_returns_none_when_no_checkpoints():
+    """A known store with no checkpoints for the session yields None."""
+    from sgr_agent_core.acp.bridge import SGRACPBridge
+    from sgr_agent_core.services.checkpoint_store import InMemoryCheckpointStore
+
+    bridge = SGRACPBridge(default_agent_name="sgr_agent", checkpoint_store=InMemoryCheckpointStore())
+    assert await bridge.load_session(cwd="/tmp", session_id="missing") is None
+
+
+@pytest.mark.asyncio
+async def test_acp_load_session_restores_session():
+    """load_session must rebuild the session from a session-tagged checkpoint."""
+    from unittest.mock import AsyncMock
+
+    from sgr_agent_core.acp.bridge import SGRACPBridge
+    from sgr_agent_core.models import AgentCheckpoint, AgentContext
+    from sgr_agent_core.services.checkpoint_store import InMemoryCheckpointStore
+
+    store = InMemoryCheckpointStore()
+    context = AgentContext()
+    context.iteration = 3
+    store.save(
+        AgentCheckpoint(
+            agent_id="sgr_agent_x",
+            def_name="sgr_agent",
+            step=3,
+            session_id="sess-1",
+            task_messages=[{"role": "user", "content": "t"}],
+            conversation=[{"role": "user", "content": "t"}],
+            context=context.to_snapshot(),
+        )
+    )
+
+    cfg = _fake_bridge_config({"sgr_agent": "gpt-4o-mini"})
+    bridge = SGRACPBridge(default_agent_name="sgr_agent", checkpoint_store=store)
+    restored = SimpleNamespace(id="sgr_agent_x", _context=SimpleNamespace(iteration=3))
+
+    with (
+        _patch_bridge_config(cfg),
+        patch("sgr_agent_core.acp.bridge.AgentFactory.restore", new=AsyncMock(return_value=restored)) as mock_restore,
+    ):
+        resp = await bridge.load_session(cwd="/tmp", session_id="sess-1")
+
+    assert resp is not None
+    mock_restore.assert_awaited_once()
+    assert "sess-1" in bridge._sessions
+    assert bridge._sessions["sess-1"].agent is restored
+
+
+@pytest.mark.asyncio
+async def test_acp_prompt_tags_checkpoints_with_session_id():
+    """Agents created for a prompt must carry the session id for checkpointing."""
+    from unittest.mock import AsyncMock
+
+    from sgr_agent_core.acp.bridge import SGRACPBridge
+    from sgr_agent_core.models import AgentStatesEnum
+    from sgr_agent_core.services.checkpoint_store import InMemoryCheckpointStore
+
+    store = InMemoryCheckpointStore()
+    cfg = _fake_bridge_config({"sgr_agent": "gpt-4o-mini"})
+    bridge = SGRACPBridge(default_agent_name="sgr_agent", checkpoint_store=store)
+    bridge._client = SimpleNamespace()
+
+    created = SimpleNamespace(
+        id="sgr_agent_y",
+        _context=SimpleNamespace(state=AgentStatesEnum.COMPLETED),
+        execute=lambda: None,
+    )
+
+    async def fake_wait_turn(agent, task):
+        return SimpleNamespace(stop_reason="end_turn")
+
+    with (
+        _patch_bridge_config(cfg),
+        patch("sgr_agent_core.acp.bridge.create_acp_streaming_generator_class", return_value=None),
+        patch("sgr_agent_core.acp.bridge.AgentFactory.create", new=AsyncMock(return_value=created)) as mock_create,
+        patch("sgr_agent_core.acp.bridge.asyncio.create_task", return_value=SimpleNamespace()),
+        patch.object(bridge, "_wait_turn", new=fake_wait_turn),
+    ):
+        sess = await bridge.new_session(cwd="/tmp", mcp_servers=None)
+        await bridge.prompt(
+            prompt=[TextContentBlock(type="text", text="hello")],
+            session_id=sess.session_id,
+        )
+
+    _, kwargs = mock_create.call_args
+    assert kwargs["checkpoint_store"] is store
+    assert kwargs["session_id"] == sess.session_id
 
 
 @pytest.mark.asyncio

@@ -6,7 +6,7 @@ import asyncio
 import logging
 import uuid
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from acp.interfaces import Client
 from acp.schema import (
@@ -45,6 +45,9 @@ from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.models import AgentStatesEnum
 from sgr_agent_core.skills.models import BaseSkill
 
+if TYPE_CHECKING:
+    from sgr_agent_core.services.checkpoint_store import BaseCheckpointStore
+
 logger = logging.getLogger(__name__)
 
 
@@ -80,10 +83,15 @@ class SGRACPBridge:
     _AGENT_CONFIG_ID = "agent"
     _MODEL_CONFIG_ID = "model"
 
-    def __init__(self, default_agent_name: str | None = None) -> None:
+    def __init__(
+        self,
+        default_agent_name: str | None = None,
+        checkpoint_store: "BaseCheckpointStore | None" = None,
+    ) -> None:
         self._default_agent_name = default_agent_name
         self._sessions: dict[str, _ACPSession] = {}
         self._client: Client | None = None
+        self._checkpoint_store = checkpoint_store
 
     def on_connect(self, conn: Client) -> None:
         """Store the client connection for outbound session updates."""
@@ -233,7 +241,7 @@ class SGRACPBridge:
         return InitializeResponse(
             protocol_version=negotiated,
             agent_capabilities=AgentCapabilities(
-                load_session=False,
+                load_session=True,
                 prompt_capabilities=PromptCapabilities(
                     image=False,
                     audio=False,
@@ -271,8 +279,37 @@ class SGRACPBridge:
         mcp_servers: list[HttpMcpServer | SseMcpServer | McpServerStdio] | None = None,
         **kwargs: Any,
     ) -> LoadSessionResponse | None:
-        """Session restore is not supported."""
-        return None
+        """Restore a session from its latest checkpoint.
+
+        Returns None (unsupported) when no checkpoint store is configured or no
+        checkpoint exists for the session. Otherwise the agent is rebuilt from
+        its last checkpoint and the session is re-registered so it can continue
+        via the standard per-prompt flow.
+        """
+        if self._checkpoint_store is None:
+            return None
+        checkpoints = self._checkpoint_store.find_by_session(session_id)
+        if not checkpoints:
+            return None
+        checkpoint = checkpoints[-1]  # find_by_session is ordered by step ascending
+
+        gen_cls = create_acp_streaming_generator_class(session_id, self._client) if self._client else None
+        try:
+            agent = await AgentFactory.restore(
+                checkpoint,
+                checkpoint_store=self._checkpoint_store,
+                streaming_generator=gen_cls,
+            )
+        except ValueError:
+            return None
+
+        gc = GlobalConfig()
+        agent_name = checkpoint.def_name if checkpoint.def_name in gc.agents else self._resolve_agent_name()
+        model = gc.agents[agent_name].llm.model
+        sess = _ACPSession(session_id=session_id, cwd=cwd, agent_name=agent_name, model=model, agent=agent)
+        self._sessions[session_id] = sess
+        await self._advertise_commands(sess)
+        return LoadSessionResponse(config_options=self._build_config_options(sess))
 
     async def list_sessions(
         self,
@@ -365,6 +402,8 @@ class SGRACPBridge:
             agent_def,
             [{"role": "user", "content": text}],
             streaming_generator=gen_cls,
+            checkpoint_store=self._checkpoint_store,
+            session_id=session_id,
         )
         sess.agent = agent
         sess.execute_task = asyncio.create_task(agent.execute())
