@@ -40,6 +40,9 @@ from sgr_agent_core.models import (
 from sgr_agent_core.next_step_tool import NextStepToolsBuilder, NextStepToolStub
 from sgr_agent_core.services import (
     AgentRegistry,
+    BaseCheckpointStore,
+    FileCheckpointStore,
+    InMemoryCheckpointStore,
     MCP2ToolConverter,
     PromptLoader,
     ToolRegistry,
@@ -75,6 +78,9 @@ __all__ = [
     "MCP2ToolConverter",
     "PromptLoader",
     "ToolRegistry",
+    "BaseCheckpointStore",
+    "InMemoryCheckpointStore",
+    "FileCheckpointStore",
     # Configuration
     "AgentConfig",
     "AgentDefinition",
