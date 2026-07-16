@@ -13,6 +13,7 @@ from acp import run_agent
 from sgr_agent_core.acp.bridge import SGRACPBridge
 from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.server.__main__ import load_config
+from sgr_agent_core.services import build_checkpoint_store
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,8 @@ def main() -> None:
     _preload_agent_modules_from_config()
     cfg = GlobalConfig()
     default_name = cfg.acp.agent if cfg.acp else None
-    bridge = SGRACPBridge(default_agent_name=default_name)
+    checkpoint_store = build_checkpoint_store(cfg.execution.checkpoint)
+    bridge = SGRACPBridge(default_agent_name=default_name, checkpoint_store=checkpoint_store)
     asyncio.run(run_agent(bridge))
 
 

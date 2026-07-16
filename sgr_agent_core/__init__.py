@@ -21,6 +21,7 @@ from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.agent_definition import (
     AgentConfig,
     AgentDefinition,
+    CheckpointConfig,
     ExecutionConfig,
     LLMConfig,
     PromptsConfig,
@@ -30,6 +31,7 @@ from sgr_agent_core.agents import *  # noqa: F403
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.base_tool import BaseTool, MCPBaseTool, SystemBaseTool
 from sgr_agent_core.models import (
+    AgentCheckpoint,
     AgentContext,
     AgentStatesEnum,
     AgentStatistics,
@@ -39,6 +41,9 @@ from sgr_agent_core.models import (
 from sgr_agent_core.next_step_tool import NextStepToolsBuilder, NextStepToolStub
 from sgr_agent_core.services import (
     AgentRegistry,
+    BaseCheckpointStore,
+    FileCheckpointStore,
+    InMemoryCheckpointStore,
     MCP2ToolConverter,
     PromptLoader,
     ToolRegistry,
@@ -66,6 +71,7 @@ __all__ = [
     "AgentStatesEnum",
     "AgentStatistics",
     "AgentContext",
+    "AgentCheckpoint",
     "SearchResult",
     "SourceData",
     # Services
@@ -73,12 +79,16 @@ __all__ = [
     "MCP2ToolConverter",
     "PromptLoader",
     "ToolRegistry",
+    "BaseCheckpointStore",
+    "InMemoryCheckpointStore",
+    "FileCheckpointStore",
     # Configuration
     "AgentConfig",
     "AgentDefinition",
     "LLMConfig",
     "PromptsConfig",
     "ExecutionConfig",
+    "CheckpointConfig",
     "GlobalConfig",
     # Next step tools
     "NextStepToolStub",

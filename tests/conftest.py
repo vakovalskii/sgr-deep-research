@@ -20,6 +20,7 @@ def create_test_agent(
     prompts_config: PromptsConfig | None = None,
     execution_config: ExecutionConfig | None = None,
     toolkit: list | None = None,
+    checkpoint_store=None,
 ) -> BaseAgent:
     """Create an agent instance for testing.
 
@@ -68,11 +69,16 @@ def create_test_agent(
         execution=execution_config,
     )
 
+    extra = {}
+    if checkpoint_store is not None:
+        extra["checkpoint_store"] = checkpoint_store
+
     return agent_class(
         task_messages=task_messages,
         openai_client=openai_client,
         agent_config=agent_config,
         toolkit=toolkit or [],
+        **extra,
     )
 
 

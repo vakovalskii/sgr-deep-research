@@ -9,19 +9,24 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from fastapi import HTTPException
 
+import sgr_agent_core.server.endpoints as endpoints_module
 from sgr_agent_core.agents import SGRAgent
-from sgr_agent_core.models import AgentStatesEnum
+from sgr_agent_core.models import AgentCheckpoint, AgentContext, AgentStatesEnum
 from sgr_agent_core.server.endpoints import (
     agents_storage,
     cancel_agent,
     create_chat_completion,
     delete_agent,
+    get_agent_checkpoints,
     get_agent_state,
     get_agents_list,
     get_available_skills,
     provide_clarification,
+    restore_agent,
+    rollback_agent,
 )
-from sgr_agent_core.server.models import ChatCompletionRequest, MessagesList, MessagesRequest
+from sgr_agent_core.server.models import AgentRollbackRequest, ChatCompletionRequest, MessagesList, MessagesRequest
+from sgr_agent_core.services.checkpoint_store import InMemoryCheckpointStore
 from sgr_agent_core.utils import is_agent_id
 from tests.conftest import create_test_agent
 
@@ -720,3 +725,151 @@ class TestSkillsEndpoint:
 
         result = await get_available_skills(model="b")
         assert [d["model"] for d in result["data"]] == ["b"]
+
+
+class TestAgentCheckpointEndpoints:
+    """Tests for checkpoint listing, rollback, and restore endpoints."""
+
+    def setup_method(self):
+        agents_storage.clear()
+        endpoints_module.checkpoint_store = None
+
+    def teardown_method(self):
+        agents_storage.clear()
+        endpoints_module.checkpoint_store = None
+
+    @pytest.mark.asyncio
+    async def test_list_checkpoints_returns_history(self):
+        store = InMemoryCheckpointStore()
+        endpoints_module.checkpoint_store = store
+        agent = create_test_agent(SGRAgent, checkpoint_store=store, task_messages=[{"role": "user", "content": "t"}])
+        agents_storage[agent.id] = agent
+        agent._context.iteration = 1
+        agent.checkpoint()
+        agent._context.iteration = 2
+        agent.checkpoint()
+
+        response = await get_agent_checkpoints(agent.id)
+
+        assert response.agent_id == agent.id
+        assert response.total == 2
+        assert [c.step for c in response.checkpoints] == [1, 2]
+
+    @pytest.mark.asyncio
+    async def test_list_checkpoints_404_when_no_history(self):
+        endpoints_module.checkpoint_store = InMemoryCheckpointStore()
+        with pytest.raises(HTTPException) as exc:
+            await get_agent_checkpoints("ghost_agent")
+        assert exc.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_list_checkpoints_404_when_disabled(self):
+        endpoints_module.checkpoint_store = None
+        with pytest.raises(HTTPException) as exc:
+            await get_agent_checkpoints("any_agent")
+        assert exc.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_rollback_live_agent(self):
+        store = InMemoryCheckpointStore()
+        endpoints_module.checkpoint_store = store
+        agent = create_test_agent(SGRAgent, checkpoint_store=store)
+        agents_storage[agent.id] = agent
+
+        agent._context.iteration = 1
+        agent._context.searches_used = 1
+        agent.conversation = [{"role": "user", "content": "a"}]
+        agent.checkpoint()
+        agent._context.iteration = 2
+        agent._context.searches_used = 9
+        agent.conversation.append({"role": "assistant", "content": "b"})
+        agent.checkpoint()
+
+        response = await rollback_agent(AgentRollbackRequest(step=1), agent.id)
+
+        assert response.agent_id == agent.id
+        assert response.step == 1
+        assert response.restored is False
+        assert agent._context.iteration == 1
+        assert agent._context.searches_used == 1
+        assert agent.conversation == [{"role": "user", "content": "a"}]
+
+    @pytest.mark.asyncio
+    async def test_rollback_cancels_running_task(self):
+        """A rollback on a still-running agent must cancel its execute task."""
+        import asyncio
+
+        store = InMemoryCheckpointStore()
+        endpoints_module.checkpoint_store = store
+        agent = create_test_agent(SGRAgent, checkpoint_store=store)
+        agents_storage[agent.id] = agent
+        agent._context.iteration = 1
+        agent.checkpoint()
+
+        async def _run_forever():
+            await asyncio.sleep(3600)
+
+        agent._execute_task = asyncio.create_task(_run_forever())
+
+        await rollback_agent(AgentRollbackRequest(step=1), agent.id)
+
+        assert agent._execute_task.cancelled()
+
+    @pytest.mark.asyncio
+    async def test_rollback_defaults_to_latest(self):
+        store = InMemoryCheckpointStore()
+        endpoints_module.checkpoint_store = store
+        agent = create_test_agent(SGRAgent, checkpoint_store=store)
+        agents_storage[agent.id] = agent
+        agent._context.iteration = 1
+        agent.checkpoint()
+        agent._context.iteration = 5
+        agent.checkpoint()
+
+        response = await rollback_agent(AgentRollbackRequest(), agent.id)
+        assert response.step == 5
+
+    @pytest.mark.asyncio
+    async def test_rollback_404_when_unknown(self):
+        endpoints_module.checkpoint_store = InMemoryCheckpointStore()
+        with pytest.raises(HTTPException) as exc:
+            await rollback_agent(AgentRollbackRequest(step=1), "ghost_agent")
+        assert exc.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_restore_rebuilds_agent_from_store(self):
+        store = InMemoryCheckpointStore()
+        endpoints_module.checkpoint_store = store
+        context = AgentContext()
+        context.iteration = 3
+        checkpoint = AgentCheckpoint(
+            agent_id="sgr_agent_x",
+            def_name="sgr_agent",
+            step=3,
+            task_messages=[{"role": "user", "content": "orig"}],
+            conversation=[{"role": "user", "content": "orig"}],
+            context=context.to_snapshot(),
+        )
+        store.save(checkpoint)
+
+        rebuilt = create_test_agent(SGRAgent, checkpoint_store=store)
+        rebuilt.id = "sgr_agent_x"
+        rebuilt._context.iteration = 3
+
+        with patch(
+            "sgr_agent_core.server.endpoints.AgentFactory.restore",
+            new=AsyncMock(return_value=rebuilt),
+        ) as mock_restore:
+            response = await restore_agent("sgr_agent_x")
+
+        mock_restore.assert_awaited_once()
+        assert response.agent_id == "sgr_agent_x"
+        assert response.step == 3
+        assert agents_storage["sgr_agent_x"] is rebuilt
+
+    @pytest.mark.asyncio
+    async def test_restore_404_when_no_checkpoint(self):
+        endpoints_module.checkpoint_store = InMemoryCheckpointStore()
+        with pytest.raises(HTTPException) as exc:
+            await restore_agent("ghost_agent")
+        assert exc.value.status_code == 404

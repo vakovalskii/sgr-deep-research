@@ -125,6 +125,19 @@ class PromptsConfig(BaseModel, extra="allow"):
         )
 
 
+class CheckpointConfig(BaseModel, extra="allow"):
+    """State-checkpointing settings for an agent.
+
+    Checkpointing is opt-in: when disabled the agent behaves exactly as
+    before (no snapshots taken, no store attached).
+    """
+
+    enabled: bool = Field(default=False, description="Enable automatic per-step checkpointing")
+    backend: Literal["memory", "file"] = Field(default="memory", description="Checkpoint store backend")
+    dir: str = Field(default="checkpoints", description="Directory for the file backend")
+    max_history: int | None = Field(default=None, ge=1, description="Max checkpoints kept per agent (None = unbounded)")
+
+
 class ExecutionConfig(BaseModel, extra="allow"):
     """Execution parameters and limits for agents.
 
@@ -147,6 +160,10 @@ class ExecutionConfig(BaseModel, extra="allow"):
         default="logs", description="Directory for saving bot logs. Set to None or empty string to disable logging."
     )
     reports_dir: str = Field(default="reports", description="Directory for saving reports")
+
+    checkpoint: CheckpointConfig = Field(
+        default_factory=CheckpointConfig, description="Agent state checkpointing settings"
+    )
 
 
 class LangfuseConfig(BaseModel):

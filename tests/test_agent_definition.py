@@ -10,6 +10,7 @@ import pytest
 
 from sgr_agent_core.agent_definition import (
     AgentDefinition,
+    CheckpointConfig,
     ExecutionConfig,
     LLMConfig,
     PromptsConfig,
@@ -17,6 +18,36 @@ from sgr_agent_core.agent_definition import (
 )
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.tools import ReasoningTool
+
+
+class TestCheckpointConfig:
+    """Tests for the checkpoint configuration block."""
+
+    def test_defaults_are_disabled_in_memory(self):
+        """Checkpointing is opt-in and defaults to the in-memory backend."""
+        cfg = CheckpointConfig()
+        assert cfg.enabled is False
+        assert cfg.backend == "memory"
+        assert cfg.dir == "checkpoints"
+        assert cfg.max_history is None
+
+    def test_execution_config_exposes_checkpoint_defaults(self):
+        """ExecutionConfig always carries a default CheckpointConfig."""
+        execution = ExecutionConfig()
+        assert isinstance(execution.checkpoint, CheckpointConfig)
+        assert execution.checkpoint.enabled is False
+
+    def test_execution_config_accepts_checkpoint_override(self):
+        """Checkpoint settings can be provided as a nested dict."""
+        execution = ExecutionConfig(checkpoint={"enabled": True, "backend": "file", "dir": "cp", "max_history": 5})
+        assert execution.checkpoint.enabled is True
+        assert execution.checkpoint.backend == "file"
+        assert execution.checkpoint.dir == "cp"
+        assert execution.checkpoint.max_history == 5
+
+    def test_invalid_backend_rejected(self):
+        with pytest.raises(Exception):
+            CheckpointConfig(backend="redis")
 
 
 class TestToolDefinition:

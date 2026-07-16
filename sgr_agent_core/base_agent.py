@@ -12,7 +12,7 @@ from openai.types.chat import ChatCompletionFunctionToolParam, ChatCompletionMes
 from pydantic import BaseModel
 
 from sgr_agent_core.agent_definition import AgentConfig, ToolDefinition
-from sgr_agent_core.models import AgentContext, AgentStatesEnum
+from sgr_agent_core.models import AgentCheckpoint, AgentContext, AgentStatesEnum
 from sgr_agent_core.services.prompt_loader import PromptLoader
 from sgr_agent_core.services.registry import AgentRegistry
 from sgr_agent_core.stream import BaseStreamingGenerator, OpenAIStreamingGenerator
@@ -23,6 +23,7 @@ from sgr_agent_core.tools import (
 )
 
 if TYPE_CHECKING:
+    from sgr_agent_core.services.checkpoint_store import BaseCheckpointStore
     from sgr_agent_core.skills import BaseSkill
 
 
@@ -48,8 +49,11 @@ class BaseAgent(AgentRegistryMixin):
         streaming_generator: type[BaseStreamingGenerator] = OpenAIStreamingGenerator,
         tool_configs: dict[str, ToolDefinition] | None = None,
         skills: list["BaseSkill"] = (),
+        checkpoint_store: "BaseCheckpointStore | None" = None,
+        session_id: str | None = None,
         **kwargs: dict,
     ):
+        self._def_name = def_name
         self.id = f"{def_name or self.name}_{uuid.uuid4()}"
         self.streaming_generator = streaming_generator(agent_id=self.id)
 
@@ -60,6 +64,11 @@ class BaseAgent(AgentRegistryMixin):
         self.toolkit = toolkit
         self.tool_configs = tool_configs or {}
         self.available_skills: list[BaseSkill] = list(skills or [])
+
+        # State checkpointing (opt-in): without a store the agent behaves as
+        # before. ``session_id`` tags checkpoints for external session resume.
+        self.checkpoint_store = checkpoint_store
+        self._session_id = session_id
 
         self._context = AgentContext(available_skills=self.available_skills)
         self.conversation = []
@@ -176,6 +185,79 @@ class BaseAgent(AgentRegistryMixin):
 
         json.dump(agent_log, open(filepath, "w", encoding="utf-8"), indent=2, ensure_ascii=False)
 
+    def _build_checkpoint(self) -> AgentCheckpoint:
+        """Capture the current restorable state as an AgentCheckpoint."""
+        return AgentCheckpoint(
+            agent_id=self.id,
+            def_name=self._def_name,
+            step=self._context.iteration,
+            session_id=self._session_id,
+            task_messages=list(self.task_messages),
+            conversation=list(self.conversation),
+            context=self._context.to_snapshot(),
+        )
+
+    def checkpoint(self) -> AgentCheckpoint:
+        """Build a checkpoint of the current state and persist it if a store is
+        configured.
+
+        Returns the checkpoint regardless of whether a store is
+        attached.
+        """
+        checkpoint = self._build_checkpoint()
+        if self.checkpoint_store is not None:
+            self.checkpoint_store.save(checkpoint)
+        return checkpoint
+
+    def _auto_checkpoint(self) -> None:
+        """Best-effort checkpoint for the execution loop; never raises.
+
+        A failing or unserializable store must not abort a healthy agent run,
+        so errors are logged and swallowed (unlike the public ``checkpoint``).
+        """
+        if self.checkpoint_store is None:
+            return
+        try:
+            self.checkpoint()
+        except Exception as exc:  # noqa: BLE001 - checkpointing is best effort
+            self.logger.warning(f"Failed to save checkpoint at step {self._context.iteration}: {exc}")
+
+    def list_checkpoints(self) -> list[AgentCheckpoint]:
+        """Return this agent's checkpoints (ordered by step), or empty list."""
+        if self.checkpoint_store is None:
+            return []
+        return self.checkpoint_store.list(self.id)
+
+    def _apply_checkpoint(self, checkpoint: AgentCheckpoint) -> None:
+        """Overwrite the live conversation and context from a checkpoint."""
+        self.conversation = list(checkpoint.conversation)
+        self._context = AgentContext.from_snapshot(checkpoint.context, available_skills=self.available_skills)
+
+    def rollback(self, step: int | None = None) -> AgentCheckpoint:
+        """Restore the agent to a saved checkpoint.
+
+        Args:
+            step: Iteration to roll back to. When None, the latest checkpoint
+                is used.
+
+        Returns:
+            The checkpoint that was applied.
+
+        Raises:
+            RuntimeError: If no checkpoint store is configured.
+            ValueError: If no matching checkpoint exists.
+        """
+        if self.checkpoint_store is None:
+            raise RuntimeError("Cannot roll back: no checkpoint store is configured")
+        checkpoint = (
+            self.checkpoint_store.get(self.id, step) if step is not None else self.checkpoint_store.latest(self.id)
+        )
+        if checkpoint is None:
+            raise ValueError(f"No checkpoint found for agent {self.id} at step {step}")
+        self._apply_checkpoint(checkpoint)
+        self.logger.info(f"↩️  Rolled back agent {self.id} to step {checkpoint.step}")
+        return checkpoint
+
     async def _prepare_context(self) -> list[dict]:
         """Prepare a conversation context with system prompt, task data and any
         other context.
@@ -248,6 +330,10 @@ class BaseAgent(AgentRegistryMixin):
             self.streaming_generator.finish(
                 phase_id="{self._context.iteration}-final", content=self._context.execution_result
             )
+            # Capture the waiting state so a restore/resume observes that the
+            # agent is paused for clarification (the start-of-step checkpoint
+            # was taken before this step set the waiting state).
+            self._auto_checkpoint()
             self._context.clarification_received.clear()
             await self._context.clarification_received.wait()
 
@@ -290,6 +376,10 @@ class BaseAgent(AgentRegistryMixin):
             while self._context.state not in AgentStatesEnum.FINISH_STATES.value:
                 self._context.iteration += 1
                 self.logger.info(f"Step {self._context.iteration} started")
+                # Snapshot the state entering this step so a rollback returns
+                # the agent to the start of the step (crash-safe: the latest
+                # checkpoint holds everything through the previous step).
+                self._auto_checkpoint()
                 await self._execution_step()
             return self._context.execution_result
 

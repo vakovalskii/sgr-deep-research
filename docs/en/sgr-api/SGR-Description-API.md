@@ -458,3 +458,91 @@ curl -X DELETE "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef"
 - Clean up completed agents from storage
 - Cancel an agent that is stuck or taking too long
 - Free up resources by removing inactive agents
+
+## GET `/agents/{agent_id}/checkpoints`
+
+List the state checkpoints saved for an agent. Requires checkpointing to be
+enabled (`execution.checkpoint.enabled: true`). Works even for agents that are
+no longer live in memory, as long as their checkpoints remain in the store.
+
+**Request:**
+
+```bash
+curl "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/checkpoints"
+```
+
+**Response:**
+
+```json
+{
+  "agent_id": "sgr_agent_12345-67890-abcdef",
+  "checkpoints": [
+    {"step": 1, "created_at": "2026-07-16T10:00:00", "state": "researching", "session_id": null},
+    {"step": 2, "created_at": "2026-07-16T10:00:05", "state": "researching", "session_id": null}
+  ],
+  "total": 2
+}
+```
+
+**Error Responses:**
+
+- `404 Not Found`: Checkpointing is disabled, or no checkpoints exist for the agent.
+
+## POST `/agents/{agent_id}/rollback`
+
+Roll a **live** agent back to a saved checkpoint, restoring its conversation and
+context.
+
+**Request Body:**
+
+- `step` (integer, optional): Iteration to roll back to. Omit to use the latest checkpoint.
+
+**Request:**
+
+```bash
+curl -X POST "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/rollback" \
+  -H "Content-Type: application/json" \
+  -d '{"step": 1}'
+```
+
+**Response:**
+
+```json
+{
+  "agent_id": "sgr_agent_12345-67890-abcdef",
+  "step": 1,
+  "state": "researching",
+  "restored": false
+}
+```
+
+**Error Responses:**
+
+- `404 Not Found`: Checkpointing disabled, or the agent is not in storage (restore it first).
+- `400 Bad Request`: The requested step has no checkpoint.
+
+## POST `/agents/{agent_id}/restore`
+
+Rebuild an agent from its latest checkpoint and put it back into storage. Use
+this to resume an agent after a process restart (with the `file` backend).
+
+**Request:**
+
+```bash
+curl -X POST "http://localhost:8010/agents/sgr_agent_12345-67890-abcdef/restore"
+```
+
+**Response:**
+
+```json
+{
+  "agent_id": "sgr_agent_12345-67890-abcdef",
+  "step": 2,
+  "state": "researching"
+}
+```
+
+**Error Responses:**
+
+- `404 Not Found`: Checkpointing is disabled, or no checkpoint exists for the agent.
+- `400 Bad Request`: The agent definition referenced by the checkpoint is not in the current configuration.

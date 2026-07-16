@@ -6,9 +6,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from sgr_agent_core import AgentFactory, AgentRegistry, ToolRegistry, __version__
+from sgr_agent_core import AgentFactory, AgentRegistry, GlobalConfig, ToolRegistry, __version__
+from sgr_agent_core.server import endpoints as endpoints_module
 from sgr_agent_core.server.endpoints import router
-from sgr_agent_core.services import StreamingGeneratorRegistry
+from sgr_agent_core.services import StreamingGeneratorRegistry, build_checkpoint_store
 from sgr_agent_core.services.overlayfs_manager import OverlayFSManager
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,11 @@ async def lifespan(_: FastAPI):
         logger.info(f"Agent definition loaded: {defn}")
     for gen in StreamingGeneratorRegistry.list_items():
         logger.info(f"Streaming generator loaded: {gen.__name__}")
+
+    # Build the shared checkpoint store from the global execution config.
+    endpoints_module.checkpoint_store = build_checkpoint_store(GlobalConfig().execution.checkpoint)
+    if endpoints_module.checkpoint_store is not None:
+        logger.info(f"Checkpointing enabled: {type(endpoints_module.checkpoint_store).__name__}")
 
     # Initialize OverlayFS for RunCommandTool if configured
     await OverlayFSManager.initialize_from_config()

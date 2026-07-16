@@ -170,3 +170,43 @@ class AgentDeleteResponse(BaseModel):
     agent_id: str = Field(description="Agent ID that was deleted")
     deleted: bool = Field(description="Whether the agent was successfully deleted")
     final_state: str = Field(description="Final state of the agent after deletion")
+
+
+class AgentCheckpointItem(BaseModel):
+    """A single checkpoint entry in the checkpoint listing."""
+
+    step: int = Field(description="Execution iteration captured by the checkpoint")
+    created_at: datetime = Field(description="Checkpoint creation time")
+    state: str | None = Field(default=None, description="Agent state captured in the checkpoint")
+    session_id: str | None = Field(default=None, description="External session id, if any")
+
+
+class AgentCheckpointListResponse(BaseModel):
+    """Response listing an agent's checkpoints."""
+
+    agent_id: str = Field(description="Agent ID")
+    checkpoints: list[AgentCheckpointItem] = Field(description="Checkpoints ordered by step")
+    total: int = Field(description="Total number of checkpoints")
+
+
+class AgentRollbackRequest(BaseModel):
+    """Request body for rolling an agent back to a checkpoint."""
+
+    step: int | None = Field(default=None, description="Iteration to roll back to (defaults to the latest checkpoint)")
+
+
+class AgentRollbackResponse(BaseModel):
+    """Response for a rollback operation."""
+
+    agent_id: str = Field(description="Agent ID that was rolled back")
+    step: int = Field(description="Step the agent was rolled back to")
+    state: str = Field(description="Agent state after rollback")
+    restored: bool = Field(description="Whether the agent had to be restored from the store first")
+
+
+class AgentRestoreResponse(BaseModel):
+    """Response for restoring an agent from the checkpoint store."""
+
+    agent_id: str = Field(description="Restored agent ID")
+    step: int = Field(description="Step the agent was restored to")
+    state: str = Field(description="Agent state after restore")
