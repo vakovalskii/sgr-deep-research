@@ -181,4 +181,4 @@ Learn more about red_mad_robot: [redmadrobot.ai](https://redmadrobot.ai/)↗️ 
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=vamplabAI/sgr-agent-core&type=Date)](https://star-history.com/#vamplabAI/sgr-agent-core&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=vamplabAI/sgr-agent-core&type=Date)](https://star-history.dera.page/#vamplabAI/sgr-agent-core&type=Date)
