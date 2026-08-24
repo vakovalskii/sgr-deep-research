@@ -18,6 +18,7 @@ from sgr_agent_core.services import AgentRegistry, MCP2ToolConverter, StreamingG
 from sgr_agent_core.skills import SkillRegistry, SkillsConfig, inject_referenced_skills
 from sgr_agent_core.stream import BaseStreamingGenerator, OpenAIStreamingGenerator
 from sgr_agent_core.tools.skill_tool import SkillTool
+from sgr_agent_core.tools.web_search_tool import ParallelWebSearchTool, WebSearchTool
 
 if TYPE_CHECKING:
     from sgr_agent_core.skills import BaseSkill
@@ -210,6 +211,10 @@ class AgentFactory:
             raise ValueError(error_msg)
         mcp_tools: list = await MCP2ToolConverter.build_tools_from_mcp(agent_def.mcp)
         tools, tool_configs = cls._resolve_tools_with_configs(agent_def.tools)
+        for index, tool in enumerate(tools):
+            if tool is WebSearchTool and tool_configs.get(tool.tool_name, {}).get("engine") == "parallel":
+                tools[index] = ParallelWebSearchTool
+                tool_configs[ParallelWebSearchTool.tool_name] = tool_configs.pop(tool.tool_name)
         tools.extend(mcp_tools)
 
         # Resolve skills and expose the use_skill tool when any are available.

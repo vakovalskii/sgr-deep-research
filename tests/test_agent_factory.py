@@ -4,6 +4,7 @@ This module contains tests for AgentFactory and dynamic agent
 instantiation.
 """
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
@@ -26,8 +27,9 @@ from sgr_agent_core.agents import (
     ToolCallingAgent,
 )
 from sgr_agent_core.base_agent import BaseAgent
+from sgr_agent_core.models import AgentContext
 from sgr_agent_core.stream import OpenAIStreamingGenerator, OpenWebUIStreamingGenerator
-from sgr_agent_core.tools import BaseTool, ReasoningTool, RunCommandTool
+from sgr_agent_core.tools import BaseTool, ParallelWebSearchTool, ReasoningTool, RunCommandTool, WebSearchTool
 
 
 def mock_global_config():
@@ -1097,3 +1099,161 @@ class TestAgentFactoryDefinitionsList:
 
             assert len(definitions) == 0
             assert definitions == []
+
+
+class FakeParallelMCPClient:
+    """Faithful local fake for the hosted Parallel Search MCP contract."""
+
+    instances = []
+    fail_to_connect = False
+
+    def __init__(self, url):
+        assert url == "https://search.parallel.ai/mcp"
+        self.closed = False
+        self.calls = []
+        type(self).instances.append(self)
+
+    async def __aenter__(self):
+        if self.fail_to_connect:
+            raise OSError("vendor unavailable")
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        self.closed = True
+
+    async def list_tools(self):
+        return [
+            SimpleNamespace(
+                name="web_search",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "objective": {"type": "string"},
+                        "search_queries": {"type": "array", "items": {"type": "string"}},
+                    },
+                    "required": ["objective", "search_queries"],
+                    "additionalProperties": False,
+                },
+            ),
+            SimpleNamespace(
+                name="web_fetch",
+                inputSchema={
+                    "type": "object",
+                    "properties": {"urls": {"type": "array", "items": {"type": "string"}}},
+                    "required": ["urls"],
+                    "additionalProperties": False,
+                },
+            ),
+        ]
+
+    async def call_tool(self, name, arguments):
+        assert name == "web_search"
+        assert set(arguments) == {"objective", "search_queries"}
+        assert isinstance(arguments["objective"], str) and arguments["objective"]
+        assert isinstance(arguments["search_queries"], list) and arguments["search_queries"]
+        assert all(isinstance(query, str) and query for query in arguments["search_queries"])
+        self.calls.append((name, arguments))
+        return SimpleNamespace(
+            is_error=False,
+            structured_content={
+                "results": [
+                    {
+                        "url": "https://example.com/result",
+                        "title": None,
+                        "excerpts": ["First excerpt", "Second excerpt"],
+                    }
+                ]
+            },
+            content=[],
+        )
+
+
+async def _create_parallel_agent():
+    agent_def = AgentDefinition(
+        name="sgr_agent",
+        base_class=SGRAgent,
+        tools=["reasoningtool", {"web_search_tool": {"engine": "parallel"}}],
+        llm={"api_key": "test-key", "base_url": "https://api.openai.com/v1"},
+        prompts={
+            "system_prompt_str": "Test",
+            "initial_user_request_str": "Test",
+            "clarification_response_str": "Test",
+        },
+        execution={},
+    )
+    return await AgentFactory.create(
+        agent_def,
+        task_messages=[{"role": "user", "content": "private user request"}],
+    )
+
+
+@pytest.mark.parametrize(
+    ("arguments", "expected_objective", "expected_queries"),
+    [
+        ({"objective": "Find current release"}, "Find current release", ["Find current release"]),
+        ({"search_queries": ["sgr release notes"]}, "sgr release notes", ["sgr release notes"]),
+        (
+            {"objective": "Compare releases", "search_queries": ["sgr v1", "sgr v2"]},
+            "Compare releases",
+            ["sgr v1", "sgr v2"],
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_parallel_search_complete_factory_and_invocation(arguments, expected_objective, expected_queries):
+    FakeParallelMCPClient.instances.clear()
+    FakeParallelMCPClient.fail_to_connect = False
+    with (
+        patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+        patch("sgr_agent_core.tools.web_search_tool.Client", FakeParallelMCPClient),
+        mock_global_config(),
+    ):
+        agent = await _create_parallel_agent()
+        assert ParallelWebSearchTool in agent.toolkit
+        assert ReasoningTool in agent.toolkit
+        assert WebSearchTool not in agent.toolkit
+
+        schema = ParallelWebSearchTool.model_json_schema()["properties"]
+        assert schema["objective"]["anyOf"][0]["type"] == "string"
+        assert schema["search_queries"]["anyOf"][0] == {
+            "items": {"type": "string"},
+            "type": "array",
+        }
+
+        tool = ParallelWebSearchTool(**arguments)
+        context = AgentContext(custom_context={"private": "do not send"})
+        result = await tool(context, agent.config, **agent.tool_configs[tool.tool_name])
+
+    client = FakeParallelMCPClient.instances[-1]
+    assert client.closed is True
+    assert client.calls == [("web_search", {"objective": expected_objective, "search_queries": expected_queries})]
+    assert "private user request" not in str(client.calls)
+    assert "do not send" not in str(client.calls)
+    assert "First excerpt\nSecond excerpt" in result
+    assert context.sources["https://example.com/result"].title is None
+    assert context.sources["https://example.com/result"].snippet == "First excerpt\nSecond excerpt"
+
+
+@pytest.mark.asyncio
+async def test_parallel_vendor_unavailable_preserves_other_tools_and_state():
+    FakeParallelMCPClient.instances.clear()
+    FakeParallelMCPClient.fail_to_connect = True
+    with (
+        patch("sgr_agent_core.agent_factory.MCP2ToolConverter.build_tools_from_mcp", return_value=[]),
+        patch("sgr_agent_core.tools.web_search_tool.Client", FakeParallelMCPClient),
+        mock_global_config(),
+    ):
+        agent = await _create_parallel_agent()
+        context = AgentContext()
+        result = await ParallelWebSearchTool(objective="current facts")(context, agent.config)
+
+    assert result == "Error: vendor unavailable"
+    assert ReasoningTool in agent.toolkit
+    assert context.sources == {}
+    assert context.searches == []
+    assert context.searches_used == 0
+
+
+def test_parallel_is_explicit_opt_in_and_tavily_remains_default():
+    assert WebSearchTool.config_model().engine == "tavily"
+    assert ParallelWebSearchTool.tool_name != WebSearchTool.tool_name

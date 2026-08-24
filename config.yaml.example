@@ -73,12 +73,14 @@ tools:
     base_class: path.to.my.tools.CustomTool
   my_other_tool:
     base_class: "name_of_tool_class_in_registry"
-  # Search tools: configure search provider and API keys per tool
+  # Search tools: configure a provider per tool; Parallel needs no API key
   # (can be overridden per-agent in tools list)
   web_search_tool:
-    engine: "tavily"  # Search engine: "tavily" (default), "brave", or "perplexity"
-    api_key: "your-search-api-key-here"  # API key for the selected engine
-    # api_base_url: "https://custom-url"  # Optional, uses engine default
+    engine: "tavily"  # "tavily" (default), "brave", "perplexity", or "parallel"
+    api_key: "your-search-api-key-here"  # Required except when engine is "parallel"
+    # Parallel sends search objectives and queries to https://search.parallel.ai/mcp.
+    # This integration does not register its web_fetch tool, so requested URLs are not sent to Parallel.
+    # api_base_url: "https://custom-url"  # Optional for non-Parallel engines
     max_results: 12
     max_searches: 6
   extract_page_content_tool:

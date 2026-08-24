@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Awaitable, Callable, Literal
 
 import httpx
-from pydantic import BaseModel, Field
+from fastmcp import Client
+from pydantic import BaseModel, Field, model_validator
 from tavily import AsyncTavilyClient
 
 from sgr_agent_core.base_tool import BaseTool
@@ -35,7 +37,7 @@ class WebSearchConfig(BaseModel, extra="allow"):
     Defines the search engine, credentials, and limits.
     """
 
-    engine: Literal["tavily", "brave", "perplexity"] = Field(
+    engine: Literal["tavily", "brave", "perplexity", "parallel"] = Field(
         default="tavily",
         description="Search engine provider to use",
     )
@@ -344,3 +346,128 @@ class WebSearchTool(BaseTool):
         context.searches_used += 1
         logger.debug(formatted_result)
         return formatted_result
+
+
+_PARALLEL_MCP_URL = "https://search.parallel.ai/mcp"
+
+
+class ParallelWebSearchTool(BaseTool):
+    """Search the web with Parallel Search MCP.
+
+    This tool is selected only when ``web_search_tool.engine`` is explicitly
+    set to ``parallel``. Search objectives and search queries are sent to
+    Parallel; URL fetching is not registered by this integration.
+    """
+
+    tool_name = "parallel_web_search"
+
+    objective: str | None = Field(
+        default=None,
+        description="Natural-language objective describing what the search should accomplish",
+    )
+    search_queries: list[str] | None = Field(
+        default=None,
+        description="Specific web search queries that support the objective",
+    )
+
+    @model_validator(mode="after")
+    def normalize_search_input(self):
+        objective = self.objective.strip() if self.objective else ""
+        queries = [query.strip() for query in (self.search_queries or []) if query.strip()]
+        if not objective and not queries:
+            raise ValueError("objective or at least one search query is required")
+        if not objective:
+            objective = queries[0]
+        if not queries:
+            queries = [objective]
+        self.objective = objective
+        self.search_queries = queries
+        return self
+
+    @staticmethod
+    def _validate_hosted_tools(tools: list[Any]) -> None:
+        advertised = {tool.name: tool.inputSchema for tool in tools}
+        search_schema = advertised.get("web_search")
+        fetch_schema = advertised.get("web_fetch")
+        if not search_schema or not fetch_schema:
+            raise RuntimeError("Parallel Search MCP did not advertise web_search and web_fetch")
+
+        search_properties = search_schema.get("properties", {})
+        objective_schema = search_properties.get("objective", {})
+        queries_schema = search_properties.get("search_queries", {})
+        fetch_urls_schema = fetch_schema.get("properties", {}).get("urls", {})
+        if (
+            objective_schema.get("type") != "string"
+            or queries_schema.get("type") != "array"
+            or queries_schema.get("items", {}).get("type") != "string"
+            or not {"objective", "search_queries"}.issubset(search_schema.get("required", []))
+            or fetch_urls_schema.get("type") != "array"
+            or fetch_urls_schema.get("items", {}).get("type") != "string"
+            or "urls" not in fetch_schema.get("required", [])
+        ):
+            raise RuntimeError("Parallel Search MCP advertised an unexpected tool schema")
+
+    @staticmethod
+    def _result_data(result: Any) -> dict[str, Any]:
+        structured = getattr(result, "structured_content", None)
+        if isinstance(structured, dict):
+            return structured
+        for content in getattr(result, "content", []):
+            text = getattr(content, "text", None)
+            if isinstance(text, str):
+                try:
+                    parsed = json.loads(text)
+                except (TypeError, ValueError):
+                    continue
+                if isinstance(parsed, dict):
+                    return parsed
+        raise RuntimeError("Parallel Search MCP returned no structured search result")
+
+    async def __call__(self, context: AgentContext, config: AgentConfig, **kwargs: Any) -> str:
+        payload = {"objective": self.objective, "search_queries": self.search_queries}
+        try:
+            async with Client(_PARALLEL_MCP_URL) as client:
+                self._validate_hosted_tools(await client.list_tools())
+                result = await client.call_tool("web_search", payload)
+        except Exception as exc:
+            logger.error("Parallel Search MCP request failed: %s", exc)
+            return f"Error: {exc}"
+
+        if getattr(result, "is_error", False):
+            raise RuntimeError("Parallel Search MCP returned a tool error")
+        data = self._result_data(result)
+        raw_results = data.get("results", data.get("search_results", []))
+        if not isinstance(raw_results, list):
+            raise RuntimeError("Parallel Search MCP returned malformed search results")
+
+        sources = []
+        for item in raw_results:
+            if not isinstance(item, dict) or not isinstance(item.get("url"), str) or not item["url"]:
+                continue
+            excerpts = item.get("excerpts")
+            if not isinstance(excerpts, list) or not all(isinstance(excerpt, str) for excerpt in excerpts):
+                raise RuntimeError("Parallel Search MCP returned malformed excerpts")
+            sources.append(
+                SourceData(
+                    number=0,
+                    title=item.get("title"),
+                    url=item["url"],
+                    snippet="\n".join(excerpts),
+                )
+            )
+
+        search_config = WebSearchConfig(**kwargs)
+        sources = sources[: search_config.max_results]
+        sources = _rearrange_sources(sources, starting_number=len(context.sources) + 1)
+        for source in sources:
+            context.sources[source.url] = source
+        query = self.search_queries[0]
+        search_result = SearchResult(query=query, citations=sources, timestamp=datetime.now())
+        context.searches.append(search_result)
+        context.searches_used += 1
+
+        formatted = f"Search Objective: {self.objective}\nSearch Queries: {', '.join(self.search_queries)}\n\n"
+        formatted += "Search Results (titles, links, excerpts):\n\n"
+        for source in sources:
+            formatted += f"{source}\n{source.snippet}\n\n"
+        return formatted

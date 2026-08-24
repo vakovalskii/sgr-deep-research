@@ -14,7 +14,7 @@ from sgr_agent_core.tools.generate_plan_tool import GeneratePlanTool
 from sgr_agent_core.tools.reasoning_tool import ReasoningTool
 from sgr_agent_core.tools.run_command_tool import RunCommandTool
 from sgr_agent_core.tools.skill_tool import SkillTool
-from sgr_agent_core.tools.web_search_tool import WebSearchConfig, WebSearchTool
+from sgr_agent_core.tools.web_search_tool import ParallelWebSearchTool, WebSearchConfig, WebSearchTool
 
 __all__ = [
     # Base classes
@@ -37,6 +37,7 @@ __all__ = [
     "ReasoningTool",
     "RunCommandTool",
     "SkillTool",
+    "ParallelWebSearchTool",
     "WebSearchConfig",
     "WebSearchTool",
 ]
