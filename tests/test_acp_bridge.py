@@ -87,7 +87,8 @@ async def test_acp_new_session_advertises_agent_and_model_options():
     assert set(options) == {"agent", "model"}
 
     agent_opt = options["agent"]
-    assert agent_opt.category == "_agent"
+    # SGR's agent selector maps to none of ACP's semantic categories.
+    assert agent_opt.category is None
     assert agent_opt.current_value == "sgr_agent"
     assert [o.value for o in agent_opt.options] == ["sgr_agent", "tool_calling_agent"]
 
