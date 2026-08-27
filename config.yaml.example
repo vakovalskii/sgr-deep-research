@@ -76,7 +76,7 @@ tools:
   # Search tools: configure search provider and API keys per tool
   # (can be overridden per-agent in tools list)
   web_search_tool:
-    engine: "tavily"  # Search engine: "tavily" (default), "brave", or "perplexity"
+    engine: "tavily"  # Search engine: "tavily" (default), "brave", "perplexity", or "serply"
     api_key: "your-search-api-key-here"  # API key for the selected engine
     # api_base_url: "https://custom-url"  # Optional, uses engine default
     max_results: 12

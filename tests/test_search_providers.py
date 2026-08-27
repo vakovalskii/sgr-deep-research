@@ -133,6 +133,102 @@ class TestPerplexitySearchHandler:
             assert len(sources) == 1
 
 
+class TestSerplySearchHandler:
+    """Tests for Serply search handler function."""
+
+    def test_convert_serply_response(self):
+        from sgr_agent_core.tools.web_search_tool import _convert_serply_response
+
+        response = {
+            "results": [
+                {"title": "Page 1", "link": "https://example.com/page1", "description": "First result"},
+                {"title": "Page 2", "link": "https://example.com/page2", "description": "Second result"},
+                {"title": "No URL", "link": "", "description": "Skipped"},
+            ],
+        }
+        sources = _convert_serply_response(response)
+        assert len(sources) == 2
+        assert sources[0].url == "https://example.com/page1"
+        assert sources[0].title == "Page 1"
+        assert sources[0].snippet == "First result"
+        assert sources[1].snippet == "Second result"
+
+    def test_serply_engine_is_registered(self):
+        from sgr_agent_core.tools.web_search_tool import (
+            _ENGINE_DEFAULT_URLS,
+            _ENGINE_HANDLERS,
+            WebSearchConfig,
+            _search_serply,
+        )
+
+        assert WebSearchConfig(engine="serply", api_key="key").engine == "serply"
+        assert _ENGINE_HANDLERS["serply"] is _search_serply
+        assert _ENGINE_DEFAULT_URLS["serply"] == "https://api.serply.io/v1/search/"
+
+    @pytest.mark.asyncio
+    async def test_search_calls_serply_api(self):
+        from sgr_agent_core.tools.web_search_tool import _search_serply
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            "results": [
+                {"title": "Result", "link": "https://example.com", "description": "desc"},
+            ],
+        }
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("sgr_agent_core.tools.web_search_tool.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=mock_response)
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client_cls.return_value = mock_client
+
+            sources = await _search_serply(
+                api_key="test-key",
+                api_base_url="https://api.serply.io/v1/search/",
+                query="test query",
+                max_results=5,
+                offset=0,
+            )
+
+            mock_client.get.assert_called_once()
+            call_kwargs = mock_client.get.call_args
+            assert call_kwargs.args[0] == "https://api.serply.io/v1/search/"
+            assert call_kwargs.kwargs["headers"]["X-Api-Key"] == "test-key"
+            assert call_kwargs.kwargs["params"] == {"q": "test query", "num": 5}
+            assert len(sources) == 1
+            assert sources[0].url == "https://example.com"
+
+    @pytest.mark.asyncio
+    async def test_search_passes_offset_as_start_and_caps_page_size(self):
+        from sgr_agent_core.tools.web_search_tool import _search_serply
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"results": []}
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("sgr_agent_core.tools.web_search_tool.httpx.AsyncClient") as mock_client_cls:
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(return_value=mock_response)
+            mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+            mock_client.__aexit__ = AsyncMock(return_value=False)
+            mock_client_cls.return_value = mock_client
+
+            sources = await _search_serply(
+                api_key="test-key",
+                api_base_url="https://api.serply.io/v1/search/",
+                query="test query",
+                max_results=20,
+                offset=10,
+            )
+
+            params = mock_client.get.call_args.kwargs["params"]
+            assert params["num"] == 10
+            assert params["start"] == 10
+            assert sources == []
+
+
 class TestTavilySearchHandler:
     """Tests for Tavily search handler function."""
 

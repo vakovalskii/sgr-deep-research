@@ -21,11 +21,13 @@ logger.setLevel(logging.INFO)
 _TAVILY_DEFAULT_URL = "https://api.tavily.com"
 _BRAVE_DEFAULT_URL = "https://api.search.brave.com/res/v1/web/search"
 _PERPLEXITY_DEFAULT_URL = "https://api.perplexity.ai/search"
+_SERPLY_DEFAULT_URL = "https://api.serply.io/v1/search/"
 
 _ENGINE_DEFAULT_URLS: dict[str, str] = {
     "tavily": _TAVILY_DEFAULT_URL,
     "brave": _BRAVE_DEFAULT_URL,
     "perplexity": _PERPLEXITY_DEFAULT_URL,
+    "serply": _SERPLY_DEFAULT_URL,
 }
 
 
@@ -35,7 +37,7 @@ class WebSearchConfig(BaseModel, extra="allow"):
     Defines the search engine, credentials, and limits.
     """
 
-    engine: Literal["tavily", "brave", "perplexity"] = Field(
+    engine: Literal["tavily", "brave", "perplexity", "serply"] = Field(
         default="tavily",
         description="Search engine provider to use",
     )
@@ -217,6 +219,65 @@ async def _search_perplexity(
 
 
 # ---------------------------------------------------------------------------
+# Serply
+# ---------------------------------------------------------------------------
+
+
+def _convert_serply_response(response: dict) -> list[SourceData]:
+    """Convert Serply Search API response to SourceData list."""
+    sources = []
+    for i, result in enumerate(response.get("results", [])):
+        url = result.get("link", "")
+        if not url:
+            continue
+        source = SourceData(
+            number=i,
+            title=result.get("title", ""),
+            url=url,
+            snippet=result.get("description", ""),
+        )
+        sources.append(source)
+    return sources
+
+
+async def _search_serply(
+    api_key: str,
+    api_base_url: str,
+    query: str,
+    max_results: int,
+    offset: int,
+) -> list[SourceData]:
+    """Perform search via Serply Search API (https://serply.io/docs).
+
+    Native offset support via ``start``; one page holds at most 10 results.
+    """
+    capped = min(max_results, 10)
+    logger.info(f"Serply search: '{query}' (max_results={capped}, offset={offset})")
+
+    headers = {
+        "Accept": "application/json",
+        "X-Api-Key": api_key,
+    }
+    params: dict[str, Any] = {"q": query, "num": capped}
+    if offset > 0:
+        params["start"] = offset
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(api_base_url, headers=headers, params=params, timeout=30.0)
+            response.raise_for_status()
+            data = response.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Serply API HTTP error: {e.response.status_code} - {e.response.text[:200]}")
+        raise
+    except httpx.RequestError as e:
+        logger.error(f"Serply API request error: {e}")
+        raise
+
+    return _convert_serply_response(data)
+
+
+# ---------------------------------------------------------------------------
 # Engine handler mapping
 # ---------------------------------------------------------------------------
 
@@ -226,6 +287,7 @@ _ENGINE_HANDLERS: dict[str, SearchHandler] = {
     "tavily": _search_tavily,
     "brave": _search_brave,
     "perplexity": _search_perplexity,
+    "serply": _search_serply,
 }
 
 
@@ -249,7 +311,7 @@ def _rearrange_sources(sources: list[SourceData], starting_number: int = 1) -> l
 class WebSearchTool(BaseTool):
     """Search the web for real-time information about any topic.
 
-    Single search tool with pluggable engine (tavily, brave, perplexity).
+    Single search tool with pluggable engine (tavily, brave, perplexity, serply).
     Engine is selected via tool config ``engine`` field.
 
     Use this tool when you need up-to-date information that might not be
