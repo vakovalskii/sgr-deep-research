@@ -1,14 +1,13 @@
 """Main entry point for SGR Agent Core API server."""
 
 import logging
+import sys
 from pathlib import Path
 
-import uvicorn
 import yaml
 
+from sgr_agent_core._optional import MissingDependencyError, require
 from sgr_agent_core.agent_config import GlobalConfig
-from sgr_agent_core.server.app import app
-from sgr_agent_core.server.settings import ServerConfig, setup_logging
 
 logger = logging.getLogger(__name__)
 
@@ -46,15 +45,38 @@ def load_config(config_file: str, agents_file: str | None = None) -> GlobalConfi
     return config
 
 
-def main():
+def _run() -> None:
     """Start FastAPI server.
 
     Config from ServerConfig (env + CLI, see settings.py).
+
+    fastapi and uvicorn ship in the ``[server]`` extra, so they are imported
+    here rather than at module scope: importing this module (``load_config`` is
+    reused by the ACP entrypoint) must not require the server extra.
     """
+    uvicorn = require("uvicorn", feature="The 'sgr' HTTP server")
+    require("fastapi", feature="The 'sgr' HTTP server")
+
+    from sgr_agent_core.server.app import app
+    from sgr_agent_core.server.settings import ServerConfig, setup_logging
+
     server_config = ServerConfig()
     setup_logging(server_config.logging_file)
     load_config(server_config.config_file, server_config.agents_file)
     uvicorn.run(app, host=server_config.host, port=server_config.port, log_level="info")
+
+
+def main():
+    """Console entrypoint for ``sgr``.
+
+    Reports a missing ``[server]`` extra as a plain message instead of a
+    traceback.
+    """
+    try:
+        _run()
+    except MissingDependencyError as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1) from exc
 
 
 if __name__ == "__main__":

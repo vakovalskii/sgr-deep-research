@@ -12,9 +12,45 @@ Install the core package:
 pip install sgr-agent-core
 ```
 
-### Installation with Optional Dependencies
+The core install is deliberately small: it brings only what every SGR agent
+needs — `pydantic`, `pydantic-settings`, `PyYAML`, `openai` and `httpx`. That is
+enough to define agents and tools, load YAML configuration, use skills, and run
+the `sgrsh` interactive CLI.
 
-For development, you can install with additional dependencies:
+### Integration Extras
+
+Everything beyond the core ships as an extra. Install only the ones you use:
+
+| Extra | Adds | Install it when you need |
+|---|---|---|
+| `mcp` | `fastmcp`, `jambo` | MCP servers under the `mcp:` config key |
+| `search` | `tavily-python` | `WebSearchTool` with `engine: tavily`, or `ExtractPageContentTool` |
+| `server` | `fastapi`, `uvicorn` | The `sgr` HTTP API server |
+| `acp` | `agent-client-protocol` | The `sgracp` Agent Client Protocol stdio server |
+| `langfuse` | `langfuse` | `langfuse.enabled: true` observability |
+| `all` | all of the above | The full feature set |
+
+```bash
+# Just what you need
+pip install "sgr-agent-core[mcp,search]"
+
+# Everything — matches the dependency set installed by default up to 0.7.1
+pip install "sgr-agent-core[all]"
+```
+
+The `brave` and `perplexity` search engines of `WebSearchTool` talk plain HTTP,
+so they work on the core install without the `search` extra.
+
+If a feature's extra is missing, SGR Agent Core says so and names the command to
+fix it rather than failing with a bare `ModuleNotFoundError`:
+
+```console
+$ sgr --config-file config.yaml
+The 'sgr' HTTP server requires the optional 'uvicorn' package, which is not installed.
+Install it with:  pip install 'sgr-agent-core[server]'
+```
+
+### Development Extras
 
 ```bash
 # Install with development dependencies
@@ -27,10 +63,14 @@ pip install sgr-agent-core[tests]
 pip install sgr-agent-core[docs]
 ```
 
+`dev` and `tests` include `all`, so the test suite always runs against the full
+feature set.
+
 ### Requirements
 
 * Python 3.11 or higher
 * OpenAI-compatible LLM API key (or local model endpoint)
+* pip 21.2 or newer (the `all`, `tests` and `dev` extras reference other extras)
 
 ### Verify Installation
 

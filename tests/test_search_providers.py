@@ -166,7 +166,8 @@ class TestTavilySearchHandler:
             }
         )
 
-        with patch("sgr_agent_core.tools.extract_page_content_tool.AsyncTavilyClient", return_value=mock_client):
+        # tavily is imported lazily inside _extract, so patch it at the source module.
+        with patch("tavily.AsyncTavilyClient", return_value=mock_client):
             sources = await ExtractPageContentTool._extract(config, urls=["https://example.com/page"])
 
             assert len(sources) == 1

@@ -1,18 +1,33 @@
 import logging
-from typing import Type
+from typing import Any, Type
 
-from fastmcp import Client
-from fastmcp.mcp_config import MCPConfig
-from jambo import SchemaConverter
 from pydantic import create_model
 
+from sgr_agent_core._optional import require
+from sgr_agent_core.mcp_config import MCPConfig
+
 logger = logging.getLogger(__name__)
+
+_MCP_FEATURE = "Connecting to MCP servers"
 
 
 class MCP2ToolConverter:
     @staticmethod
     def _to_CamelCase(name: str) -> str:
         return name.replace("_", " ").title().replace(" ", "")
+
+    @staticmethod
+    def _build_client(config: MCPConfig):
+        """Build a fastmcp client from the core MCPConfig.
+
+        fastmcp is an optional dependency, so it is imported here rather
+        than at module scope; callers that never configure MCP servers
+        never touch it.
+        """
+        fastmcp = require("fastmcp", feature=_MCP_FEATURE)
+        FastMCPConfig = require("fastmcp.mcp_config", feature=_MCP_FEATURE).MCPConfig
+        raw: dict[str, Any] = config if isinstance(config, dict) else config.model_dump(exclude_none=True)
+        return fastmcp.Client(FastMCPConfig.model_validate(raw))
 
     @classmethod
     async def build_tools_from_mcp(cls, config: MCPConfig):
@@ -22,7 +37,8 @@ class MCP2ToolConverter:
         if not config.mcpServers:
             return tools
 
-        client: Client = Client(config)
+        SchemaConverter = require("jambo", feature=_MCP_FEATURE).SchemaConverter
+        client = cls._build_client(config)
         async with client:
             mcp_tools = await client.list_tools()
 

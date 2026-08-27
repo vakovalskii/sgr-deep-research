@@ -10,6 +10,10 @@ Install the library via pip:
 pip install sgr-agent-core
 ```
 
+That is all the examples below need. Integrations — MCP, Tavily search, the HTTP
+server, ACP, Langfuse — are opt-in extras; see the
+[Installation Guide](../getting-started/installation.md) for the full list.
+
 ### **Example 1: Creating an Agent Directly**
 
 The conventional way to create an agent is through the class constructor.</br>

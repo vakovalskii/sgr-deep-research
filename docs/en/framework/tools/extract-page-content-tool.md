@@ -5,6 +5,8 @@
 
 Extracts full detailed content from specific web pages using Tavily Extract API.
 
+Needs the `search` extra: `pip install "sgr-agent-core[search]"`.
+
 **Parameters**
 
 - `reasoning` (str) - why extract these specific pages

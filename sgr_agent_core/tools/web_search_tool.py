@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Any, Awaitable, Callable, Literal
 
 import httpx
 from pydantic import BaseModel, Field
-from tavily import AsyncTavilyClient
 
+from sgr_agent_core._optional import require
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.models import SearchResult, SourceData
 
@@ -86,6 +86,8 @@ async def _search_tavily(
     fetch_count = max_results + offset if offset > 0 else max_results
     logger.info(f"Tavily search: '{query}' (max_results={max_results}, offset={offset})")
 
+    # tavily ships in the [search] extra; brave/perplexity need only httpx.
+    AsyncTavilyClient = require("tavily", feature="WebSearchTool with engine='tavily'").AsyncTavilyClient
     client = AsyncTavilyClient(api_key=api_key, api_base_url=api_base_url)
     response = await client.search(query=query, max_results=fetch_count, include_raw_content=False)
 

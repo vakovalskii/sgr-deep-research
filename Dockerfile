@@ -23,8 +23,10 @@ COPY pyproject.toml MANIFEST.in README.md LICENSE ./
 COPY sgr_agent_core/ ./sgr_agent_core/
 COPY examples/ ./examples/
 
-# Install package from root
-RUN pip install --no-cache-dir .
+# Install package from root. The core install is minimal, so pull the [examples]
+# extra: it chains to [all] (MCP, search, server, ACP, Langfuse) and adds what
+# the bundled examples/ need on top.
+RUN pip install --no-cache-dir ".[examples]"
 
 # Remove build dependencies
 RUN apt purge -y build-essential \

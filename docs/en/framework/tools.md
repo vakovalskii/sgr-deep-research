@@ -490,6 +490,12 @@ This ensures agents complete tasks within configured limits.
 
 Tools can also be created from MCP (Model Context Protocol) servers. These tools inherit from `MCPBaseTool` and are automatically generated from MCP server schemas.
 
+MCP support ships in the `mcp` extra:
+
+```bash
+pip install "sgr-agent-core[mcp]"
+```
+
 **Source:** [sgr_agent_core/base_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/base_tool.py) (MCPBaseTool class)
 
 **Configuration:**

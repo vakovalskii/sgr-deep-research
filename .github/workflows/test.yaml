@@ -32,3 +32,63 @@ jobs:
 
       - name: Create report
         run: coverage report
+
+  test-core-only:
+    name: Core-only install stays lean
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # Guards the extras split: a stray top-level import of an optional
+      # package would silently put every heavy dependency back into the
+      # default install.
+      - name: Install without extras
+        run: pip install .
+
+      - name: Assert optional packages are absent
+        shell: bash
+        run: |
+          cd "$(mktemp -d)"
+          python - <<'PY'
+          import importlib.util
+
+          optional = ["fastmcp", "jambo", "tavily", "fastapi", "uvicorn", "acp", "langfuse", "rank_bm25"]
+          present = [name for name in optional if importlib.util.find_spec(name) is not None]
+          assert not present, f"optional packages installed by the core profile: {present}"
+          print("core profile clean")
+          PY
+
+      - name: Assert the package works without them
+        shell: bash
+        run: |
+          cd "$(mktemp -d)"
+          python - <<'PY'
+          import sys
+
+          import sgr_agent_core
+          from sgr_agent_core import AgentConfig, AgentFactory, ToolRegistry, WebSearchTool
+
+          loaded = [m for m in ("fastmcp", "tavily", "fastapi", "uvicorn", "acp", "langfuse") if m in sys.modules]
+          assert not loaded, f"optional packages imported at module scope: {loaded}"
+          assert AgentConfig().mcp.mcpServers == {}
+          assert ToolRegistry.get(WebSearchTool.tool_name) is WebSearchTool
+          assert AgentFactory is not None
+          print("core-only import OK", sgr_agent_core.__version__)
+          PY
+
+      - name: Assert entrypoints name the missing extra
+        shell: bash
+        run: |
+          cd "$(mktemp -d)"
+          for cmd in sgr sgracp; do
+            output=$("$cmd" --help 2>&1 || true)
+            echo "$output"
+            echo "$output" | grep -q "sgr-agent-core\[" || {
+              echo "::error::$cmd did not report the missing extra"
+              exit 1
+            }
+          done

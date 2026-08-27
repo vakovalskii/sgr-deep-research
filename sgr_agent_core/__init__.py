@@ -29,6 +29,7 @@ from sgr_agent_core.agent_factory import AgentFactory
 from sgr_agent_core.agents import *  # noqa: F403
 from sgr_agent_core.base_agent import BaseAgent
 from sgr_agent_core.base_tool import BaseTool, MCPBaseTool, SystemBaseTool
+from sgr_agent_core.mcp_config import MCPConfig
 from sgr_agent_core.models import (
     AgentContext,
     AgentStatesEnum,
@@ -80,6 +81,7 @@ __all__ = [
     "PromptsConfig",
     "ExecutionConfig",
     "GlobalConfig",
+    "MCPConfig",
     # Next step tools
     "NextStepToolStub",
     "NextStepToolsBuilder",

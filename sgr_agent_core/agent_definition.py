@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import Any, Literal, Self, Union
 
 import yaml
-from fastmcp.mcp_config import MCPConfig
 from pydantic import BaseModel, Field, FilePath, ImportString, computed_field, field_validator, model_validator
 
+from sgr_agent_core.mcp_config import MCPConfig
 from sgr_agent_core.skills.config import SkillsConfig
 
 logger = logging.getLogger(__name__)

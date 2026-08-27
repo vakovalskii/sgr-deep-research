@@ -7,7 +7,13 @@ LLM автоматически записывается как трейс с в�
 
 ## Быстрый старт
 
-Добавьте блок `langfuse` в ваш `config.yaml`:
+Установите extra `langfuse`:
+
+```bash
+pip install "sgr-agent-core[langfuse]"
+```
+
+Затем добавьте блок `langfuse` в ваш `config.yaml`:
 
 ```yaml
 langfuse:
@@ -165,8 +171,8 @@ langfuse: true
 
 Если в конфигурации `langfuse.enabled: true`, но пакет `langfuse` не установлен или недоступен
 для импорта, при старте агента выбрасывается `LangfuseImportError` с понятным текстом.
-Установите зависимости проекта (`langfuse` входит в основные зависимости SGR Agent Core) либо
-отключите Langfuse, установив `langfuse.enabled` в `false`.
+`langfuse` — опциональная зависимость: установите её командой `pip install "sgr-agent-core[langfuse]"`
+либо отключите Langfuse, установив `langfuse.enabled` в `false`.
 
 ### "Authentication error: Langfuse client initialized without public_key"
 
