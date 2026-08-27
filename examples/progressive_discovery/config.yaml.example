@@ -19,7 +19,7 @@ execution:
 
 tools:
   web_search_tool:
-    engine: "tavily"  # Search engine: "tavily" (default), "brave", or "perplexity"
+    engine: "tavily"  # Search engine: "tavily" (default), "brave", "perplexity", or "serply"
     api_key: "your-search-api-key-here"
     max_results: 10
     max_searches: 4

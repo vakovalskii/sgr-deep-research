@@ -232,7 +232,7 @@ An agent with full parameter override:
 # Search tool settings are configured globally in tools: section
 tools:
   web_search_tool:
-    engine: "tavily"           # "tavily" (default), "brave", or "perplexity"
+    engine: "tavily"           # "tavily" (default), "brave", "perplexity", or "serply"
     api_key: "your-tavily-api-key"
     max_results: 15
     max_searches: 6

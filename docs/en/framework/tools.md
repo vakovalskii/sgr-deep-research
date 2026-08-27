@@ -318,7 +318,7 @@ No specific configuration required.
 **Type:** Auxiliary Tool
 **Source:** [sgr_agent_core/tools/web_search_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/tools/web_search_tool.py)
 
-Searches the web for real-time information using a pluggable search engine (Tavily, Brave, or Perplexity).
+Searches the web for real-time information using a pluggable search engine (Tavily, Brave, Perplexity, or Serply).
 
 **Parameters:**
 
@@ -328,7 +328,7 @@ Searches the web for real-time information using a pluggable search engine (Tavi
 
 **Behavior:**
 
-- Executes search via the configured engine (Tavily, Brave, or Perplexity)
+- Executes search via the configured engine (Tavily, Brave, Perplexity, or Serply)
 - Adds found sources to `context.sources` dictionary
 - Creates SearchResult and appends to `context.searches`
 - Increments `context.searches_used`
@@ -353,7 +353,7 @@ Search settings are configured per-tool in the `tools:` section (not in a global
 ```yaml
 tools:
   web_search_tool:
-    engine: "tavily"           # Search engine: "tavily" (default), "brave", or "perplexity"
+    engine: "tavily"           # Search engine: "tavily" (default), "brave", "perplexity", or "serply"
     api_key: "your-api-key"    # Required: API key for the selected engine
     # api_base_url: "https://custom-url"  # Optional, uses engine default
     max_searches: 4            # Maximum number of search operations
@@ -361,6 +361,8 @@ tools:
 ```
 
 After reaching `max_searches`, the tool is automatically removed from available tools.
+
+The `serply` engine calls the Serply Search API at `https://api.serply.io/v1/search/` with the key in the `X-Api-Key` header and passes `offset` natively as `start` (10 results per page). Get a key at [serply.io](https://serply.io); request and response fields are documented at [serply.io/docs](https://serply.io/docs).
 
 **Example:**
 

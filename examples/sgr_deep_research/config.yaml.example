@@ -34,7 +34,7 @@ tools:
   # Core tools (base_class defaults to sgr_agent_core.tools.*)
   # Search tools: configure Tavily API key and search limits per tool
   web_search_tool:
-    engine: "tavily"  # Search engine: "tavily" (default), "brave", or "perplexity"
+    engine: "tavily"  # Search engine: "tavily" (default), "brave", "perplexity", or "serply"
     api_key: "your-tavily-api-key-here"  # API key for the selected engine
     max_searches: 4  # Max search operations
     max_results: 10  # Max results in search query
