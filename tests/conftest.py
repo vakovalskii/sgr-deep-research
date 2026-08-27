@@ -76,6 +76,27 @@ def create_test_agent(
     )
 
 
+@pytest.fixture(autouse=True)
+def reset_global_config():
+    """Give every test a clean GlobalConfig singleton.
+
+    GlobalConfig caches its instance on the class, so a test that builds one
+    with non-default settings leaks it into every test that runs afterwards.
+    TestLangfuseConfiguration, for instance, leaves ``langfuse.enabled`` set to
+    True, which makes later AgentFactory tests take the Langfuse code path: they
+    fail outright where the optional ``langfuse`` package is absent, and pass
+    for the wrong reason where it is installed. Resetting on both sides keeps
+    the suite order-independent.
+    """
+    from sgr_agent_core.agent_config import GlobalConfig
+
+    GlobalConfig._instance = None
+    GlobalConfig._initialized = False
+    yield
+    GlobalConfig._instance = None
+    GlobalConfig._initialized = False
+
+
 @pytest.fixture
 def mock_openai_client():
     """Create a mock OpenAI client."""
