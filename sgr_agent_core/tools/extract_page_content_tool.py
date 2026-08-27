@@ -4,8 +4,8 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field, model_validator
-from tavily import AsyncTavilyClient
 
+from sgr_agent_core._optional import require
 from sgr_agent_core.base_tool import BaseTool
 from sgr_agent_core.models import SourceData
 
@@ -61,6 +61,7 @@ class ExtractPageContentTool(BaseTool):
         """Extract full content from URLs via Tavily Extract API."""
         logger.info(f"Tavily extract: {len(urls)} URLs")
 
+        AsyncTavilyClient = require("tavily", feature="ExtractPageContentTool").AsyncTavilyClient
         client = AsyncTavilyClient(api_key=config.tavily_api_key, api_base_url=config.tavily_api_base_url)
         response = await client.extract(urls=urls)
 

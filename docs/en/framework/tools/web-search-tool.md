@@ -5,6 +5,9 @@
 
 Searches the web for real-time information using Tavily Search API.
 
+The `tavily` engine needs the `search` extra (`pip install "sgr-agent-core[search]"`).
+The `brave` and `perplexity` engines talk plain HTTP and work on the core install.
+
 **Parameters**
 
 - `reasoning` (str) - why this search is needed and what to expect

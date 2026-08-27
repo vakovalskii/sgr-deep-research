@@ -184,11 +184,15 @@ class SGRACPBridge:
     def _build_config_options(self, sess: _ACPSession) -> list[SessionConfigOptionSelect]:
         """Expose the active agent and model as ACP session config selectors so
         clients let the user switch them at runtime."""
+        # No `category`: ACP narrowed it to a fixed set of literals ("mode",
+        # "model", "model_config", "thought_level") plus a free-form dict, and
+        # invalid values are silently salvaged to None by the schema. The agent
+        # selector is SGR-specific and maps to none of them, so it stays
+        # uncategorised -- which is what clients already saw.
         agent_option = SessionConfigOptionSelect(
             id=self._AGENT_CONFIG_ID,
             name="Agent",
             description="SGR agent definition to run",
-            category="_agent",
             type="select",
             current_value=sess.agent_name,
             options=[SessionConfigSelectOption(value=name, name=name) for name in self._agent_names()],

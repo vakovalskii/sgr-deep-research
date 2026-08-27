@@ -10,6 +10,7 @@ import httpx
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
+from sgr_agent_core._optional import install_hint
 from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.agent_definition import AgentDefinition, LLMConfig, ToolDefinition
 from sgr_agent_core.base_agent import BaseAgent
@@ -66,8 +67,9 @@ class AgentFactory:
                 return LangfuseAsyncOpenAI(**client_kwargs)
             except ImportError as exc:
                 raise LangfuseImportError(
-                    "Langfuse is enabled in config but the 'langfuse' package could not be imported. "
-                    "Install dependencies or set langfuse.enabled to false in configuration."
+                    "Langfuse is enabled in config but the 'langfuse' package could not be imported.\n"
+                    f"Install it with:  {install_hint('langfuse')}\n"
+                    "Or set langfuse.enabled to false in configuration."
                 ) from exc
 
         return AsyncOpenAI(**client_kwargs)

@@ -68,6 +68,15 @@ If you want to use SGR Agent Core as a Python library (framework):
 pip install sgr-agent-core
 ```
 
+The core install is small on purpose — `pydantic`, `PyYAML`, `openai`, `httpx` —
+enough to define agents and tools and run them through `sgrsh`. Integrations are
+opt-in extras: `mcp`, `search` (Tavily), `server` (the `sgr` HTTP API), `acp`,
+`langfuse`. To get the full set:
+
+```bash
+pip install "sgr-agent-core[all]"
+```
+
 See the [Installation Guide](https://vamplabai.github.io/sgr-agent-core/getting-started/installation/) for detailed instructions and the [Using as Library](https://vamplabai.github.io/sgr-agent-core/framework/first-steps/) guide to get started.
 
 ### Running Research Agents
@@ -84,7 +93,8 @@ cp examples/sgr_deep_research/config.yaml.example examples/sgr_deep_research/con
 # - tools.extract_page_content_tool.tavily_api_key: Your Tavily API key (optional)
 ```
 
-2. Run the API server using the `sgr` utility:
+2. Run the API server using the `sgr` utility (needs the `server` extra, plus
+   `search` for the Tavily-backed research tools):
 
 ```bash
 sgr --config-file examples/sgr_deep_research/config.yaml

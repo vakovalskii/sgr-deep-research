@@ -6,7 +6,13 @@ is automatically recorded as a trace with inputs, outputs, latency, and token us
 
 ## Quick Start
 
-Add the `langfuse` block to your `config.yaml`:
+Install the `langfuse` extra:
+
+```bash
+pip install "sgr-agent-core[langfuse]"
+```
+
+Then add the `langfuse` block to your `config.yaml`:
 
 ```yaml
 langfuse:
@@ -163,8 +169,8 @@ langfuse: true
 
 If `langfuse.enabled` is `true` in configuration but the `langfuse` package is not installed
 or cannot be imported, agent startup raises `LangfuseImportError` with a clear message.
-Install the project dependencies (`langfuse` is a core dependency of SGR Agent Core) or
-disable Langfuse by setting `langfuse.enabled` to `false`.
+`langfuse` is an optional dependency: install it with `pip install "sgr-agent-core[langfuse]"`,
+or disable Langfuse by setting `langfuse.enabled` to `false`.
 
 ### "Authentication error: Langfuse client initialized without public_key"
 

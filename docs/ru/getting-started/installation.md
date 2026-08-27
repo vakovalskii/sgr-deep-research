@@ -12,9 +12,46 @@ SGR Agent Core можно установить через pip или Docker. В�
 pip install sgr-agent-core
 ```
 
-### Установка с дополнительными зависимостями
+Базовая установка намеренно лёгкая: она тянет только то, что нужно любому
+SGR-агенту — `pydantic`, `pydantic-settings`, `PyYAML`, `openai` и `httpx`.
+Этого достаточно, чтобы описывать агентов и инструменты, загружать YAML-конфиг,
+использовать скиллы и запускать интерактивный CLI `sgrsh`.
 
-Для разработки можно установить с дополнительными зависимостями:
+### Опциональные интеграции (extras)
+
+Всё, что выходит за пределы ядра, поставляется отдельными extras.
+Ставьте только то, чем пользуетесь:
+
+| Extra | Что добавляет | Когда нужен |
+|---|---|---|
+| `mcp` | `fastmcp`, `jambo` | MCP-серверы в секции `mcp:` конфигурации |
+| `search` | `tavily-python` | `WebSearchTool` с `engine: tavily` или `ExtractPageContentTool` |
+| `server` | `fastapi`, `uvicorn` | HTTP API-сервер `sgr` |
+| `acp` | `agent-client-protocol` | Stdio-сервер `sgracp` (Agent Client Protocol) |
+| `langfuse` | `langfuse` | Наблюдаемость при `langfuse.enabled: true` |
+| `all` | всё перечисленное | Полный набор возможностей |
+
+```bash
+# Только нужное
+pip install "sgr-agent-core[mcp,search]"
+
+# Всё сразу — набор зависимостей, который ставился по умолчанию до 0.7.1
+pip install "sgr-agent-core[all]"
+```
+
+Движки `brave` и `perplexity` в `WebSearchTool` работают по обычному HTTP,
+поэтому доступны в базовой установке без extra `search`.
+
+Если extra для нужной функции не установлен, SGR Agent Core сообщит об этом и
+подскажет команду установки вместо голого `ModuleNotFoundError`:
+
+```console
+$ sgr --config-file config.yaml
+The 'sgr' HTTP server requires the optional 'uvicorn' package, which is not installed.
+Install it with:  pip install 'sgr-agent-core[server]'
+```
+
+### Extras для разработки
 
 ```bash
 # Установка с зависимостями для разработки
@@ -27,10 +64,14 @@ pip install sgr-agent-core[tests]
 pip install sgr-agent-core[docs]
 ```
 
+`dev` и `tests` включают в себя `all`, поэтому тесты всегда прогоняются на
+полном наборе возможностей.
+
 ### Требования
 
 * Python 3.11 или выше
 * API ключ для LLM, совместимого с OpenAI (или эндпоинт локальной модели)
+* pip 21.2 или новее (extras `all`, `tests` и `dev` ссылаются на другие extras)
 
 ### Проверка установки
 

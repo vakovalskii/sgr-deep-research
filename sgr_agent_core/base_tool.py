@@ -4,13 +4,14 @@ import json
 import logging
 from typing import TYPE_CHECKING, ClassVar, Self, TypeVar
 
-from fastmcp import Client
 from pydantic import BaseModel
 
 from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.services.registry import ToolRegistry
 
 if TYPE_CHECKING:
+    from fastmcp import Client
+
     from sgr_agent_core.agent_definition import AgentConfig
     from sgr_agent_core.models import AgentContext
 

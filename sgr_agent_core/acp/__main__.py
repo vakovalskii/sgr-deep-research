@@ -8,9 +8,7 @@ import importlib
 import logging
 import sys
 
-from acp import run_agent
-
-from sgr_agent_core.acp.bridge import SGRACPBridge
+from sgr_agent_core._optional import MissingDependencyError, require
 from sgr_agent_core.agent_config import GlobalConfig
 from sgr_agent_core.server.__main__ import load_config
 
@@ -41,8 +39,14 @@ def _preload_agent_modules_from_config() -> None:
                 logger.warning("Could not import agent module %s for %s", mod_name, ad.name)
 
 
-def main() -> None:
-    """Load YAML config and run an ACP agent on stdio."""
+def _run() -> None:
+    """Load YAML config and run an ACP agent on stdio.
+
+    ``agent-client-protocol`` ships in the ``[acp]`` extra, so it and the
+    bridge that builds on it are imported here rather than at module scope.
+    """
+    run_agent = require("acp", feature="The 'sgracp' ACP stdio server").run_agent
+
     parser = argparse.ArgumentParser(prog="sgracp", description="SGR Agent Core (Agent Client Protocol, stdio)")
     parser.add_argument(
         "--config",
@@ -62,8 +66,24 @@ def main() -> None:
     _preload_agent_modules_from_config()
     cfg = GlobalConfig()
     default_name = cfg.acp.agent if cfg.acp else None
+
+    from sgr_agent_core.acp.bridge import SGRACPBridge
+
     bridge = SGRACPBridge(default_agent_name=default_name)
     asyncio.run(run_agent(bridge))
+
+
+def main() -> None:
+    """Console entrypoint for ``sgracp``.
+
+    Reports a missing ``[acp]`` extra as a plain message instead of a
+    traceback.
+    """
+    try:
+        _run()
+    except MissingDependencyError as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(1) from exc
 
 
 if __name__ == "__main__":

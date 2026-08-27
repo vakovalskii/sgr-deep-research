@@ -537,6 +537,12 @@ agents:
 
 Тулы также могут создаваться из MCP (Model Context Protocol) серверов. Эти тулы наследуются от `MCPBaseTool` и автоматически генерируются из схем MCP-сервера.
 
+Поддержка MCP поставляется в extra `mcp`:
+
+```bash
+pip install "sgr-agent-core[mcp]"
+```
+
 **Исходный код:** [sgr_agent_core/base_tool.py](https://github.com/vamplabAI/sgr-agent-core/blob/main/sgr_agent_core/base_tool.py) (класс MCPBaseTool)
 
 **Конфигурация:**
